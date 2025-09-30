@@ -1,0 +1,172 @@
+// template
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Tabs } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import React, { useEffect, useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StyleSheet, View, Text } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
+import { theme } from "../constants/theme";
+import { NewsStoreProvider, useNewsStore } from "../store/newsStore";
+import DropBanner from "../components/DropBanner";
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
+
+function RootLayoutNav() {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: theme.colors.card,
+          borderTopColor: theme.colors.border,
+          borderTopWidth: 1,
+        },
+        tabBarActiveTintColor: theme.colors.activeCyan,
+        tabBarInactiveTintColor: theme.colors.inactiveGray,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="upcoming"
+        options={{
+          title: "Upcoming",
+          tabBarIcon: ({ color, size }) => (
+            <Calendar size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "News",
+          tabBarIcon: ({ color, size }) => (
+            <Newspaper size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="instant"
+        options={{
+          title: "Instant",
+          tabBarIcon: ({ color, size }) => (
+            <Zap size={size} color={theme.colors.neutral} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="twitter"
+        options={{
+          title: "TRACKER",
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ fontSize: size, color, fontWeight: 'bold' }}>𝕏</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="watchlist"
+        options={{
+          title: "Watchlist",
+          tabBarIcon: ({ color, size }) => (
+            <Star size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="article/[id]"
+        options={{
+          // Hide article subpage from tab bar
+          href: null,
+        }}
+      />
+    </Tabs>
+  );
+}
+
+function AppWithBanners() {
+  const { getActiveBanners, dismissBanner, setHighlightedAlert } = useNewsStore();
+  const activeBanners = getActiveBanners();
+  
+  const handleBannerNavigate = (alertId: string) => {
+    // Set the alert to be highlighted in the Instant tab
+    if (setHighlightedAlert) {
+      setHighlightedAlert(alertId);
+    }
+  };
+  
+  return (
+    <>
+      <RootLayoutNav />
+      <DropBanner 
+        alerts={activeBanners} 
+        onDismiss={dismissBanner} 
+        onNavigate={handleBannerNavigate}
+      />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    const prepare = async () => {
+      try {
+        // Immediate hydration for web, small delay for native
+        const delay = typeof window !== 'undefined' ? 0 : 100;
+        
+        timeoutId = setTimeout(() => {
+          setIsReady(true);
+          SplashScreen.hideAsync().catch(console.warn);
+        }, delay);
+      } catch (e) {
+        console.warn('RootLayout preparation error:', e);
+        setIsReady(true);
+        SplashScreen.hideAsync().catch(console.warn);
+      }
+    };
+
+    prepare();
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  if (!isReady) {
+    return <View style={styles.loading} />;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <NewsStoreProvider>
+          <GestureHandlerRootView style={styles.container}>
+            <AppWithBanners />
+          </GestureHandlerRootView>
+        </NewsStoreProvider>
+      </SafeAreaProvider>
+    </QueryClientProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  container: {
+    flex: 1,
+  },
+});
