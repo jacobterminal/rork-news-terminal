@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import '../theme/util.css';
+import NotificationCenter from './NotificationCenter';
 
 export default function Topbar() {
+  const [open, setOpen] = useState(false);
+  const toggle = useCallback(() => setOpen(v => !v), []);
+
   return (
-    <div className="topbar row-compact" role="banner" data-testid="xterm-topbar">
+    <div className="topbar row-compact" role="banner" data-testid="xterm-topbar" style={{ position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span className="label" style={{ letterSpacing: 1.2 }} aria-label="RORK X Terminal">RORK • X TERMINAL</span>
       </div>
@@ -15,10 +19,11 @@ export default function Topbar() {
           <span className="label" aria-hidden="true">+</span>
           <span className="value">K</span>
         </span>
-        <span className="pill focusable" tabIndex={0} role="button" aria-label="Notifications">
+        <button className="pill focusable" tabIndex={0} aria-label="Notifications" onClick={toggle} style={{ background: 'transparent', cursor: 'pointer' }}>
           <span className="label">Bell</span>
-        </span>
+        </button>
       </div>
+      <NotificationCenter open={open} onClose={() => setOpen(false)} />
     </div>
   );
 }

@@ -1,28 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import '../theme/util.css';
+import { xShim } from '../shim/xShim';
+import SavedTrackers from './SavedTrackers';
+import AlertBuilder from './AlertBuilder';
 
 export default function Sidebar() {
+  const [trackers, setTrackers] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const all = await xShim.listTrackers();
+        setTrackers(all || []);
+      } catch (e) {
+        console.error('[Sidebar] listTrackers error', e);
+      }
+    })();
+  }, []);
+
   return (
     <div className="sidebar list-scroll" role="complementary" aria-label="Navigation" data-testid="xterm-sidebar" style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 12, padding: 12 }}>
-      <section className="panel" style={{ padding: 8 }}>
-        <div className="row-compact" style={{ justifyContent: 'space-between' }}>
-          <span className="label">Saved Trackers</span>
-          <span className="pill focusable" tabIndex={0} role="button" aria-label="New Tracker">New</span>
-        </div>
-        <div className="label" style={{ padding: '8px 8px 12px', borderTop: '1px solid var(--xt-border-subtle)', marginTop: 8 }}>
-          Empty
-        </div>
-      </section>
-
-      <section className="panel" style={{ padding: 8 }}>
-        <div className="row-compact" style={{ justifyContent: 'space-between' }}>
-          <span className="label">Alerts</span>
-          <span className="pill focusable" tabIndex={0} role="button" aria-label="New Alert">New</span>
-        </div>
-        <div className="label" style={{ padding: '8px 8px 12px', borderTop: '1px solid var(--xt-border-subtle)', marginTop: 8 }}>
-          Empty
-        </div>
-      </section>
+      <SavedTrackers trackers={trackers} />
+      <AlertBuilder />
     </div>
   );
 }
