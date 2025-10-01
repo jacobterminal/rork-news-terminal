@@ -1,0 +1,16 @@
+[
+  {
+    "id": "a1",
+    "name": "High-like NVDA mentions",
+    "criteria": { "query": "$NVDA", "lang": "en", "has": ["media"], "minLikes": 200 },
+    "throttleSec": 600,
+    "enabled": true
+  },
+  {
+    "id": "a2",
+    "name": "Policy chatter",
+    "criteria": { "query": "FOMC OR Powell", "lang": "en", "has": ["links"], "minLikes": 50 },
+    "throttleSec": 900,
+    "enabled": false
+  }
+]

@@ -1,0 +1,6 @@
+[
+  { "id": "t_nvda", "title": "$NVDA chips", "query": "$NVDA OR Nvidia AI chips H200 H100 Blackwell", "type": "cashtag", "pinned": true },
+  { "id": "t_fomc", "title": "FOMC rates", "query": "FOMC OR fed funds OR dot plot OR Powell", "type": "keyword", "pinned": true },
+  { "id": "t_ceos", "title": "Tech CEOs", "query": "from:sundarpichai OR from:satyanadella OR from:tim_cook OR from:elonmusk", "type": "account", "pinned": true },
+  { "id": "t_ai", "title": "AI infra", "query": "AI datacenter OR inference OR fine-tune OR LLM serving", "type": "keyword", "pinned": false }
+]
