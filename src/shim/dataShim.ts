@@ -17,12 +17,59 @@ export interface DataShim {
   getXStreamDemo():Promise<XPost[]>; // demo for Boards
 }
 
+const resolveOHLCV = async (s: string): Promise<Candle[]> => {
+  const sym = s.toUpperCase();
+  if (sym === 'AAPL') {
+    return (await import('../mock/AAPL_1d.json')).default as Candle[];
+  }
+  throw new Error(`No mock OHLCV available for ${s}`);
+};
+
+const resolveBook = async (s: string): Promise<BookSnapshot> => {
+  const sym = s.toUpperCase();
+  if (sym === 'AAPL') {
+    return (await import('../mock/AAPL_book.json')).default as BookSnapshot;
+  }
+  throw new Error(`No mock book available for ${s}`);
+};
+
+const resolveTape = async (s: string): Promise<Print[]> => {
+  const sym = s.toUpperCase();
+  if (sym === 'AAPL') {
+    return (await import('../mock/AAPL_tape.json')).default as Print[];
+  }
+  throw new Error(`No mock tape available for ${s}`);
+};
+
+const resolveOptions = async (s: string, e: 'near' = 'near'): Promise<OptionRow[]> => {
+  const sym = s.toUpperCase();
+  if (sym === 'AAPL' && e === 'near') {
+    return (await import('../mock/AAPL_chain_near.json')).default as OptionRow[];
+  }
+  throw new Error(`No mock options available for ${s} ${e}`);
+};
+
 export const LocalShim: DataShim = {
-  async getQuote(s){ const q=(await import('../mock/quotes.json')).default as Record<string, Quote>; return q[s]; },
-  async getOHLCV(s){ return (await import(`../mock/${s}_1d.json`)).default as Candle[]; },
-  async getBook(s){ return (await import(`../mock/${s}_book.json`)).default as BookSnapshot; },
-  async getTape(s){ return (await import(`../mock/${s}_tape.json`)).default as Print[]; },
-  async getOptions(s, e='near'){ return (await import(`../mock/${s}_chain_${e}.json`)).default as OptionRow[]; },
-  async getNews(){ return (await import('../mock/news.json')).default as NewsItem[]; },
-  async getXStreamDemo(){ return (await import('../mock/x_demo_stream.json')).default as XPost[]; },
+  async getQuote(s){
+    const q=(await import('../mock/quotes.json')).default as Record<string, Quote>;
+    return q[s];
+  },
+  async getOHLCV(s){
+    return resolveOHLCV(s);
+  },
+  async getBook(s){
+    return resolveBook(s);
+  },
+  async getTape(s){
+    return resolveTape(s);
+  },
+  async getOptions(s, e='near'){
+    return resolveOptions(s, e as 'near');
+  },
+  async getNews(){
+    return (await import('../mock/news.json')).default as NewsItem[];
+  },
+  async getXStreamDemo(){
+    return (await import('../mock/x_demo_stream.json')).default as XPost[];
+  },
 };
