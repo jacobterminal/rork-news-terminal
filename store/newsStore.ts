@@ -244,73 +244,33 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
 
   // Handle hydration and load initial data
   useEffect(() => {
-    let isCancelled = false;
+    // Set hydrated immediately to prevent timeout
+    setIsHydrated(true);
     
-    const initializeData = async () => {
+    // Load data asynchronously without blocking
+    const initializeData = () => {
       try {
-        // Clear any potentially corrupted localStorage data on first load
-        try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            // Clear specific keys that might be corrupted
-            const keysToCheck = Object.values(STORAGE_KEYS);
-            for (const key of keysToCheck) {
-              try {
-                const item = localStorage.getItem(key);
-                if (item && typeof item === 'string') {
-                  // Test if it's valid JSON
-                  JSON.parse(item);
-                }
-              } catch (parseError) {
-                console.warn(`Clearing corrupted localStorage key: ${key}`);
-                localStorage.removeItem(key);
-              }
-            }
-          }
-        } catch (clearError) {
-          console.warn('Failed to validate localStorage on init:', clearError);
-        }
+        const mockData = generateMockData();
         
-        // Set hydrated immediately to prevent timeout
-        setIsHydrated(true);
-        
-        // Load mock data with error handling
-        try {
-          const mockData = generateMockData();
+        if (mockData && typeof mockData === 'object') {
+          setState(prev => ({
+            ...prev,
+            feedItems: Array.isArray(mockData.feedItems) ? mockData.feedItems : [],
+            earnings: Array.isArray(mockData.earnings) ? mockData.earnings : [],
+            econ: Array.isArray(mockData.econ) ? mockData.econ : [],
+          }));
           
-          if (!isCancelled && mockData && typeof mockData === 'object') {
-            setState(prev => ({
-              ...prev,
-              feedItems: Array.isArray(mockData.feedItems) ? mockData.feedItems : [],
-              earnings: Array.isArray(mockData.earnings) ? mockData.earnings : [],
-              econ: Array.isArray(mockData.econ) ? mockData.econ : [],
-            }));
-            
-            // Load critical alerts
-            if (Array.isArray(mockData.critical_alerts)) {
-              setCriticalAlerts(mockData.critical_alerts);
-            }
+          if (Array.isArray(mockData.critical_alerts)) {
+            setCriticalAlerts(mockData.critical_alerts);
           }
-        } catch (error) {
-          console.error('Failed to load mock data:', error);
         }
-        
       } catch (error) {
-        console.error('Failed to initialize data:', error);
-        if (!isCancelled) {
-          setIsHydrated(true); // Still set hydrated to prevent infinite loading
-        }
+        console.error('Failed to load mock data:', error);
       }
     };
     
-    // Use setTimeout for better mobile compatibility
-    const timer = setTimeout(() => {
-      initializeData();
-    }, 0);
-    
-    return () => {
-      isCancelled = true;
-      clearTimeout(timer);
-    };
+    // Initialize immediately
+    initializeData();
   }, []);
 
   // Load persisted data after hydration
