@@ -1,10 +1,20 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import '../theme/util.css';
 import NotificationCenter from './NotificationCenter';
 
 export default function Topbar() {
   const [open, setOpen] = useState(false);
   const toggle = useCallback(() => setOpen(v => !v), []);
+
+  useEffect(() => {
+    const onExternal = (e) => setOpen(true);
+    window.addEventListener('xterm:toggle-notifications', onExternal);
+    window.addEventListener('xterm:open-notifications', onExternal);
+    return () => {
+      window.removeEventListener('xterm:toggle-notifications', onExternal);
+      window.removeEventListener('xterm:open-notifications', onExternal);
+    };
+  }, []);
 
   return (
     <div className="topbar row-compact" role="banner" data-testid="xterm-topbar" style={{ position: 'relative' }}>

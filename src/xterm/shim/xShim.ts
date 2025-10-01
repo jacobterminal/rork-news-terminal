@@ -1,3 +1,15 @@
+/*
+Swap-to-API plan (ServerXShim):
+- Replace LocalXShim with ServerXShim that calls your backend endpoints.
+- Endpoints:
+  GET /x/trackers -> Tracker[]
+  GET /x/stream?trackerId=... -> XPost[] (or upgrade to WS for live stream proxy to X Filtered Stream)
+  GET /x/alerts -> Alert[]
+- Webhook receiver (X Account Activity API) -> persist to DB -> push to UI (SSE/WS).
+- AI upgrade: replace summarizeTweet/opinionTag with GPT-5 Thinking. Instruction:
+  "Summarize the tweet to one or two sentences max in neutral, precise language. Output an opinion tag (bullish/bearish/neutral) and a confidence 0–1. Never exceed 2 sentences."
+*/
+
 export type XMetrics = {
   like?: number;
   rt?: number;
