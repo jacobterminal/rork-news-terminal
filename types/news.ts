@@ -151,6 +151,7 @@ export interface AppState {
   filters: AppFilters;
   notifications: FeedItem[];
   critical_alerts: CriticalAlert[];
+  savedArticles: FeedItem[];
   ui: {
     tickerDrawer: {
       open: boolean;
