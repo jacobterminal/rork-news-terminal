@@ -10,6 +10,10 @@ Swap-to-API plan (ServerXShim):
   "Summarize the tweet to one or two sentences max in neutral, precise language. Output an opinion tag (bullish/bearish/neutral) and a confidence 0–1. Never exceed 2 sentences."
 */
 
+import trackersData from '../mock/trackers.json';
+import postsData from '../mock/posts.json';
+import alertsData from '../mock/alerts.json';
+
 export type XMetrics = {
   like?: number;
   rt?: number;
@@ -57,13 +61,6 @@ export interface XShim {
   listAlerts(): Promise<Alert[]>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const trackersData = require('../mock/trackers.json') as Tracker[];
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const postsData = require('../mock/posts.json') as Record<string, XPost[]>;
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const alertsData = require('../mock/alerts.json') as Alert[];
-
 export class LocalXShim implements XShim {
   async listTrackers(): Promise<Tracker[]> {
     try {
@@ -78,7 +75,8 @@ export class LocalXShim implements XShim {
   async listPosts(trackerId: string): Promise<XPost[]> {
     try {
       console.log('[LocalXShim] listPosts()', trackerId);
-      const items = (postsData?.[trackerId] ?? []) as XPost[];
+      const data = postsData as Record<string, XPost[]>;
+      const items = data[trackerId] ?? [];
       return Promise.resolve(items);
     } catch (e) {
       console.error('[LocalXShim] listPosts error', e);
