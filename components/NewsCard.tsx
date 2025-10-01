@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet, TouchableOpacity } from 'react-nativ
 import { router } from 'expo-router';
 import { Bookmark } from 'lucide-react-native';
 import { FeedItem } from '../types/news';
-import { theme, sentimentConfig, impactColors } from '../constants/theme';
+import { theme, sentimentConfig } from '../constants/theme';
 import { useNewsStore } from '../store/newsStore';
 
 interface NewsCardProps {
@@ -17,30 +17,12 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
   
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getSentimentIcon = () => {
-    const config = sentimentConfig[item.classification.sentiment];
-    return config.icon;
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   const getSentimentColor = () => {
     const config = sentimentConfig[item.classification.sentiment];
     return config.color;
-  };
-
-  const getImpactColor = () => {
-    return impactColors[item.classification.impact];
-  };
-
-  const getRumorBadgeColor = () => {
-    switch (item.classification.rumor_level) {
-      case 'Confirmed': return theme.colors.bullish;
-      case 'Likely': return theme.colors.neutral;
-      case 'Rumor': return theme.colors.bearish;
-      default: return theme.colors.textDim;
-    }
   };
 
   const handleCardPress = () => {
@@ -60,208 +42,191 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
     }
   };
 
+  const sentiment = item.classification.sentiment;
+  const sentimentLabel = sentiment === 'Bullish' ? 'BULL' : sentiment === 'Bearish' ? 'BEAR' : 'NEUT';
+  const sentimentColor = getSentimentColor();
+
   return (
-    <Pressable style={styles.card} onPress={handleCardPress}>
-      {/* Header Row */}
-      <View style={styles.header}>
-        <View style={styles.sourceRow}>
-          <View style={[styles.sourceBadge, { backgroundColor: theme.colors.border }]}>
-            <Text style={styles.sourceText}>{item.source.name}</Text>
+    <Pressable style={styles.tableRow} onPress={handleCardPress}>
+      <View style={styles.rowContent}>
+        <View style={styles.topLine}>
+          <Text style={styles.timeText}>{formatTime(item.published_at)}</Text>
+          <Text style={styles.sourceText}>{item.source.name}</Text>
+          <View style={[styles.pill, { borderColor: sentimentColor }]}>
+            <Text style={[styles.pillText, { color: sentimentColor }]}>
+              {sentimentLabel} {item.classification.confidence}%
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.saveIcon} onPress={handleSave}>
+            <Bookmark 
+              size={14} 
+              color={isArticleSaved(item.id) ? theme.colors.neutral : theme.colors.textDim}
+              fill={isArticleSaved(item.id) ? theme.colors.neutral : 'none'}
+            />
+          </TouchableOpacity>
+        </View>
+        
+        <Text style={styles.headline} numberOfLines={2}>
+          {item.title}
+        </Text>
+        
+        {item.tickers.length > 0 && (
+          <View style={styles.tickersRow}>
+            {item.tickers.slice(0, 5).map((ticker) => (
+              <Pressable
+                key={ticker}
+                onPress={() => {
+                  if (!ticker?.trim() || ticker.length > 10) return;
+                  onTickerPress?.(ticker.trim());
+                }}
+              >
+                <Text style={styles.tickerTag}>{ticker}</Text>
+              </Pressable>
+            ))}
+            {item.tickers.length > 5 && (
+              <Text style={styles.moreText}>+{item.tickers.length - 5}</Text>
+            )}
+          </View>
+        )}
+        
+        <Text style={styles.summary} numberOfLines={1}>
+          {item.classification.summary_15}
+        </Text>
+        
+        <View style={styles.dataGrid}>
+          <View style={styles.dataCol}>
+            <Text style={styles.dataLabel}>RUMOR</Text>
+            <Text style={[
+              styles.dataValue,
+              item.classification.rumor_level === 'Confirmed' && styles.confirmedText,
+              item.classification.rumor_level === 'Rumor' && styles.rumorText,
+            ]}>
+              {item.classification.rumor_level.toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.dataCol}>
+            <Text style={styles.dataLabel}>IMPACT</Text>
+            <Text style={[
+              styles.dataValue,
+              item.classification.impact === 'High' && styles.highImpact,
+              item.classification.impact === 'Medium' && styles.mediumImpact,
+            ]}>
+              {item.classification.impact.toUpperCase()}
+            </Text>
           </View>
           {showTweet && (
-            <View style={[styles.tweetBadge, { backgroundColor: theme.colors.info }]}>
-              <Text style={styles.tweetText}>TWEET</Text>
+            <View style={styles.dataCol}>
+              <Text style={styles.dataLabel}>SOURCE</Text>
+              <Text style={[styles.dataValue, { color: theme.colors.info }]}>TWEET</Text>
             </View>
           )}
-          <View style={[styles.rumorBadge, { backgroundColor: getRumorBadgeColor() }]}>
-            <Text style={styles.rumorText}>{item.classification.rumor_level.toUpperCase()}</Text>
-          </View>
         </View>
-        <Text style={styles.timestamp}>{formatTime(item.published_at)}</Text>
-      </View>
-
-      {/* Title */}
-      <Text style={styles.title} numberOfLines={2}>
-        {item.title}
-      </Text>
-
-      {/* Ticker Chips */}
-      {item.tickers.length > 0 && (
-        <View style={styles.tickerRow}>
-          {item.tickers.slice(0, 4).map((ticker) => (
-            <Pressable
-              key={ticker}
-              style={styles.tickerChip}
-              onPress={() => {
-                if (!ticker?.trim() || ticker.length > 10) return;
-                onTickerPress?.(ticker.trim());
-              }}
-            >
-              <Text style={styles.tickerText}>{ticker}</Text>
-            </Pressable>
-          ))}
-          {item.tickers.length > 4 && (
-            <Text style={styles.moreText}>+{item.tickers.length - 4}</Text>
-          )}
-        </View>
-      )}
-
-      {/* AI Summary */}
-      <Text style={styles.summary} numberOfLines={1}>
-        {item.classification.summary_15}
-      </Text>
-
-      {/* Bottom Row */}
-      <View style={styles.bottomRow}>
-        <View style={styles.indicators}>
-          <View style={styles.sentimentContainer}>
-            <Text style={[styles.sentimentIcon, { color: getSentimentColor() }]}>
-              {getSentimentIcon()}
-            </Text>
-            <Text style={styles.confidence}>{item.classification.confidence}%</Text>
-          </View>
-          <View style={[styles.impactDot, { backgroundColor: getImpactColor() }]} />
-          <Text style={styles.impactText}>{item.classification.impact}</Text>
-        </View>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Bookmark 
-            size={16} 
-            color={isArticleSaved(item.id) ? '#FFD700' : theme.colors.textDim}
-            fill={isArticleSaved(item.id) ? '#FFD700' : 'none'}
-          />
-        </TouchableOpacity>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 8,
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+  tableRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: theme.colors.bg,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sourceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  rowContent: {
     gap: 6,
   },
-  sourceBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+  topLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timeText: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: theme.colors.textDim,
+    minWidth: 40,
   },
   sourceText: {
-    color: theme.colors.text,
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  tweetBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  tweetText: {
-    color: theme.colors.text,
     fontSize: 10,
-    fontWeight: '600',
-  },
-  rumorBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  rumorText: {
-    color: theme.colors.text,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  timestamp: {
-    color: theme.colors.textDim,
-    fontSize: 11,
-  },
-  title: {
-    color: theme.colors.text,
-    fontSize: 14,
-    fontWeight: '700' as const,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  tickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-    flexWrap: 'wrap',
-  },
-  tickerChip: {
-    backgroundColor: theme.colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  tickerText: {
-    color: theme.colors.info,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  moreText: {
-    color: theme.colors.textDim,
-    fontSize: 11,
-  },
-  summary: {
     color: theme.colors.textSecondary,
+    textTransform: 'uppercase' as const,
+    flex: 1,
+  },
+  pill: {
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
+  pillText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    fontFamily: 'monospace',
+    letterSpacing: 0.5,
+  },
+  saveIcon: {
+    padding: 2,
+  },
+  headline: {
     fontSize: 12,
-    fontStyle: 'normal' as const,
-    marginBottom: 12,
+    fontWeight: '600' as const,
+    color: theme.colors.text,
     lineHeight: 16,
   },
-  bottomRow: {
+  tickersRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
     alignItems: 'center',
+  },
+  tickerTag: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: theme.colors.bullish,
+    fontWeight: '700' as const,
+  },
+  moreText: {
+    fontSize: 9,
+    color: theme.colors.textDim,
+  },
+  summary: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    lineHeight: 14,
+  },
+  dataGrid: {
+    flexDirection: 'row',
+    gap: 16,
     marginTop: 4,
   },
-  indicators: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  dataCol: {
+    minWidth: 60,
   },
-  sentimentContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sentimentIcon: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  confidence: {
+  dataLabel: {
+    fontSize: 8,
     color: theme.colors.textDim,
-    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
-  impactDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  dataValue: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: theme.colors.textSecondary,
+    fontWeight: '600' as const,
   },
-  impactText: {
-    color: theme.colors.textDim,
-    fontSize: 11,
-    textTransform: 'uppercase',
+  confirmedText: {
+    color: theme.colors.bullish,
   },
-  saveButton: {
-    padding: 4,
+  rumorText: {
+    color: theme.colors.bearish,
+  },
+  highImpact: {
+    color: theme.colors.bearish,
+  },
+  mediumImpact: {
+    color: theme.colors.neutral,
   },
 });

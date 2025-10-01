@@ -64,7 +64,6 @@ export default function NewsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Reserved space for drop banners and search */}
       <View style={styles.reservedSpace}>
         <AlertSearchBar 
           onTickerPress={handleTickerPress}
@@ -77,7 +76,6 @@ export default function NewsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Critical Alerts at the top of the scroll content */}
         {recentCriticalAlerts.length > 0 && (
           <CriticalAlerts 
             alerts={recentCriticalAlerts}
@@ -86,7 +84,6 @@ export default function NewsScreen() {
         )}
         <View style={styles.sectionHeader} testID="watchlist-based-news-header">
           <Text style={styles.sectionTitle}>WATCHLIST BASED NEWS</Text>
-          <View style={styles.sectionDivider} />
         </View>
         {watchlist.length === 0 ? (
           <View style={styles.emptyState}>
@@ -101,13 +98,15 @@ export default function NewsScreen() {
             </Text>
           </View>
         ) : (
-          watchlistFeedItems.map((item) => (
-            <NewsCard
-              key={item.id}
-              item={item}
-              onTickerPress={handleTickerPress}
-            />
-          ))
+          <View style={styles.newsTable}>
+            {watchlistFeedItems.map((item) => (
+              <NewsCard
+                key={item.id}
+                item={item}
+                onTickerPress={handleTickerPress}
+              />
+            ))}
+          </View>
         )}
       </ScrollView>
       
@@ -139,21 +138,24 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
   },
   sectionHeader: {
-    paddingHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.sectionTitle,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 16,
+    marginTop: 8,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: '#ffb020',
-    letterSpacing: 0.5,
+    color: theme.colors.sectionTitle,
+    letterSpacing: 1,
     textTransform: 'uppercase' as const,
   },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginTop: 8,
+  newsTable: {
+    backgroundColor: theme.colors.bg,
   },
   emptyState: {
     flex: 1,

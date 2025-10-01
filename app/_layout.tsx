@@ -22,15 +22,23 @@ function RootLayoutNav() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.colors.card,
+          backgroundColor: theme.colors.bg,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
+          elevation: 0,
+          shadowOpacity: 0,
+          height: 50,
         },
         tabBarActiveTintColor: theme.colors.activeCyan,
         tabBarInactiveTintColor: theme.colors.inactiveGray,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
+          fontFamily: 'monospace',
+          letterSpacing: 0.5,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
       }}
     >
