@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { xShim } from '../shim/xShim';
 import Column from '../components/Column';
+import TickerTape from '../components/TickerTape';
 import '../theme/tokens.css';
 import '../theme/util.css';
 
@@ -62,6 +63,12 @@ export default function Boards() {
   const cols = useMemo(() => (trackers || []).slice(0, 3), [trackers]);
   const { loading: loadingP, map } = usePostsMap(cols.map(t => t.id));
 
+  const allPosts = useMemo(() => {
+    const posts = [];
+    Object.values(map).forEach(arr => posts.push(...arr));
+    return posts.sort((a, b) => b.ts - a.ts);
+  }, [map]);
+
   if (loadingT || loadingP) {
     return (
       <div style={{ padding: 16 }}>
@@ -71,10 +78,13 @@ export default function Boards() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: 8 }}>
-      {cols.map(t => (
-        <Column key={t.id} tracker={t} posts={map[t.id] || []} />
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <TickerTape posts={allPosts} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: 8, flex: 1, overflow: 'auto' }}>
+        {cols.map(t => (
+          <Column key={t.id} tracker={t} posts={map[t.id] || []} />
+        ))}
+      </div>
     </div>
   );
 }
