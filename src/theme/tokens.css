@@ -1,0 +1,29 @@
+:root{
+  /* Surfaces */
+  --bg:#0c0f12;        /* page */
+  --panel:#111419;     /* cards/panels */
+  --panel-elev:#151a20;
+  --muted:#1b2129;
+  --border:#252b33;
+
+  /* Text */
+  --txt:#e7edf2;
+  --txt-dim:#aab5bf;
+  --txt-mute:#7a8794;
+
+  /* Accents */
+  --up:#00d07e;
+  --down:#ff3b3b;
+  --warn:#f0b429;
+  --info:#3aa0ff;
+  --focus:#6aa7ff;
+
+  /* Radii & gaps */
+  --r-xs:4px; --r-sm:6px; --r-md:8px;
+  --g-xs:4px; --g-sm:6px; --g-md:8px; --g-lg:12px;
+
+  /* Shadows */
+  --sh-1:0 0 0 1px var(--border),0 6px 14px rgba(0,0,0,.35);
+}
+html,body{background:var(--bg);color:var(--txt);font-variant-numeric:tabular-nums}
+*{box-sizing:border-box}
