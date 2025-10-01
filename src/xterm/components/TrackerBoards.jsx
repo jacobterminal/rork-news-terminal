@@ -1,58 +1,77 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import '../theme/util.css';
 import { xShim } from '../shim/xShim';
-import TrackerColumnWithKeyboard from './TrackerColumnWithKeyboard';
+import TrackerColumn from './TrackerColumn';
+import '../theme/tokens.css';
+import '../theme/util.css';
 
-export default function TrackerBoards() {
-  const [trackers, setTrackers] = useState([]);
-  const [postsMap, setPostsMap] = useState({});
+function usePinnedTrackers() {
   const [loading, setLoading] = useState(true);
+  const [trackers, setTrackers] = useState([]);
 
   useEffect(() => {
-    console.log('[TrackerBoards] mounting');
     let mounted = true;
     (async () => {
       try {
-        const t = await xShim.listTrackers();
-        console.log('[TrackerBoards] trackers', t);
-        if (!mounted) return;
-        setTrackers(t);
-        const pinned = t.filter(x => x.pinned);
-        const map = {};
-        for (const tr of pinned) {
-          const posts = await xShim.listPosts(tr.id);
-          map[tr.id] = posts;
-        }
-        if (!mounted) return;
-        setPostsMap(map);
-        setLoading(false);
+        const all = await xShim.listTrackers();
+        const pinned = (all || []).filter(t => t.pinned);
+        if (mounted) setTrackers(pinned);
       } catch (e) {
-        console.error('[TrackerBoards] error', e);
-        if (!mounted) return;
-        setLoading(false);
+        console.error('[TrackerBoards] listTrackers error', e);
+      } finally {
+        if (mounted) setLoading(false);
       }
     })();
     return () => { mounted = false; };
   }, []);
 
-  const pinnedTrackers = useMemo(() => trackers.filter(t => t.pinned), [trackers]);
+  return { loading, trackers };
+}
 
-  if (loading) {
-    return (
-      <div style={{ padding: 16, color: 'var(--xt-text-dim)' }}>Loading trackers...</div>
-    );
-  }
+function usePostsMap(trackerIds) {
+  const [loading, setLoading] = useState(true);
+  const [map, setMap] = useState({});
 
-  if (pinnedTrackers.length === 0) {
+  useEffect(() => {
+    let mounted = true;
+    async function run() {
+      setLoading(true);
+      const result = {};
+      try {
+        await Promise.all((trackerIds || []).map(async (id) => {
+          const posts = await xShim.listPosts(id);
+          result[id] = posts || [];
+        }));
+      } catch (e) {
+        console.error('[TrackerBoards] listPosts batch error', e);
+      } finally {
+        if (mounted) setMap(result);
+        if (mounted) setLoading(false);
+      }
+    }
+    if (trackerIds && trackerIds.length) run(); else { setMap({}); setLoading(false); }
+    return () => { mounted = false; };
+  }, [JSON.stringify(trackerIds)]);
+
+  return { loading, map };
+}
+
+export default function TrackerBoards() {
+  const { loading: loadingT, trackers } = usePinnedTrackers();
+  const cols = useMemo(() => (trackers || []).slice(0, 3), [trackers]);
+  const { loading: loadingP, map } = usePostsMap(cols.map(t => t.id));
+
+  if (loadingT || loadingP) {
     return (
-      <div style={{ padding: 16, color: 'var(--xt-text-dim)' }}>No pinned trackers found.</div>
+      <div style={{ padding: 16 }}>
+        <div className="label">Loading…</div>
+      </div>
     );
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, padding: 12, height: '100%', overflow: 'auto' }}>
-      {pinnedTrackers.map(tracker => (
-        <TrackerColumnWithKeyboard key={tracker.id} tracker={tracker} posts={postsMap[tracker.id] || []} />
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: 8 }}>
+      {cols.map(t => (
+        <TrackerColumn key={t.id} tracker={t} posts={map[t.id] || []} />
       ))}
     </div>
   );

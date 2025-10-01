@@ -1,73 +1,99 @@
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo } from 'react';
+import '../theme/tokens.css';
 import '../theme/util.css';
-import { summarizeTweet, opinionTag } from '../lib/ai';
-import { notify } from '../lib/notify';
 
-export default function TrackerPostRow({ post, selected = false, forceExpandKey, forceSaveKey }) {
-  const [expanded, setExpanded] = useState(false);
-  const summary = useMemo(() => summarizeTweet(post?.text || ''), [post?.text]);
-  const opin = useMemo(() => opinionTag(post?.text || ''), [post?.text]);
+function formatTime(ts) {
+  const d = new Date(ts);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
 
-  const onToggle = useCallback(() => setExpanded(v => !v), []);
-  const onSave = useCallback(() => {
-    notify({
-      title: 'Saved post',
-      body: `${post.author} ${post.handle}: ${summary}`,
-    });
-  }, [post, summary]);
+function extractCashtags(text) {
+  const matches = text.match(/\$[A-Z]{1,5}\b/g);
+  return matches ? [...new Set(matches)] : [];
+}
 
-  useEffect(() => {
-    const sentences = (summary || '').split(/[.!?]+/).filter(Boolean);
-    if (sentences.length > 2) {
-      console.warn('[QA] Summary exceeds 2 sentences', { id: post?.id, sentences: sentences.length });
-    }
-  }, [summary, post?.id]);
+function computeSentiment(post) {
+  const text = (post.text || '').toLowerCase();
+  const bullish = ['bullish', 'up', 'gain', 'rally', 'strong', 'buy', 'positive', 'growth'];
+  const bearish = ['bearish', 'down', 'drop', 'fall', 'weak', 'sell', 'negative', 'decline'];
+  
+  let score = 0;
+  bullish.forEach(w => { if (text.includes(w)) score += 1; });
+  bearish.forEach(w => { if (text.includes(w)) score -= 1; });
+  
+  if (score > 0) return { label: 'Bullish', color: 'var(--xt-up)', pct: Math.min(100, 50 + score * 10) };
+  if (score < 0) return { label: 'Bearish', color: 'var(--xt-down)', pct: Math.min(100, 50 + Math.abs(score) * 10) };
+  return { label: 'Neutral', color: 'var(--xt-text-dim)', pct: 50 };
+}
 
-  useEffect(() => {
-    if (forceExpandKey !== undefined) {
-      setExpanded(v => !v);
-    }
-  }, [forceExpandKey]);
+function computeImpact(metrics) {
+  const total = (metrics?.like || 0) + (metrics?.rt || 0);
+  if (total > 1000) return { label: 'High', color: 'var(--xt-down)' };
+  if (total > 300) return { label: 'Medium', color: 'var(--xt-warn)' };
+  return { label: 'Low', color: 'var(--xt-text-dim)' };
+}
 
-  useEffect(() => {
-    if (forceSaveKey !== undefined) {
-      onSave();
-    }
-  }, [forceSaveKey, onSave]);
+export default function TrackerPostRow({ post }) {
+  const time = useMemo(() => formatTime(post.ts), [post.ts]);
+  const cashtags = useMemo(() => extractCashtags(post.text), [post.text]);
+  const sentiment = useMemo(() => computeSentiment(post), [post]);
+  const impact = useMemo(() => computeImpact(post.metrics), [post.metrics]);
 
-  const likes = post?.metrics?.like ?? 0;
-  const rts = post?.metrics?.rt ?? 0;
-  const links = post?.links?.length ?? 0;
-  const media = post?.media?.length ?? 0;
-
-  const opinColor = opin.label === 'bullish' ? 'var(--xt-up)' : opin.label === 'bearish' ? 'var(--xt-down)' : 'var(--xt-text-dim)';
-  const opinIcon = opin.label === 'bullish' ? '🟩' : opin.label === 'bearish' ? '🟥' : '⚪';
-
-  const time = new Date(post.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const preview = post.text.length > 80 ? post.text.slice(0, 80) + '…' : post.text;
 
   return (
-    <div className="table-row focusable" tabIndex={0} style={{ gridTemplateColumns: '50px 1fr', columnGap: 8, padding: '6px 8px', borderBottom: '1px solid var(--xt-border-subtle)', background: selected ? 'rgba(255,255,255,0.04)' : 'transparent' }}>
-      <div className="label" style={{ color: 'var(--xt-text-dim)', fontFamily: 'monospace', fontSize: 10 }}>{time}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="value" style={{ fontWeight: 600, fontSize: 11 }}>{post.author}</span>
-          <span className="label" style={{ fontSize: 10 }}>{post.handle}</span>
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: '48px 1fr auto', 
+      gap: 8, 
+      padding: '8px 12px', 
+      borderBottom: '1px solid var(--xt-border-subtle)',
+      alignItems: 'start'
+    }}>
+      <div className="label" style={{ fontSize: 11 }}>
+        {time}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="value" style={{ fontSize: 11, fontWeight: 600 }}>
+            {post.author}
+          </span>
+          <span className="label" style={{ fontSize: 10 }}>
+            {post.handle}
+          </span>
         </div>
-        <div className="label" style={{ color: 'var(--xt-text)', fontSize: 11, lineHeight: 1.4 }}>{summary}</div>
-        {expanded ? (
-          <div className="value" style={{ whiteSpace: 'pre-wrap', fontSize: 11, marginTop: 4, padding: 6, background: 'var(--xt-panel-elev)', borderRadius: 'var(--xt-radius-xs)', border: '1px solid var(--xt-border-subtle)' }}>{post.text}</div>
-        ) : null}
-        <div style={{ display: 'flex', gap: 6, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span className="pill" style={{ borderColor: opinColor, color: opinColor, fontSize: 10, padding: '1px 6px' }}>{opinIcon} {opin.label.toUpperCase()} {Math.round(opin.conf * 100)}%</span>
-          {links > 0 && <span className="pill" style={{ fontSize: 10, padding: '1px 6px' }}><span className="label">links</span><span className="value" style={{ fontFamily: 'monospace' }}>{links}</span></span>}
-          {media > 0 && <span className="pill" style={{ fontSize: 10, padding: '1px 6px' }}><span className="label">media</span><span className="value" style={{ fontFamily: 'monospace' }}>{media}</span></span>}
-          <span className="pill" style={{ fontSize: 10, padding: '1px 6px' }}><span className="label">❤</span><span className="value" style={{ fontFamily: 'monospace' }}>{likes}</span></span>
-          <span className="pill" style={{ fontSize: 10, padding: '1px 6px' }}><span className="label">🔁</span><span className="value" style={{ fontFamily: 'monospace' }}>{rts}</span></span>
+
+        <div className="value" style={{ fontSize: 11, lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {preview}
         </div>
-        <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-          <button className="pill focusable" onClick={onToggle} style={{ background: 'transparent', cursor: 'pointer', fontSize: 10, padding: '2px 8px', border: '1px solid var(--xt-border)' }}>{expanded ? 'Collapse' : 'Expand'}</button>
-          <button className="pill focusable" onClick={onSave} style={{ background: 'transparent', cursor: 'pointer', fontSize: 10, padding: '2px 8px', border: '1px solid var(--xt-border)' }}>Save</button>
+
+        {cashtags.length > 0 && (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+            {cashtags.map(tag => (
+              <span key={tag} className="pill" style={{ fontSize: 10, padding: '1px 6px', color: 'var(--xt-info)' }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+        <div className="pill" style={{ fontSize: 10, padding: '2px 6px', borderColor: sentiment.color, color: sentiment.color }}>
+          {sentiment.label} {sentiment.pct}%
         </div>
+        <div className="pill" style={{ fontSize: 10, padding: '2px 6px', borderColor: impact.color, color: impact.color }}>
+          {impact.label}
+        </div>
+        {post.metrics && (
+          <div style={{ display: 'flex', gap: 6, fontSize: 10, color: 'var(--xt-text-dim)', marginTop: 2 }}>
+            <span>❤ {post.metrics.like || 0}</span>
+            <span>🔁 {post.metrics.rt || 0}</span>
+          </div>
+        )}
       </div>
     </div>
   );
