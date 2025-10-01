@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import '../theme/tokens.css';
 import '../theme/util.css';
+import { summarizeTweet, opinionTag } from '../lib/ai';
 
 function formatTime(ts) {
   const d = new Date(ts);
@@ -40,6 +41,8 @@ export default function TrackerPostRow({ post }) {
   const cashtags = useMemo(() => extractCashtags(post.text), [post.text]);
   const sentiment = useMemo(() => computeSentiment(post), [post]);
   const impact = useMemo(() => computeImpact(post.metrics), [post.metrics]);
+  const aiOverview = useMemo(() => summarizeTweet(post.text), [post.text]);
+  const aiOpinion = useMemo(() => opinionTag(post.text), [post.text]);
 
   const preview = post.text.length > 80 ? post.text.slice(0, 80) + '…' : post.text;
 
@@ -79,6 +82,29 @@ export default function TrackerPostRow({ post }) {
             ))}
           </div>
         )}
+
+        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--xt-border-subtle)' }}>
+          <div className="label" style={{ fontSize: 10, marginBottom: 3 }}>
+            AI OVERVIEW
+          </div>
+          <div className="value" style={{ fontSize: 10, lineHeight: 1.4, color: 'var(--xt-text-dim)' }}>
+            {aiOverview}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <span className="label" style={{ fontSize: 10 }}>AI OPINION</span>
+            <span 
+              className="pill" 
+              style={{ 
+                fontSize: 10, 
+                padding: '2px 6px', 
+                borderColor: aiOpinion.label === 'bullish' ? 'var(--xt-up)' : aiOpinion.label === 'bearish' ? 'var(--xt-down)' : 'var(--xt-text-dim)',
+                color: aiOpinion.label === 'bullish' ? 'var(--xt-up)' : aiOpinion.label === 'bearish' ? 'var(--xt-down)' : 'var(--xt-text-dim)'
+              }}
+            >
+              {aiOpinion.label.toUpperCase()} {Math.round(aiOpinion.conf * 100)}%
+            </span>
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
