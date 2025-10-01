@@ -1,0 +1,41 @@
+:root {}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+.panel-elev {
+  background: var(--panel-elev);
+  box-shadow: var(--sh-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: var(--muted);
+  color: var(--txt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  line-height: 1;
+  font-size: 12px;
+}
+
+.kbd:hover {
+  background: #202631;
+}
+
+.focusable {
+  outline: none;
+}
+
+.focusable:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--muted); border: 2px solid transparent; background-clip: padding-box; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
