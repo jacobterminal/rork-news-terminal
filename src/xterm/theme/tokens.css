@@ -1,0 +1,49 @@
+@layer xterm {
+:root {
+  --xt-bg: #0b0d10;
+  --xt-panel: #121417;
+  --xt-panel-elev: #161a1f;
+  --xt-border: #232730;
+  --xt-border-subtle: #1b1f27;
+  --xt-text: #d6dde6;
+  --xt-text-dim: #9aa6b2;
+  --xt-up: #30d158;
+  --xt-down: #ff453a;
+  --xt-warn: #ffd60a;
+  --xt-info: #58a6ff;
+  --xt-focus: #7aa2ff;
+  --xt-overlay: rgba(0,0,0,0.6);
+
+  --xt-radius-xs: 2px;
+  --xt-radius-sm: 4px;
+  --xt-radius-md: 6px;
+
+  --xt-gap-1: 4px;
+  --xt-gap-2: 8px;
+  --xt-gap-3: 12px;
+  --xt-gap-4: 16px;
+
+  --xt-shadow-1: 0 1px 0 rgba(255,255,255,0.02) inset, 0 8px 24px rgba(0,0,0,0.32);
+
+  --xt-topbar-h: 48px;
+  --xt-sidebar-w: 260px;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--xt-bg);
+}
+
+body {
+  margin: 0;
+  color: var(--xt-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+}
