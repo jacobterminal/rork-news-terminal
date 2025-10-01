@@ -12,6 +12,7 @@ let NotificationCenter: any = null;
 let SavedTrackers: any = null;
 let AlertBuilder: any = null;
 let CommandPalette: any = null;
+let ToastContainer: any = null;
 let xShim: any = null;
 
 if (isWeb) {
@@ -22,6 +23,7 @@ if (isWeb) {
     SavedTrackers = require('../src/xterm/components/SavedTrackers').default;
     AlertBuilder = require('../src/xterm/components/AlertBuilder').default;
     CommandPalette = require('../src/xterm/components/CommandPalette').default;
+    ToastContainer = require('../src/xterm/components/ToastContainer').default;
     xShim = require('../src/xterm/shim/xShim').xShim;
   } catch (e) {
     console.error('[TwitterScreen] Failed to load web components', e);
@@ -126,6 +128,7 @@ export default function TwitterScreen() {
 
         {NotificationCenter && <NotificationCenter open={notifOpen} onClose={() => setNotifOpen(false)} />}
         {CommandPalette && <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />}
+        {ToastContainer && <ToastContainer />}
       </div>
     </View>
   );
