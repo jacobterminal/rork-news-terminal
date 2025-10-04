@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, NativeSyntheticEvent, NativeScrollEvent, LayoutChangeEvent } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
 export type TimeRange = 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
@@ -27,6 +27,8 @@ export default function TimeRangeFilterPill({
   onRangeChange 
 }: TimeRangeFilterPillProps) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [pillLayout, setPillLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const pillRef = useRef<View>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [tempStartDate, setTempStartDate] = useState(customRange?.startDate || '');
   const [tempEndDate, setTempEndDate] = useState(customRange?.endDate || '');
@@ -242,26 +244,34 @@ export default function TimeRangeFilterPill({
     setRangeError(null);
   };
 
+  const handlePillLayout = (event: LayoutChangeEvent) => {
+    const { x, y, width, height } = event.nativeEvent.layout;
+    setPillLayout({ x, y, width, height });
+  };
+
   return (
     <>
-      <TouchableOpacity 
+      <View style={styles.pillWrapper}>
+        <TouchableOpacity 
+        ref={pillRef}
         style={[
           styles.pill,
           selectedRange !== 'last_hour' && styles.pillActive
         ]}
         onPress={() => setDropdownVisible(!dropdownVisible)}
+        onLayout={handlePillLayout}
       >
         <Text style={styles.pillText}>{getPillText()} ⌄</Text>
       </TouchableOpacity>
 
-      {dropdownVisible && (
+      {dropdownVisible && pillLayout && (
         <>
           <TouchableOpacity 
             style={styles.overlay}
             activeOpacity={1}
             onPress={() => setDropdownVisible(false)}
           />
-          <View style={styles.dropdown}>
+          <View style={[styles.dropdown, { top: pillLayout.height + 4, width: pillLayout.width }]}>
             <TouchableOpacity 
               style={[
                 styles.dropdownItem,
@@ -342,6 +352,7 @@ export default function TimeRangeFilterPill({
           </View>
         </>
       )}
+      </View>
 
       <Modal
         visible={modalVisible}
@@ -721,13 +732,14 @@ export default function TimeRangeFilterPill({
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-
-
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  pillWrapper: {
+    position: 'relative',
+  },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -758,12 +770,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: 'transparent',
     zIndex: 999,
   },
   dropdown: {
     position: 'absolute',
-    top: 32,
-    right: 16,
+    right: 0,
     backgroundColor: '#0A0A0A',
     borderWidth: 1,
     borderColor: '#FFD33D',
