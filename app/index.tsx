@@ -83,7 +83,7 @@ export default function NewsScreen() {
             onAlertPress={handleCriticalAlertPress}
           />
         )}
-        <View style={styles.sectionHeader} testID="watchlist-based-news-header">
+        <View nativeID="banner-anchor-point" style={styles.sectionHeader} testID="watchlist-based-news-header">
           <Text style={styles.sectionTitle}>WATCHLIST BASED NEWS</Text>
         </View>
         {watchlist.length === 0 ? (

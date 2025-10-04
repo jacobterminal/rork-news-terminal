@@ -355,17 +355,19 @@ export default function UpcomingScreen() {
         />
       </View>
       
-      <CalendarStrip 
-        selectedDate={selectedDate}
-        onDateSelect={setSelectedDate}
-        calendarDays={calendarDays}
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        onMonthSelect={handleMonthSelect}
-        monthOptions={monthOptions}
-        showMonthPicker={showMonthPicker}
-        setShowMonthPicker={setShowMonthPicker}
-      />
+      <View nativeID="banner-anchor-point">
+        <CalendarStrip 
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+          calendarDays={calendarDays}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          onMonthSelect={handleMonthSelect}
+          monthOptions={monthOptions}
+          showMonthPicker={showMonthPicker}
+          setShowMonthPicker={setShowMonthPicker}
+        />
+      </View>
       
       <ScrollView 
         style={styles.scrollView}

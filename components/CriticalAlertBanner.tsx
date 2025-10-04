@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Text, StyleSheet, Animated, Platform, Pressable } from 'react-native';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { Text, StyleSheet, Animated, Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface CriticalAlertBannerProps {
@@ -10,10 +10,33 @@ interface CriticalAlertBannerProps {
 
 export default function CriticalAlertBanner({ message, sentiment, onDismiss }: CriticalAlertBannerProps) {
   const insets = useSafeAreaInsets();
-  const bannerHeight = 134 + insets.top;
+  const [bannerHeight, setBannerHeight] = useState(134 + insets.top);
   const [slideAnim] = useState(new Animated.Value(-bannerHeight));
   const [isVisible, setIsVisible] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const bannerRef = useRef<View>(null);
+
+  useLayoutEffect(() => {
+    if (Platform.OS === 'web' && isVisible) {
+      const syncHeight = () => {
+        const anchor = document.getElementById('banner-anchor-point');
+        if (anchor) {
+          const rect = anchor.getBoundingClientRect();
+          const calculatedHeight = Math.max(0, Math.floor(rect.top));
+          setBannerHeight(calculatedHeight);
+        }
+      };
+      
+      syncHeight();
+      window.addEventListener('resize', syncHeight);
+      window.addEventListener('scroll', syncHeight, { passive: true });
+      
+      return () => {
+        window.removeEventListener('resize', syncHeight);
+        window.removeEventListener('scroll', syncHeight);
+      };
+    }
+  }, [isVisible]);
 
   useEffect(() => {
     if (message) {
@@ -68,6 +91,7 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
 
   return (
     <Animated.View
+      ref={bannerRef}
       style={[
         styles.banner,
         {

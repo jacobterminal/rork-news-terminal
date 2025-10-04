@@ -121,7 +121,7 @@ export default function TwitterTrackerPage() {
 
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+      <View nativeID="banner-anchor-point" style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Twitter Tracker</Text>
           <View style={styles.pill}>

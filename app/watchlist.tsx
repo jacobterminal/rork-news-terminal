@@ -210,7 +210,7 @@ export default function WatchlistScreen() {
         />
         
         {/* Watchlist Header */}
-        <Text style={styles.sectionTitle}>WATCHLIST</Text>
+        <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>WATCHLIST</Text>
         <View style={styles.divider} />
         
         {/* Folder Cards */}

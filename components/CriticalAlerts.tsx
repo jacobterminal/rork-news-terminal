@@ -41,7 +41,7 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
 
   return (
     <View style={styles.container}>
-      <View style={styles.sectionHeader}>
+      <View nativeID="banner-anchor-point" style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>CRITICAL ALERTS</Text>
       </View>
       <ScrollView 

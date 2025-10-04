@@ -81,7 +81,7 @@ export default function InstantScreen() {
         />
         
         {/* Section header: WATCHLIST INSTANT NEWS */}
-        <View style={styles.sectionHeader} testID="instant-section-header">
+        <View nativeID="banner-anchor-point" style={styles.sectionHeader} testID="instant-section-header">
           <Text style={styles.sectionTitle} accessibilityRole="header">WATCHLIST INSTANT NEWS</Text>
           <View style={styles.sectionDivider} />
         </View>
