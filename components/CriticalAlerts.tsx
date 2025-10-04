@@ -152,7 +152,7 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.bg,
-    marginTop: 12,
+    marginTop: 8,
   },
   sectionHeader: {
     borderTopWidth: 1,

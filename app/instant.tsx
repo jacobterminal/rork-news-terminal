@@ -60,9 +60,9 @@ export default function InstantScreen() {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Reserved space for drop banners and search */}
-      <View style={[styles.reservedSpace, { paddingTop: insets.top }]}>
+      <View style={styles.reservedSpace}>
         <AlertSearchBar 
           onTickerPress={handleTickerPress}
           feedItems={state.feedItems}
@@ -115,11 +115,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bg,
   },
   reservedSpace: {
-    height: 35,
+    height: 50,
     backgroundColor: theme.colors.bg,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 8,
   },
   scrollView: {
     flex: 1,

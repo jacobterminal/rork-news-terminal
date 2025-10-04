@@ -123,6 +123,7 @@ export default function TwitterTrackerPage() {
 
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
+      <View style={styles.reservedSpace} />
       <View nativeID="banner-anchor-point" style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Twitter Tracker</Text>
@@ -691,12 +692,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.bg,
   },
+  reservedSpace: {
+    height: 50,
+    backgroundColor: theme.colors.bg,
+  },
   header: {
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.card,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
     ...Platform.select({
       web: {
         boxShadow: '0 0 0 1px var(--border), 0 6px 14px rgba(0,0,0,.35)',

@@ -487,8 +487,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingVertical: theme.spacing.md,
-    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
   },
   section: {
     marginBottom: theme.spacing.lg,
