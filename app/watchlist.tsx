@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
-import FolderCard from '../components/FolderCard';
 import AlertSearchBar from '../components/AlertSearchBar';
 import CriticalAlerts from '../components/CriticalAlerts';
 import SavedArticleCard from '../components/SavedArticleCard';
@@ -58,12 +57,6 @@ export default function WatchlistScreen() {
     state, 
     criticalAlerts,
     savedArticles,
-    createFolder, 
-    deleteFolder, 
-    renameFolder, 
-    toggleFolderExpansion, 
-    addTickerToFolder, 
-    removeTickerFromFolder 
   } = useNewsStore();
   
   const watchlistFolders = useMemo(() => state.watchlistFolders || [], [state.watchlistFolders]);
@@ -214,8 +207,11 @@ export default function WatchlistScreen() {
         />
         
         {/* Watchlist Header */}
-        <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>WATCHLIST</Text>
-        <View style={styles.divider} />
+        <View style={styles.sectionHeader}>
+          <View style={styles.divider} />
+          <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>WATCHLIST</Text>
+          <View style={styles.divider} />
+        </View>
         
         {/* Terminal-style Ticker Rows */}
         {allTickers.length > 0 ? (
@@ -223,19 +219,29 @@ export default function WatchlistScreen() {
             const tickerData = tickerDataMap[ticker];
             if (!tickerData) return null;
             
-            const mockPerformance = (Math.random() - 0.5) * 10;
             const hasActiveNews = tickerData.todayNews.length > 0 && 
               tickerData.todayNews.some(news => news.impact === 'High');
+            
+            const newsHeadlines = tickerData.todayNews.map(news => ({
+              time: news.time,
+              source: news.source,
+              headline: news.headline,
+              impact: news.impact,
+              sentiment: news.sentiment,
+              confidence: news.confidence,
+            }));
             
             return (
               <TerminalTickerRow
                 key={ticker}
                 ticker={ticker}
                 company={tickerData.company}
-                performance={mockPerformance}
+                sentiment={tickerData.sentiment}
                 newsCount={tickerData.todayNews.length}
                 hasActiveNews={hasActiveNews}
+                newsHeadlines={newsHeadlines}
                 onPress={() => handleTickerPress(ticker)}
+                onHeadlinePress={handleHeadlinePress}
               />
             );
           })
@@ -301,20 +307,22 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 12,
   },
+  sectionHeader: {
+    marginBottom: 0,
+  },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
     color: '#F5C518',
-    marginBottom: 12,
-    marginHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+    backgroundColor: '#000000',
   },
   divider: {
     height: 1,
-    backgroundColor: '#1F1F23',
-    marginBottom: 12,
-    marginHorizontal: 16,
+    backgroundColor: '#F5C518',
   },
   emptyState: {
     flex: 1,
