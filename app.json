@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "NOVA ALGO",
-    "slug": "bloomberg-like-news-tracker-for-day-traders",
+    "name": "Vega Exit",
+    "slug": "vega-exit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.bloomberg-like-news-tracker-for-day-traders"
+      "bundleIdentifier": "app.rork.vega-exit"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.bloomberg-like-news-tracker-for-day-traders"
+      "package": "app.rork.vega-exit"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
