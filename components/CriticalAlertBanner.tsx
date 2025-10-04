@@ -11,7 +11,7 @@ interface CriticalAlertBannerProps {
 
 export default function CriticalAlertBanner({ message, sentiment, onDismiss }: CriticalAlertBannerProps) {
   const insets = useSafeAreaInsets();
-  const bannerHeight = 80 + insets.top;
+  const bannerHeight = 58 + insets.top;
   const [slideAnim] = useState(new Animated.Value(-bannerHeight));
   const [isVisible, setIsVisible] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
