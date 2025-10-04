@@ -147,45 +147,81 @@ export default function TimeRangeFilterPill({
           />
           <View style={styles.dropdown}>
             <TouchableOpacity 
-              style={styles.dropdownItem}
+              style={[
+                styles.dropdownItem,
+                selectedRange === 'last_hour' && styles.dropdownItemSelected
+              ]}
               onPress={() => handleRangeSelect('last_hour')}
             >
-              <Text style={styles.dropdownText}>Last Hour</Text>
+              <Text style={[
+                styles.dropdownText,
+                selectedRange !== 'last_hour' && styles.dropdownTextHover
+              ]}>Last Hour</Text>
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity 
-              style={styles.dropdownItem}
+              style={[
+                styles.dropdownItem,
+                selectedRange === 'today' && styles.dropdownItemSelected
+              ]}
               onPress={() => handleRangeSelect('today')}
             >
-              <Text style={styles.dropdownText}>Today</Text>
+              <Text style={[
+                styles.dropdownText,
+                selectedRange !== 'today' && styles.dropdownTextHover
+              ]}>Today</Text>
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity 
-              style={styles.dropdownItem}
+              style={[
+                styles.dropdownItem,
+                selectedRange === 'past_2_days' && styles.dropdownItemSelected
+              ]}
               onPress={() => handleRangeSelect('past_2_days')}
             >
-              <Text style={styles.dropdownText}>Past 2 Days</Text>
+              <Text style={[
+                styles.dropdownText,
+                selectedRange !== 'past_2_days' && styles.dropdownTextHover
+              ]}>Past 2 Days</Text>
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity 
-              style={styles.dropdownItem}
+              style={[
+                styles.dropdownItem,
+                selectedRange === 'past_5_days' && styles.dropdownItemSelected
+              ]}
               onPress={() => handleRangeSelect('past_5_days')}
             >
-              <Text style={styles.dropdownText}>Past 5 Days</Text>
+              <Text style={[
+                styles.dropdownText,
+                selectedRange !== 'past_5_days' && styles.dropdownTextHover
+              ]}>Past 5 Days</Text>
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity 
-              style={styles.dropdownItem}
+              style={[
+                styles.dropdownItem,
+                selectedRange === 'week_to_date' && styles.dropdownItemSelected
+              ]}
               onPress={() => handleRangeSelect('week_to_date')}
             >
-              <Text style={styles.dropdownText}>Week-to-Date</Text>
+              <Text style={[
+                styles.dropdownText,
+                selectedRange !== 'week_to_date' && styles.dropdownTextHover
+              ]}>Week-to-Date</Text>
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity 
-              style={styles.dropdownItem}
+              style={[
+                styles.dropdownItem,
+                selectedRange === 'custom' && styles.dropdownItemSelected
+              ]}
               onPress={() => handleRangeSelect('custom')}
             >
-              <Text style={styles.dropdownText}>Custom Range →</Text>
+              <Text style={[
+                styles.dropdownText,
+                selectedRange !== 'custom' && styles.dropdownTextHover
+              ]}>Custom Range ▾</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -322,12 +358,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderWidth: 1,
     borderColor: '#FFD33D',
-    borderRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   pillActive: {
-    backgroundColor: 'rgba(255, 211, 61, 0.08)',
+    backgroundColor: 'rgba(255, 211, 61, 0.8)',
   },
   pillText: {
     color: '#FFFFFF',
@@ -353,7 +394,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderBottomLeftRadius: 4,
     borderBottomRightRadius: 4,
-    minWidth: 160,
+    minWidth: 140,
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -362,18 +403,24 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   dropdownItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  dropdownItemSelected: {
+    backgroundColor: 'rgba(255, 211, 61, 0.8)',
   },
   dropdownText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500' as const,
+  },
+  dropdownTextHover: {
+    color: '#BBBBBB',
   },
   dropdownDivider: {
     height: 1,
     backgroundColor: '#1E1E1E',
-    marginVertical: 6,
+    marginVertical: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -382,12 +429,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#0A0A0A',
     borderWidth: 1,
     borderColor: '#FFD33D',
-    borderRadius: 12,
-    padding: 24,
-    width: 320,
+    borderRadius: 8,
+    padding: 20,
+    width: 300,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.6,
@@ -396,16 +443,16 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700' as const,
     marginBottom: 4,
     textAlign: 'center',
   },
   modalSubtitle: {
     color: '#A0A0A0',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500' as const,
-    marginBottom: 16,
+    marginBottom: 14,
     textAlign: 'center',
   },
   errorTooltip: {
@@ -423,13 +470,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   timeSection: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   timeLabel: {
     color: '#A0A0A0',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600' as const,
-    marginBottom: 8,
+    marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -445,74 +492,74 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dateDropdownButton: {
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#121212',
     borderWidth: 1,
     borderColor: '#333333',
-    borderRadius: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   dateDropdownText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600' as const,
   },
   datePickerDropdown: {
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#121212',
     borderWidth: 1,
     borderColor: '#333333',
-    borderRadius: 6,
-    marginTop: 8,
-    maxHeight: 200,
+    borderRadius: 5,
+    marginTop: 6,
+    maxHeight: 180,
   },
   datePickerItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#1E1E1E',
   },
   datePickerItemSelected: {
-    backgroundColor: 'rgba(255, 211, 61, 0.15)',
+    backgroundColor: 'rgba(255, 211, 61, 0.8)',
   },
   datePickerText: {
     color: '#BBBBBB',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500' as const,
   },
   datePickerTextSelected: {
-    color: '#FFD33D',
+    color: '#000000',
     fontWeight: '600' as const,
   },
   modalButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    gap: 10,
+    marginTop: 18,
   },
   cancelButton: {
     flex: 1,
     backgroundColor: '#2A2A2A',
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderRadius: 6,
+    paddingVertical: 10,
     alignItems: 'center',
   },
   cancelButtonText: {
     color: '#A0A0A0',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600' as const,
   },
   applyButton: {
     flex: 1,
     backgroundColor: '#FFD33D',
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderRadius: 6,
+    paddingVertical: 10,
     alignItems: 'center',
   },
   applyButtonText: {
     color: '#000000',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700' as const,
   },
 });
