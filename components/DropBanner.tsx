@@ -20,7 +20,7 @@ interface TickerState {
   isScrolling: boolean;
 }
 
-const BANNER_HEIGHT = 68;
+const BANNER_HEIGHT = 118;
 const ANIMATION_DURATION = 300;
 const TICKER_DURATION = 3000;
 const SCROLL_ANIMATION_DURATION = 500;
