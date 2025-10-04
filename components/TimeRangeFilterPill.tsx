@@ -138,7 +138,17 @@ export default function TimeRangeFilterPill({
 
   const getPillText = () => {
     if (selectedRange === 'custom' && customRange) {
-      return `${customRange.startDate} ${customRange.startHour}:${customRange.startMinute} ${customRange.startPeriod} – ${customRange.endDate} ${customRange.endHour}:${customRange.endMinute} ${customRange.endPeriod}`;
+      const formatDateLabel = (dateStr: string) => {
+        const currentYear = new Date().getFullYear();
+        const parts = dateStr.split('/');
+        if (parts.length !== 2) return dateStr;
+        const date = new Date(currentYear, parseInt(parts[0]) - 1, parseInt(parts[1]));
+        const month = date.toLocaleString('en-US', { month: 'short' });
+        return `${month} ${parts[1]}`;
+      };
+      const startLabel = formatDateLabel(customRange.startDate);
+      const endLabel = formatDateLabel(customRange.endDate);
+      return `${startLabel} ${customRange.startHour}:${customRange.startMinute} ${customRange.startPeriod} – ${endLabel} ${customRange.endHour}:${customRange.endMinute} ${customRange.endPeriod}`;
     }
     switch (selectedRange) {
       case 'last_hour':
@@ -222,19 +232,12 @@ export default function TimeRangeFilterPill({
       }
     }
     
-    const formatDateLabel = (dateStr: string) => {
-      const parts = dateStr.split('/');
-      const date = new Date(currentYear, parseInt(parts[0]) - 1, parseInt(parts[1]));
-      const month = date.toLocaleString('en-US', { month: 'short' });
-      return `${month} ${parts[1]}`;
-    };
-    
     const newCustomRange: CustomTimeRange = {
-      startDate: formatDateLabel(tempStartDate),
+      startDate: tempStartDate,
       startHour: tempStartHour,
       startMinute: tempStartMinute,
       startPeriod: tempStartPeriod,
-      endDate: formatDateLabel(tempEndDate),
+      endDate: tempEndDate,
       endHour: tempEndHour,
       endMinute: tempEndMinute,
       endPeriod: tempEndPeriod,
