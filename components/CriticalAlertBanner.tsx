@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Text, StyleSheet, Animated, Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
@@ -14,6 +14,7 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
   const bannerHeight = 44 + insets.top;
   const [slideAnim] = useState(new Animated.Value(-bannerHeight));
   const [isVisible, setIsVisible] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (message) {
@@ -25,7 +26,11 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
         useNativeDriver: true,
       }).start();
 
-      const timer = setTimeout(() => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      timerRef.current = setTimeout(() => {
         Animated.timing(slideAnim, {
           toValue: -bannerHeight,
           duration: 320,
@@ -36,11 +41,18 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
         });
       }, 5000);
 
-      return () => clearTimeout(timer);
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+      };
     }
   }, [message, slideAnim, onDismiss, bannerHeight]);
 
   const handlePress = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
     Animated.timing(slideAnim, {
       toValue: -bannerHeight,
       duration: 250,
