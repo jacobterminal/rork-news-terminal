@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
@@ -9,11 +9,14 @@ import { useNewsStore } from '../store/newsStore';
 
 import CriticalAlerts from '../components/CriticalAlerts';
 import AlertSearchBar from '../components/AlertSearchBar';
+import CriticalAlertBanner from '../components/CriticalAlertBanner';
 
 export default function NewsScreen() {
   const insets = useSafeAreaInsets();
-  const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines } = useNewsStore();
+  const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines, dismissBanner } = useNewsStore();
   const { watchlist, feedItems, ui } = state;
+  const [currentBanner, setCurrentBanner] = useState<{ message: string; sentiment: 'bull' | 'bear' | 'neutral'; id: string } | null>(null);
+  const [shownBanners, setShownBanners] = useState<Set<string>>(new Set());
   
   // Filter feed items to only show news for tickers in watchlist
   const watchlistFeedItems = useMemo(() => {
@@ -53,6 +56,33 @@ export default function NewsScreen() {
     // Could navigate to full article or show alert details
   };
   
+  useEffect(() => {
+    if (criticalAlerts.length === 0) return;
+    
+    const latestAlert = criticalAlerts[0];
+    if (shownBanners.has(latestAlert.id)) return;
+    
+    const sentiment = latestAlert.sentiment === 'Bullish' ? 'bull' : 
+                     latestAlert.sentiment === 'Bearish' ? 'bear' : 'neutral';
+    
+    let message = `${latestAlert.headline}`;
+    if (latestAlert.forecast && latestAlert.actual) {
+      message = `${latestAlert.headline.split(':')[0]}: ${latestAlert.actual} vs ${latestAlert.forecast} est → ${latestAlert.sentiment} ${latestAlert.confidence}%`;
+    } else if (latestAlert.expected_eps && latestAlert.actual_eps) {
+      message = `${latestAlert.tickers[0]} EPS: ${latestAlert.actual_eps} vs ${latestAlert.expected_eps} est → ${latestAlert.verdict}`;
+    }
+    
+    setCurrentBanner({ message, sentiment, id: latestAlert.id });
+    setShownBanners(prev => new Set([...prev, latestAlert.id]));
+  }, [criticalAlerts, shownBanners]);
+  
+  const handleBannerDismiss = () => {
+    if (currentBanner) {
+      dismissBanner(currentBanner.id);
+      setCurrentBanner(null);
+    }
+  };
+  
   // Filter critical alerts for recent ones (within last 6 hours)
   const recentCriticalAlerts = useMemo(() => {
     return criticalAlerts.filter(alert => {
@@ -64,6 +94,11 @@ export default function NewsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <CriticalAlertBanner
+        message={currentBanner?.message || null}
+        sentiment={currentBanner?.sentiment || 'neutral'}
+        onDismiss={handleBannerDismiss}
+      />
       <View style={styles.reservedSpace}>
         <AlertSearchBar 
           onTickerPress={handleTickerPress}
