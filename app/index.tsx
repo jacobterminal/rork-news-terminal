@@ -137,7 +137,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingVertical: theme.spacing.sm,
+    paddingTop: 0,
+    paddingBottom: theme.spacing.sm,
   },
   sectionHeader: {
     borderTopWidth: 1,
