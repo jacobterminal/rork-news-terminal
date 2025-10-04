@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated, PanResponder } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
 export type TimeRange = 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
@@ -37,6 +37,14 @@ export default function TimeRangeFilterPill({
   const [endDatePickerVisible, setEndDatePickerVisible] = useState(false);
   const [startTimePickerVisible, setStartTimePickerVisible] = useState(false);
   const [endTimePickerVisible, setEndTimePickerVisible] = useState(false);
+  const [startTimeScrollMode, setStartTimeScrollMode] = useState(false);
+  const [endTimeScrollMode, setEndTimeScrollMode] = useState(false);
+  const startTimeHoldTimer = useRef<NodeJS.Timeout | null>(null);
+  const endTimeHoldTimer = useRef<NodeJS.Timeout | null>(null);
+  const startTimeScrollY = useRef(0);
+  const endTimeScrollY = useRef(0);
+  const startTimeGlowAnim = useRef(new Animated.Value(0)).current;
+  const endTimeGlowAnim = useRef(new Animated.Value(0)).current;
 
   const generatePast7Days = () => {
     const dates = [];
@@ -63,8 +71,161 @@ export default function TimeRangeFilterPill({
     return times;
   };
 
+  const timeToMinutes = (hour: string, minute: string): number => {
+    return parseInt(hour) * 60 + parseInt(minute);
+  };
+
+  const minutesToTime = (totalMinutes: number): { hour: string; minute: string } => {
+    const clampedMinutes = Math.max(0, Math.min(1439, totalMinutes));
+    const hour = Math.floor(clampedMinutes / 60);
+    const minute = Math.floor((clampedMinutes % 60) / 15) * 15;
+    return {
+      hour: hour.toString().padStart(2, '0'),
+      minute: minute.toString().padStart(2, '0')
+    };
+  };
+
+  const adjustTime = (currentHour: string, currentMinute: string, deltaY: number): { hour: string; minute: string } => {
+    const currentMinutes = timeToMinutes(currentHour, currentMinute);
+    const scrollSensitivity = 40;
+    const minuteChange = Math.round(deltaY / scrollSensitivity) * 15;
+    const newMinutes = currentMinutes - minuteChange;
+    return minutesToTime(newMinutes);
+  };
+
+  const validateEndTime = (startH: string, startM: string, endH: string, endM: string, isSameDay: boolean): { hour: string; minute: string } => {
+    if (!isSameDay) return { hour: endH, minute: endM };
+    
+    const startMinutes = timeToMinutes(startH, startM);
+    const endMinutes = timeToMinutes(endH, endM);
+    
+    if (endMinutes <= startMinutes) {
+      const adjustedMinutes = startMinutes + 15;
+      return minutesToTime(adjustedMinutes);
+    }
+    
+    return { hour: endH, minute: endM };
+  };
+
   const past7Days = generatePast7Days();
   const timeOptions = generateTimeOptions();
+
+  const startTimePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => startTimeScrollMode,
+      onPanResponderGrant: () => {
+        startTimeScrollY.current = 0;
+        startTimeHoldTimer.current = setTimeout(() => {
+          setStartTimeScrollMode(true);
+          Animated.timing(startTimeGlowAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: false,
+          }).start();
+        }, 100);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (startTimeScrollMode) {
+          const deltaY = gestureState.dy - startTimeScrollY.current;
+          startTimeScrollY.current = gestureState.dy;
+          
+          const newTime = adjustTime(tempStartHour, tempStartMinute, deltaY);
+          setTempStartHour(newTime.hour);
+          setTempStartMinute(newTime.minute);
+          setRangeError(null);
+        }
+      },
+      onPanResponderRelease: () => {
+        if (startTimeHoldTimer.current) {
+          clearTimeout(startTimeHoldTimer.current);
+          startTimeHoldTimer.current = null;
+        }
+        if (startTimeScrollMode) {
+          setStartTimeScrollMode(false);
+          Animated.timing(startTimeGlowAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: false,
+          }).start();
+        } else {
+          setStartTimePickerVisible(!startTimePickerVisible);
+        }
+      },
+      onPanResponderTerminate: () => {
+        if (startTimeHoldTimer.current) {
+          clearTimeout(startTimeHoldTimer.current);
+          startTimeHoldTimer.current = null;
+        }
+        setStartTimeScrollMode(false);
+        Animated.timing(startTimeGlowAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: false,
+        }).start();
+      },
+    })
+  ).current;
+
+  const endTimePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => endTimeScrollMode,
+      onPanResponderGrant: () => {
+        endTimeScrollY.current = 0;
+        endTimeHoldTimer.current = setTimeout(() => {
+          setEndTimeScrollMode(true);
+          Animated.timing(endTimeGlowAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: false,
+          }).start();
+        }, 100);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (endTimeScrollMode) {
+          const deltaY = gestureState.dy - endTimeScrollY.current;
+          endTimeScrollY.current = gestureState.dy;
+          
+          const newTime = adjustTime(tempEndHour, tempEndMinute, deltaY);
+          const isSameDay = tempStartDate === tempEndDate;
+          const validatedTime = validateEndTime(tempStartHour, tempStartMinute, newTime.hour, newTime.minute, isSameDay);
+          
+          setTempEndHour(validatedTime.hour);
+          setTempEndMinute(validatedTime.minute);
+          setRangeError(null);
+        }
+      },
+      onPanResponderRelease: () => {
+        if (endTimeHoldTimer.current) {
+          clearTimeout(endTimeHoldTimer.current);
+          endTimeHoldTimer.current = null;
+        }
+        if (endTimeScrollMode) {
+          setEndTimeScrollMode(false);
+          Animated.timing(endTimeGlowAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: false,
+          }).start();
+        } else {
+          setEndTimePickerVisible(!endTimePickerVisible);
+        }
+      },
+      onPanResponderTerminate: () => {
+        if (endTimeHoldTimer.current) {
+          clearTimeout(endTimeHoldTimer.current);
+          endTimeHoldTimer.current = null;
+        }
+        setEndTimeScrollMode(false);
+        Animated.timing(endTimeGlowAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: false,
+        }).start();
+      },
+    })
+  ).current;
 
   const getPillText = () => {
     if (selectedRange === 'custom' && customRange) {
@@ -406,15 +567,33 @@ export default function TimeRangeFilterPill({
               <View style={styles.timeRangeRow}>
                 <View style={styles.timeInputContainer}>
                   <Text style={styles.timeInputLabel}>START TIME</Text>
-                  <TouchableOpacity 
-                    style={styles.timeDropdownButton}
-                    onPress={() => setStartTimePickerVisible(!startTimePickerVisible)}
+                  <Animated.View 
+                    style={[
+                      styles.timeDropdownButton,
+                      startTimeScrollMode && styles.timeDropdownButtonActive,
+                      {
+                        borderColor: startTimeGlowAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['rgba(255, 211, 61, 0.6)', 'rgba(255, 211, 61, 1)']
+                        }),
+                        backgroundColor: startTimeGlowAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['#0A0A0A', '#101010']
+                        })
+                      }
+                    ]}
+                    {...startTimePanResponder.panHandlers}
                   >
                     <Text style={styles.timeDropdownText}>
                       {tempStartHour} : {tempStartMinute}
                     </Text>
                     <ChevronDown size={14} color="#FFFFFF" />
-                  </TouchableOpacity>
+                    {startTimeScrollMode && (
+                      <View style={styles.scrollTooltip}>
+                        <Text style={styles.scrollTooltipText}>Scroll to adjust time</Text>
+                      </View>
+                    )}
+                  </Animated.View>
                   
                   {startTimePickerVisible && (
                     <View style={styles.timePickerDropdown}>
@@ -448,15 +627,33 @@ export default function TimeRangeFilterPill({
                 
                 <View style={styles.timeInputContainer}>
                   <Text style={styles.timeInputLabel}>END TIME</Text>
-                  <TouchableOpacity 
-                    style={styles.timeDropdownButton}
-                    onPress={() => setEndTimePickerVisible(!endTimePickerVisible)}
+                  <Animated.View 
+                    style={[
+                      styles.timeDropdownButton,
+                      endTimeScrollMode && styles.timeDropdownButtonActive,
+                      {
+                        borderColor: endTimeGlowAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['rgba(255, 211, 61, 0.6)', 'rgba(255, 211, 61, 1)']
+                        }),
+                        backgroundColor: endTimeGlowAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['#0A0A0A', '#101010']
+                        })
+                      }
+                    ]}
+                    {...endTimePanResponder.panHandlers}
                   >
                     <Text style={styles.timeDropdownText}>
                       {tempEndHour} : {tempEndMinute}
                     </Text>
                     <ChevronDown size={14} color="#FFFFFF" />
-                  </TouchableOpacity>
+                    {endTimeScrollMode && (
+                      <View style={styles.scrollTooltip}>
+                        <Text style={styles.scrollTooltipText}>Scroll to adjust time</Text>
+                      </View>
+                    )}
+                  </Animated.View>
                   
                   {endTimePickerVisible && (
                     <View style={styles.timePickerDropdown}>
@@ -749,6 +946,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     height: 36,
+    position: 'relative',
+  },
+  timeDropdownButtonActive: {
+    shadowColor: '#FFD33D',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  scrollTooltip: {
+    position: 'absolute',
+    top: -28,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 211, 61, 0.95)',
+    borderRadius: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollTooltipText: {
+    color: '#000000',
+    fontSize: 9,
+    fontWeight: '600' as const,
+    letterSpacing: 0.3,
   },
   timeDropdownText: {
     color: '#FFFFFF',
