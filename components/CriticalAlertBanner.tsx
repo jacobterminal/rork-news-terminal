@@ -10,7 +10,7 @@ interface CriticalAlertBannerProps {
 
 export default function CriticalAlertBanner({ message, sentiment, onDismiss }: CriticalAlertBannerProps) {
   const insets = useSafeAreaInsets();
-  const bannerHeight = 108 + insets.top;
+  const bannerHeight = 72 + insets.top;
   const [slideAnim] = useState(new Animated.Value(-bannerHeight));
   const [isVisible, setIsVisible] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -82,7 +82,7 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
         onPress={handlePress}
         style={styles.pressable}
       >
-        <Text style={styles.bannerText} numberOfLines={1}>
+        <Text style={styles.bannerText} numberOfLines={2}>
           {message}
         </Text>
       </Pressable>
@@ -130,5 +130,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     letterSpacing: 0.2,
     textAlign: 'center',
+    lineHeight: 18,
   },
 });
