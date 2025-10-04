@@ -7,6 +7,7 @@ import FolderCard from '../components/FolderCard';
 import AlertSearchBar from '../components/AlertSearchBar';
 import CriticalAlerts from '../components/CriticalAlerts';
 import SavedArticleCard from '../components/SavedArticleCard';
+import TerminalTickerRow from '../components/TerminalTickerRow';
 import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
 import { theme } from '../constants/theme';
@@ -216,26 +217,32 @@ export default function WatchlistScreen() {
         <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>WATCHLIST</Text>
         <View style={styles.divider} />
         
-        {/* Folder Cards */}
-        {watchlistFolders.length > 0 ? (
-          watchlistFolders.map(folder => (
-            <FolderCard
-              key={folder.id}
-              folder={folder}
-              tickerDataMap={tickerDataMap}
-              onToggleExpansion={toggleFolderExpansion}
-              onAddTicker={addTickerToFolder}
-              onRemoveTicker={removeTickerFromFolder}
-              onRenameFolder={renameFolder}
-              onDeleteFolder={deleteFolder}
-              onCreateFolder={createFolder}
-              onHeadlinePress={handleHeadlinePress}
-              availableTickers={['AAPL', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'META', 'AMZN', 'JPM', 'BAC', 'WMT', 'XOM', 'CVX', 'JNJ', 'UNH', 'PFE']}
-            />
-          ))
+        {/* Terminal-style Ticker Rows */}
+        {allTickers.length > 0 ? (
+          allTickers.map(ticker => {
+            const tickerData = tickerDataMap[ticker];
+            if (!tickerData) return null;
+            
+            const mockPerformance = (Math.random() - 0.5) * 10;
+            const hasActiveNews = tickerData.todayNews.length > 0 && 
+              tickerData.todayNews.some(news => news.impact === 'High');
+            
+            return (
+              <TerminalTickerRow
+                key={ticker}
+                ticker={ticker}
+                company={tickerData.company}
+                performance={mockPerformance}
+                newsCount={tickerData.todayNews.length}
+                hasActiveNews={hasActiveNews}
+                onPress={() => handleTickerPress(ticker)}
+              />
+            );
+          })
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No folders created yet</Text>
+            <Text style={styles.emptyText}>No tickers in watchlist</Text>
+            <Text style={styles.emptySubtext}>Add tickers to start tracking</Text>
           </View>
         )}
         
@@ -319,6 +326,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555A64',
     textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: '#777777',
+    textAlign: 'center',
+    marginTop: 8,
   },
   savedArticleContainer: {
     marginHorizontal: 16,
