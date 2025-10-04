@@ -20,7 +20,7 @@ interface TickerState {
   isScrolling: boolean;
 }
 
-const BANNER_HEIGHT = 80;
+const BANNER_HEIGHT = 68;
 const ANIMATION_DURATION = 300;
 const TICKER_DURATION = 3000;
 const SCROLL_ANIMATION_DURATION = 500;
@@ -312,7 +312,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
                           styles.tickerText,
                           { opacity: isActive ? 1 : 0.7 }
                         ]} 
-                        numberOfLines={1}
+                        numberOfLines={2}
                       >
                         {generateTickerSentence(alert)}
                       </Text>
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700' as const,
     color: theme.colors.text,
-    lineHeight: 14,
+    lineHeight: 16,
   },
   rightContent: {
     flexDirection: 'row',
