@@ -112,30 +112,61 @@ export default function WatchlistScreen() {
   }, [allTickers]);
 
   const tickerDataMap = useMemo(() => {
+    const getWeekStart = (date: Date): Date => {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day;
+      return new Date(d.getFullYear(), d.getMonth(), diff, 0, 0, 0, 0);
+    };
+
     const isNewsInTimeRange = (publishedAt: string): boolean => {
       const newsTime = new Date(publishedAt);
       const now = new Date();
       
       switch (timeRange) {
-        case 'today': {
-          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          return newsTime >= todayStart;
-        }
         case 'last_hour': {
           const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
           return newsTime >= oneHourAgo;
         }
+        case 'today': {
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          return newsTime >= todayStart;
+        }
+        case 'past_2_days': {
+          const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+          return newsTime >= twoDaysAgo;
+        }
+        case 'past_5_days': {
+          const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+          return newsTime >= fiveDaysAgo;
+        }
+        case 'week_to_date': {
+          const weekStart = getWeekStart(now);
+          return newsTime >= weekStart;
+        }
         case 'custom': {
           if (!customTimeRange) return true;
+          
+          const currentYear = now.getFullYear();
+          const startDateParts = customTimeRange.startDate.split('/');
+          const endDateParts = customTimeRange.endDate.split('/');
+          
+          if (startDateParts.length !== 2 || endDateParts.length !== 2) return true;
+          
+          const startMonth = parseInt(startDateParts[0]) - 1;
+          const startDay = parseInt(startDateParts[1]);
+          const endMonth = parseInt(endDateParts[0]) - 1;
+          const endDay = parseInt(endDateParts[1]);
+          
           const startHour = parseInt(customTimeRange.startHour);
           const startMinute = parseInt(customTimeRange.startMinute);
           const endHour = parseInt(customTimeRange.endHour);
           const endMinute = parseInt(customTimeRange.endMinute);
           
-          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute);
-          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute);
+          const rangeStart = new Date(currentYear, startMonth, startDay, startHour, startMinute);
+          const rangeEnd = new Date(currentYear, endMonth, endDay, endHour, endMinute);
           
-          return newsTime >= todayStart && newsTime <= todayEnd;
+          return newsTime >= rangeStart && newsTime <= rangeEnd;
         }
         default:
           return true;
@@ -215,9 +246,12 @@ export default function WatchlistScreen() {
   };
 
   const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {
+    console.log('Time range changed:', range, customRange);
     setTimeRange(range);
     if (range === 'custom' && customRange) {
       setCustomTimeRange(customRange);
+    } else {
+      setCustomTimeRange(undefined);
     }
   };
 

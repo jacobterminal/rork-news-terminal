@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
-export type TimeRange = 'all' | 'today' | 'last_hour' | 'custom';
+export type TimeRange = 'all' | 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
 
 export interface CustomTimeRange {
+  startDate: string;
   startHour: string;
   startMinute: string;
+  endDate: string;
   endHour: string;
   endMinute: string;
 }
@@ -24,20 +26,29 @@ export default function TimeRangeFilterPill({
 }: TimeRangeFilterPillProps) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState(customRange?.startDate || '');
   const [tempStartHour, setTempStartHour] = useState(customRange?.startHour || '09');
   const [tempStartMinute, setTempStartMinute] = useState(customRange?.startMinute || '30');
+  const [tempEndDate, setTempEndDate] = useState(customRange?.endDate || '');
   const [tempEndHour, setTempEndHour] = useState(customRange?.endHour || '16');
   const [tempEndMinute, setTempEndMinute] = useState(customRange?.endMinute || '00');
+  const [rangeError, setRangeError] = useState<string | null>(null);
 
   const getPillText = () => {
     if (selectedRange === 'custom' && customRange) {
-      return `${customRange.startHour}:${customRange.startMinute} – ${customRange.endHour}:${customRange.endMinute}`;
+      return `${customRange.startDate} ${customRange.startHour}:${customRange.startMinute} – ${customRange.endDate} ${customRange.endHour}:${customRange.endMinute}`;
     }
     switch (selectedRange) {
-      case 'today':
-        return 'Today';
       case 'last_hour':
         return 'Last Hour';
+      case 'today':
+        return 'Today';
+      case 'past_2_days':
+        return 'Past 2 Days';
+      case 'past_5_days':
+        return 'Past 5 Days';
+      case 'week_to_date':
+        return 'Week-to-Date';
       default:
         return 'All Day';
     }
@@ -54,14 +65,36 @@ export default function TimeRangeFilterPill({
   };
 
   const handleCustomRangeApply = () => {
+    if (!tempStartDate || !tempEndDate) {
+      setRangeError('Please select both start and end dates');
+      return;
+    }
+    
+    const startDateTime = new Date(`${tempStartDate}T${tempStartHour.padStart(2, '0')}:${tempStartMinute.padStart(2, '0')}`);
+    const endDateTime = new Date(`${tempEndDate}T${tempEndHour.padStart(2, '0')}:${tempEndMinute.padStart(2, '0')}`);
+    const diffInDays = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60 * 24);
+    
+    if (diffInDays > 7) {
+      setRangeError('Range limit: one week maximum');
+      return;
+    }
+    
+    if (diffInDays < 0) {
+      setRangeError('End date must be after start date');
+      return;
+    }
+    
     const newCustomRange: CustomTimeRange = {
+      startDate: tempStartDate,
       startHour: tempStartHour.padStart(2, '0'),
       startMinute: tempStartMinute.padStart(2, '0'),
+      endDate: tempEndDate,
       endHour: tempEndHour.padStart(2, '0'),
       endMinute: tempEndMinute.padStart(2, '0'),
     };
     onRangeChange('custom', newCustomRange);
     setModalVisible(false);
+    setRangeError(null);
   };
 
   return (
@@ -87,9 +120,9 @@ export default function TimeRangeFilterPill({
           <View style={styles.dropdown}>
             <TouchableOpacity 
               style={styles.dropdownItem}
-              onPress={() => handleRangeSelect('all')}
+              onPress={() => handleRangeSelect('last_hour')}
             >
-              <Text style={styles.dropdownText}>All Day</Text>
+              <Text style={styles.dropdownText}>Last Hour</Text>
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity 
@@ -101,9 +134,23 @@ export default function TimeRangeFilterPill({
             <View style={styles.dropdownDivider} />
             <TouchableOpacity 
               style={styles.dropdownItem}
-              onPress={() => handleRangeSelect('last_hour')}
+              onPress={() => handleRangeSelect('past_2_days')}
             >
-              <Text style={styles.dropdownText}>Last Hour</Text>
+              <Text style={styles.dropdownText}>Past 2 Days</Text>
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity 
+              style={styles.dropdownItem}
+              onPress={() => handleRangeSelect('past_5_days')}
+            >
+              <Text style={styles.dropdownText}>Past 5 Days</Text>
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity 
+              style={styles.dropdownItem}
+              onPress={() => handleRangeSelect('week_to_date')}
+            >
+              <Text style={styles.dropdownText}>Week-to-Date</Text>
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity 
@@ -133,10 +180,29 @@ export default function TimeRangeFilterPill({
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={styles.modalTitle}>Custom Time Range</Text>
+            <Text style={styles.modalSubtitle}>Maximum 7 days</Text>
+            
+            {rangeError && (
+              <View style={styles.errorTooltip}>
+                <Text style={styles.errorText}>{rangeError}</Text>
+              </View>
+            )}
             
             <View style={styles.timeSection}>
-              <Text style={styles.timeLabel}>Start Time</Text>
-              <View style={styles.timeInputRow}>
+              <Text style={styles.timeLabel}>Start Date & Time</Text>
+              <View style={styles.dateInputRow}>
+                <TextInput
+                  style={styles.dateInput}
+                  value={tempStartDate}
+                  onChangeText={(text) => {
+                    setTempStartDate(text);
+                    setRangeError(null);
+                  }}
+                  placeholder="MM/DD"
+                  placeholderTextColor="#555555"
+                  selectionColor="#FFD33D"
+                  maxLength={5}
+                />
                 <TextInput
                   style={styles.timeInput}
                   value={tempStartHour}
@@ -172,8 +238,20 @@ export default function TimeRangeFilterPill({
             </View>
 
             <View style={styles.timeSection}>
-              <Text style={styles.timeLabel}>End Time</Text>
-              <View style={styles.timeInputRow}>
+              <Text style={styles.timeLabel}>End Date & Time</Text>
+              <View style={styles.dateInputRow}>
+                <TextInput
+                  style={styles.dateInput}
+                  value={tempEndDate}
+                  onChangeText={(text) => {
+                    setTempEndDate(text);
+                    setRangeError(null);
+                  }}
+                  placeholder="MM/DD"
+                  placeholderTextColor="#555555"
+                  selectionColor="#FFD33D"
+                  maxLength={5}
+                />
                 <TextInput
                   style={styles.timeInput}
                   value={tempEndHour}
@@ -270,11 +348,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 32,
     right: 16,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(26, 26, 26, 0.98)',
     borderWidth: 1,
     borderColor: '#FFD33D',
     borderRadius: 8,
-    minWidth: 140,
+    minWidth: 160,
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -297,7 +375,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.90)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -307,7 +385,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFD33D',
     borderRadius: 12,
     padding: 24,
-    width: 280,
+    width: 320,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.6,
@@ -318,7 +396,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700' as const,
-    marginBottom: 20,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    color: '#A0A0A0',
+    fontSize: 11,
+    fontWeight: '500' as const,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  errorTooltip: {
+    backgroundColor: '#2A1A1A',
+    borderWidth: 1,
+    borderColor: '#FF4444',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#FF6666',
+    fontSize: 11,
+    fontWeight: '600' as const,
     textAlign: 'center',
   },
   timeSection: {
@@ -332,10 +431,28 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  dateInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   timeInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dateInput: {
+    backgroundColor: '#0A0A0A',
+    borderWidth: 1,
+    borderColor: '#333333',
+    borderRadius: 6,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600' as const,
+    textAlign: 'center',
+    width: 70,
+    paddingVertical: 10,
   },
   timeInput: {
     backgroundColor: '#0A0A0A',
