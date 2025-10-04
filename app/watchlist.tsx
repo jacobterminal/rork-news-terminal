@@ -7,6 +7,7 @@ import AlertSearchBar from '../components/AlertSearchBar';
 import CriticalAlerts from '../components/CriticalAlerts';
 import SavedArticleCard from '../components/SavedArticleCard';
 import TerminalTickerRow from '../components/TerminalTickerRow';
+import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
 import { theme } from '../constants/theme';
@@ -53,6 +54,8 @@ export default function WatchlistScreen() {
   const scrollViewRef = useScrollReset();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [savedArticlesExpanded, setSavedArticlesExpanded] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>('all');
+  const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
   const { 
     state, 
     criticalAlerts,
@@ -109,12 +112,43 @@ export default function WatchlistScreen() {
   }, [allTickers]);
 
   const tickerDataMap = useMemo(() => {
+    const isNewsInTimeRange = (publishedAt: string): boolean => {
+      const newsTime = new Date(publishedAt);
+      const now = new Date();
+      
+      switch (timeRange) {
+        case 'today': {
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          return newsTime >= todayStart;
+        }
+        case 'last_hour': {
+          const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+          return newsTime >= oneHourAgo;
+        }
+        case 'custom': {
+          if (!customTimeRange) return true;
+          const startHour = parseInt(customTimeRange.startHour);
+          const startMinute = parseInt(customTimeRange.startMinute);
+          const endHour = parseInt(customTimeRange.endHour);
+          const endMinute = parseInt(customTimeRange.endMinute);
+          
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute);
+          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute);
+          
+          return newsTime >= todayStart && newsTime <= todayEnd;
+        }
+        default:
+          return true;
+      }
+    };
+
     const map: Record<string, TickerData> = {};
     
     allTickers.forEach(ticker => {
       const tickerNews = feedItems
         .filter(item => item.tickers?.includes(ticker))
-        .slice(0, 10) // Limit to 10 most recent
+        .filter(item => isNewsInTimeRange(item.published_at))
+        .slice(0, 10)
         .map(item => ({
           time: item.published_at,
           source: item.source.name,
@@ -155,7 +189,7 @@ export default function WatchlistScreen() {
     });
     
     return map;
-  }, [feedItems, allTickers]);
+  }, [feedItems, allTickers, timeRange, customTimeRange]);
 
   // Filter critical alerts for recent ones (within last 6 hours)
   const recentCriticalAlerts = useMemo(() => {
@@ -178,6 +212,13 @@ export default function WatchlistScreen() {
 
   const handleCriticalAlertPress = (alert: CriticalAlert) => {
     console.log('Critical alert pressed:', alert.headline);
+  };
+
+  const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {
+    setTimeRange(range);
+    if (range === 'custom' && customRange) {
+      setCustomTimeRange(customRange);
+    }
   };
 
 
@@ -209,7 +250,14 @@ export default function WatchlistScreen() {
         {/* Watchlist Header */}
         <View style={styles.sectionHeader}>
           <View style={styles.divider} />
-          <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>WATCHLIST</Text>
+          <View style={styles.headerRow}>
+            <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>WATCHLIST</Text>
+            <TimeRangeFilterPill
+              selectedRange={timeRange}
+              customRange={customTimeRange}
+              onRangeChange={handleTimeRangeChange}
+            />
+          </View>
           <View style={styles.divider} />
         </View>
         
@@ -310,15 +358,20 @@ const styles = StyleSheet.create({
   sectionHeader: {
     marginBottom: 0,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#000000',
+  },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
     color: '#F5C518',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    backgroundColor: '#000000',
   },
   divider: {
     height: 1,
