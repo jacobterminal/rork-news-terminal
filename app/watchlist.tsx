@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
@@ -11,6 +10,7 @@ import SavedArticleCard from '../components/SavedArticleCard';
 import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
 import { theme } from '../constants/theme';
+import { useScrollReset } from '../utils/useScrollReset';
 
 interface TickerNewsItem {
   time: string;
@@ -50,19 +50,9 @@ const COMPANY_NAMES: Record<string, string> = {
 
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useScrollReset();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [savedArticlesExpanded, setSavedArticlesExpanded] = useState(false);
-  
-  useFocusEffect(
-    React.useCallback(() => {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    }, [])
-  );
-  
-  useEffect(() => {
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-  }, []);
   const { 
     state, 
     criticalAlerts,

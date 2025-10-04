@@ -1,6 +1,5 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert } from '../types/news';
@@ -9,20 +8,11 @@ import TickerDrawer from '../components/TickerDrawer';
 import CriticalAlerts from '../components/CriticalAlerts';
 import AlertSearchBar from '../components/AlertSearchBar';
 import { useNewsStore } from '../store/newsStore';
+import { useScrollReset } from '../utils/useScrollReset';
 
 export default function InstantScreen() {
   const insets = useSafeAreaInsets();
-  const scrollViewRef = useRef<ScrollView>(null);
-  
-  useFocusEffect(
-    React.useCallback(() => {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    }, [])
-  );
-  
-  useEffect(() => {
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-  }, []);
+  const scrollViewRef = useScrollReset();
   const { 
     state, 
     criticalAlerts, 
