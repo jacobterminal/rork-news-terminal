@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated, PanResponder } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Keyboard } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
 export type TimeRange = 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
@@ -8,9 +8,11 @@ export interface CustomTimeRange {
   startDate: string;
   startHour: string;
   startMinute: string;
+  startPeriod: 'AM' | 'PM';
   endDate: string;
   endHour: string;
   endMinute: string;
+  endPeriod: 'AM' | 'PM';
 }
 
 interface TimeRangeFilterPillProps {
@@ -28,23 +30,19 @@ export default function TimeRangeFilterPill({
   const [modalVisible, setModalVisible] = useState(false);
   const [tempStartDate, setTempStartDate] = useState(customRange?.startDate || '');
   const [tempEndDate, setTempEndDate] = useState(customRange?.endDate || '');
-  const [tempStartHour, setTempStartHour] = useState(customRange?.startHour || '00');
+  const [tempStartHour, setTempStartHour] = useState(customRange?.startHour || '12');
   const [tempStartMinute, setTempStartMinute] = useState(customRange?.startMinute || '00');
-  const [tempEndHour, setTempEndHour] = useState(customRange?.endHour || '23');
+  const [tempStartPeriod, setTempStartPeriod] = useState<'AM' | 'PM'>(customRange?.startPeriod || 'AM');
+  const [tempEndHour, setTempEndHour] = useState(customRange?.endHour || '11');
   const [tempEndMinute, setTempEndMinute] = useState(customRange?.endMinute || '59');
+  const [tempEndPeriod, setTempEndPeriod] = useState<'AM' | 'PM'>(customRange?.endPeriod || 'PM');
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [startDatePickerVisible, setStartDatePickerVisible] = useState(false);
   const [endDatePickerVisible, setEndDatePickerVisible] = useState(false);
-  const [startTimePickerVisible, setStartTimePickerVisible] = useState(false);
-  const [endTimePickerVisible, setEndTimePickerVisible] = useState(false);
-  const [startTimeScrollMode, setStartTimeScrollMode] = useState(false);
-  const [endTimeScrollMode, setEndTimeScrollMode] = useState(false);
-  const startTimeHoldTimer = useRef<NodeJS.Timeout | null>(null);
-  const endTimeHoldTimer = useRef<NodeJS.Timeout | null>(null);
-  const startTimeScrollY = useRef(0);
-  const endTimeScrollY = useRef(0);
-  const startTimeGlowAnim = useRef(new Animated.Value(0)).current;
-  const endTimeGlowAnim = useRef(new Animated.Value(0)).current;
+  const [startTimeInput, setStartTimeInput] = useState('');
+  const [endTimeInput, setEndTimeInput] = useState('');
+  const [startTimeFocused, setStartTimeFocused] = useState(false);
+  const [endTimeFocused, setEndTimeFocused] = useState(false);
 
   const generatePast7Days = () => {
     const dates = [];
@@ -59,177 +57,99 @@ export default function TimeRangeFilterPill({
     return dates;
   };
 
-  const generateTimeOptions = () => {
-    const times = [];
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 15) {
-        const hourStr = hour.toString().padStart(2, '0');
-        const minuteStr = minute.toString().padStart(2, '0');
-        times.push({ label: `${hourStr}:${minuteStr}`, hour: hourStr, minute: minuteStr });
-      }
+  const parseTimeInput = (input: string): { hour: string; minute: string; period: 'AM' | 'PM' } | null => {
+    const cleaned = input.replace(/[^0-9APMapm]/g, '');
+    const match = cleaned.match(/^(\d{1,4})([APap][Mm]?)$/);
+    
+    if (!match) return null;
+    
+    const digits = match[1];
+    const periodStr = match[2].toUpperCase();
+    const period = periodStr.startsWith('A') ? 'AM' : 'PM';
+    
+    let hour: number;
+    let minute: number;
+    
+    if (digits.length <= 2) {
+      hour = parseInt(digits);
+      minute = 0;
+    } else if (digits.length === 3) {
+      hour = parseInt(digits[0]);
+      minute = parseInt(digits.slice(1));
+    } else {
+      hour = parseInt(digits.slice(0, 2));
+      minute = parseInt(digits.slice(2));
     }
-    return times;
-  };
-
-  const timeToMinutes = (hour: string, minute: string): number => {
-    return parseInt(hour) * 60 + parseInt(minute);
-  };
-
-  const minutesToTime = (totalMinutes: number): { hour: string; minute: string } => {
-    const clampedMinutes = Math.max(0, Math.min(1439, totalMinutes));
-    const hour = Math.floor(clampedMinutes / 60);
-    const minute = Math.floor((clampedMinutes % 60) / 15) * 15;
+    
+    if (hour < 1 || hour > 12) hour = 12;
+    if (minute > 59) minute = 0;
+    
     return {
       hour: hour.toString().padStart(2, '0'),
-      minute: minute.toString().padStart(2, '0')
+      minute: minute.toString().padStart(2, '0'),
+      period
     };
   };
 
-  const adjustTime = (currentHour: string, currentMinute: string, deltaY: number): { hour: string; minute: string } => {
-    const currentMinutes = timeToMinutes(currentHour, currentMinute);
-    const scrollSensitivity = 40;
-    const minuteChange = Math.round(deltaY / scrollSensitivity) * 15;
-    const newMinutes = currentMinutes - minuteChange;
-    return minutesToTime(newMinutes);
+  const convertTo24Hour = (hour: string, period: 'AM' | 'PM'): number => {
+    let h = parseInt(hour);
+    if (period === 'AM') {
+      if (h === 12) return 0;
+      return h;
+    } else {
+      if (h === 12) return 12;
+      return h + 12;
+    }
   };
 
-  const validateEndTime = (startH: string, startM: string, endH: string, endM: string, isSameDay: boolean): { hour: string; minute: string } => {
-    if (!isSameDay) return { hour: endH, minute: endM };
-    
-    const startMinutes = timeToMinutes(startH, startM);
-    const endMinutes = timeToMinutes(endH, endM);
-    
-    if (endMinutes <= startMinutes) {
-      const adjustedMinutes = startMinutes + 15;
-      return minutesToTime(adjustedMinutes);
+  const timeToMinutes = (hour: string, minute: string, period: 'AM' | 'PM'): number => {
+    const hour24 = convertTo24Hour(hour, period);
+    return hour24 * 60 + parseInt(minute);
+  };
+
+  const handleStartTimeInputChange = (text: string) => {
+    setStartTimeInput(text);
+    setRangeError(null);
+  };
+
+  const handleEndTimeInputChange = (text: string) => {
+    setEndTimeInput(text);
+    setRangeError(null);
+  };
+
+  const handleStartTimeBlur = () => {
+    setStartTimeFocused(false);
+    if (startTimeInput.trim()) {
+      const parsed = parseTimeInput(startTimeInput);
+      if (parsed) {
+        setTempStartHour(parsed.hour);
+        setTempStartMinute(parsed.minute);
+        setTempStartPeriod(parsed.period);
+      }
+      setStartTimeInput('');
     }
-    
-    return { hour: endH, minute: endM };
+  };
+
+  const handleEndTimeBlur = () => {
+    setEndTimeFocused(false);
+    if (endTimeInput.trim()) {
+      const parsed = parseTimeInput(endTimeInput);
+      if (parsed) {
+        setTempEndHour(parsed.hour);
+        setTempEndMinute(parsed.minute);
+        setTempEndPeriod(parsed.period);
+      }
+      setEndTimeInput('');
+    }
   };
 
   const past7Days = generatePast7Days();
-  const timeOptions = generateTimeOptions();
 
-  const startTimePanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => startTimeScrollMode,
-      onPanResponderGrant: () => {
-        startTimeScrollY.current = 0;
-        startTimeHoldTimer.current = setTimeout(() => {
-          setStartTimeScrollMode(true);
-          Animated.timing(startTimeGlowAnim, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: false,
-          }).start();
-        }, 100);
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (startTimeScrollMode) {
-          const deltaY = gestureState.dy - startTimeScrollY.current;
-          startTimeScrollY.current = gestureState.dy;
-          
-          const newTime = adjustTime(tempStartHour, tempStartMinute, deltaY);
-          setTempStartHour(newTime.hour);
-          setTempStartMinute(newTime.minute);
-          setRangeError(null);
-        }
-      },
-      onPanResponderRelease: () => {
-        if (startTimeHoldTimer.current) {
-          clearTimeout(startTimeHoldTimer.current);
-          startTimeHoldTimer.current = null;
-        }
-        if (startTimeScrollMode) {
-          setStartTimeScrollMode(false);
-          Animated.timing(startTimeGlowAnim, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: false,
-          }).start();
-        } else {
-          setStartTimePickerVisible(!startTimePickerVisible);
-        }
-      },
-      onPanResponderTerminate: () => {
-        if (startTimeHoldTimer.current) {
-          clearTimeout(startTimeHoldTimer.current);
-          startTimeHoldTimer.current = null;
-        }
-        setStartTimeScrollMode(false);
-        Animated.timing(startTimeGlowAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: false,
-        }).start();
-      },
-    })
-  ).current;
 
-  const endTimePanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => endTimeScrollMode,
-      onPanResponderGrant: () => {
-        endTimeScrollY.current = 0;
-        endTimeHoldTimer.current = setTimeout(() => {
-          setEndTimeScrollMode(true);
-          Animated.timing(endTimeGlowAnim, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: false,
-          }).start();
-        }, 100);
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (endTimeScrollMode) {
-          const deltaY = gestureState.dy - endTimeScrollY.current;
-          endTimeScrollY.current = gestureState.dy;
-          
-          const newTime = adjustTime(tempEndHour, tempEndMinute, deltaY);
-          const isSameDay = tempStartDate === tempEndDate;
-          const validatedTime = validateEndTime(tempStartHour, tempStartMinute, newTime.hour, newTime.minute, isSameDay);
-          
-          setTempEndHour(validatedTime.hour);
-          setTempEndMinute(validatedTime.minute);
-          setRangeError(null);
-        }
-      },
-      onPanResponderRelease: () => {
-        if (endTimeHoldTimer.current) {
-          clearTimeout(endTimeHoldTimer.current);
-          endTimeHoldTimer.current = null;
-        }
-        if (endTimeScrollMode) {
-          setEndTimeScrollMode(false);
-          Animated.timing(endTimeGlowAnim, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: false,
-          }).start();
-        } else {
-          setEndTimePickerVisible(!endTimePickerVisible);
-        }
-      },
-      onPanResponderTerminate: () => {
-        if (endTimeHoldTimer.current) {
-          clearTimeout(endTimeHoldTimer.current);
-          endTimeHoldTimer.current = null;
-        }
-        setEndTimeScrollMode(false);
-        Animated.timing(endTimeGlowAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: false,
-        }).start();
-      },
-    })
-  ).current;
 
   const getPillText = () => {
     if (selectedRange === 'custom' && customRange) {
-      return `${customRange.startDate} ${customRange.startHour}:${customRange.startMinute} – ${customRange.endDate} ${customRange.endHour}:${customRange.endMinute}`;
+      return `${customRange.startDate} ${customRange.startHour}:${customRange.startMinute} ${customRange.startPeriod} – ${customRange.endDate} ${customRange.endHour}:${customRange.endMinute} ${customRange.endPeriod}`;
     }
     switch (selectedRange) {
       case 'last_hour':
@@ -272,18 +192,21 @@ export default function TimeRangeFilterPill({
       return;
     }
     
+    const startHour24 = convertTo24Hour(tempStartHour, tempStartPeriod);
+    const endHour24 = convertTo24Hour(tempEndHour, tempEndPeriod);
+    
     const startDateTime = new Date(
       currentYear, 
       parseInt(startParts[0]) - 1, 
       parseInt(startParts[1]), 
-      parseInt(tempStartHour), 
+      startHour24, 
       parseInt(tempStartMinute)
     );
     const endDateTime = new Date(
       currentYear, 
       parseInt(endParts[0]) - 1, 
       parseInt(endParts[1]), 
-      parseInt(tempEndHour), 
+      endHour24, 
       parseInt(tempEndMinute)
     );
     
@@ -301,14 +224,11 @@ export default function TimeRangeFilterPill({
     }
     
     if (tempStartDate === tempEndDate) {
-      const startTimeInMinutes = parseInt(tempStartHour) * 60 + parseInt(tempStartMinute);
-      const endTimeInMinutes = parseInt(tempEndHour) * 60 + parseInt(tempEndMinute);
+      const startTimeInMinutes = timeToMinutes(tempStartHour, tempStartMinute, tempStartPeriod);
+      const endTimeInMinutes = timeToMinutes(tempEndHour, tempEndMinute, tempEndPeriod);
       
       if (endTimeInMinutes <= startTimeInMinutes) {
-        const newEndHour = (parseInt(tempStartHour) + 1) % 24;
-        setTempEndHour(newEndHour.toString().padStart(2, '0'));
-        setTempEndMinute(tempStartMinute);
-        setRangeError('End time adjusted to 1 hour after start time');
+        setRangeError('⚠️ End time must be later than start time.');
         return;
       }
     }
@@ -324,9 +244,11 @@ export default function TimeRangeFilterPill({
       startDate: formatDateLabel(tempStartDate),
       startHour: tempStartHour,
       startMinute: tempStartMinute,
+      startPeriod: tempStartPeriod,
       endDate: formatDateLabel(tempEndDate),
       endHour: tempEndHour,
       endMinute: tempEndMinute,
+      endPeriod: tempEndPeriod,
     };
     onRangeChange('custom', newCustomRange);
     setModalVisible(false);
@@ -567,120 +489,84 @@ export default function TimeRangeFilterPill({
               <View style={styles.timeRangeRow}>
                 <View style={styles.timeInputContainer}>
                   <Text style={styles.timeInputLabel}>START TIME</Text>
-                  <Animated.View 
-                    style={[
-                      styles.timeDropdownButton,
-                      startTimeScrollMode && styles.timeDropdownButtonActive,
-                      {
-                        borderColor: startTimeGlowAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['rgba(255, 211, 61, 0.6)', 'rgba(255, 211, 61, 1)']
-                        }),
-                        backgroundColor: startTimeGlowAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['#0A0A0A', '#101010']
-                        })
-                      }
-                    ]}
-                    {...startTimePanResponder.panHandlers}
-                  >
-                    <Text style={styles.timeDropdownText}>
-                      {tempStartHour} : {tempStartMinute}
-                    </Text>
-                    <ChevronDown size={14} color="#FFFFFF" />
-                    {startTimeScrollMode && (
-                      <View style={styles.scrollTooltip}>
-                        <Text style={styles.scrollTooltipText}>Scroll to adjust time</Text>
-                      </View>
-                    )}
-                  </Animated.View>
-                  
-                  {startTimePickerVisible && (
-                    <View style={styles.timePickerDropdown}>
-                      {timeOptions.map((time) => (
-                        <TouchableOpacity
-                          key={`${time.hour}:${time.minute}`}
-                          style={[
-                            styles.timePickerItem,
-                            tempStartHour === time.hour && tempStartMinute === time.minute && styles.timePickerItemSelected
-                          ]}
-                          onPress={() => {
-                            setTempStartHour(time.hour);
-                            setTempStartMinute(time.minute);
-                            setStartTimePickerVisible(false);
-                            setRangeError(null);
-                          }}
-                        >
-                          <Text style={[
-                            styles.timePickerText,
-                            tempStartHour === time.hour && tempStartMinute === time.minute && styles.timePickerTextSelected
-                          ]}>
-                            {time.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
+                  <View style={[
+                    styles.timeInputBox,
+                    startTimeFocused && styles.timeInputBoxFocused
+                  ]}>
+                    <TextInput
+                      style={styles.timeInput}
+                      value={startTimeInput || `${tempStartHour} : ${tempStartMinute}`}
+                      onChangeText={handleStartTimeInputChange}
+                      onFocus={() => {
+                        setStartTimeFocused(true);
+                        setStartTimeInput('');
+                      }}
+                      onBlur={handleStartTimeBlur}
+                      placeholder="00:00 AM"
+                      placeholderTextColor="#555555"
+                      keyboardType="default"
+                      autoCapitalize="characters"
+                      returnKeyType="done"
+                      onSubmitEditing={() => {
+                        Keyboard.dismiss();
+                        handleStartTimeBlur();
+                      }}
+                    />
+                    <TouchableOpacity 
+                      style={[
+                        styles.periodPill,
+                        tempStartPeriod === 'AM' && styles.periodPillActive
+                      ]}
+                      onPress={() => setTempStartPeriod(tempStartPeriod === 'AM' ? 'PM' : 'AM')}
+                    >
+                      <Text style={[
+                        styles.periodPillText,
+                        tempStartPeriod === 'AM' && styles.periodPillTextActive
+                      ]}>{tempStartPeriod}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 
                 <Text style={styles.timeRangeSeparator}>to</Text>
                 
                 <View style={styles.timeInputContainer}>
                   <Text style={styles.timeInputLabel}>END TIME</Text>
-                  <Animated.View 
-                    style={[
-                      styles.timeDropdownButton,
-                      endTimeScrollMode && styles.timeDropdownButtonActive,
-                      {
-                        borderColor: endTimeGlowAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['rgba(255, 211, 61, 0.6)', 'rgba(255, 211, 61, 1)']
-                        }),
-                        backgroundColor: endTimeGlowAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['#0A0A0A', '#101010']
-                        })
-                      }
-                    ]}
-                    {...endTimePanResponder.panHandlers}
-                  >
-                    <Text style={styles.timeDropdownText}>
-                      {tempEndHour} : {tempEndMinute}
-                    </Text>
-                    <ChevronDown size={14} color="#FFFFFF" />
-                    {endTimeScrollMode && (
-                      <View style={styles.scrollTooltip}>
-                        <Text style={styles.scrollTooltipText}>Scroll to adjust time</Text>
-                      </View>
-                    )}
-                  </Animated.View>
-                  
-                  {endTimePickerVisible && (
-                    <View style={styles.timePickerDropdown}>
-                      {timeOptions.map((time) => (
-                        <TouchableOpacity
-                          key={`${time.hour}:${time.minute}`}
-                          style={[
-                            styles.timePickerItem,
-                            tempEndHour === time.hour && tempEndMinute === time.minute && styles.timePickerItemSelected
-                          ]}
-                          onPress={() => {
-                            setTempEndHour(time.hour);
-                            setTempEndMinute(time.minute);
-                            setEndTimePickerVisible(false);
-                            setRangeError(null);
-                          }}
-                        >
-                          <Text style={[
-                            styles.timePickerText,
-                            tempEndHour === time.hour && tempEndMinute === time.minute && styles.timePickerTextSelected
-                          ]}>
-                            {time.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
+                  <View style={[
+                    styles.timeInputBox,
+                    endTimeFocused && styles.timeInputBoxFocused
+                  ]}>
+                    <TextInput
+                      style={styles.timeInput}
+                      value={endTimeInput || `${tempEndHour} : ${tempEndMinute}`}
+                      onChangeText={handleEndTimeInputChange}
+                      onFocus={() => {
+                        setEndTimeFocused(true);
+                        setEndTimeInput('');
+                      }}
+                      onBlur={handleEndTimeBlur}
+                      placeholder="11:59 PM"
+                      placeholderTextColor="#555555"
+                      keyboardType="default"
+                      autoCapitalize="characters"
+                      returnKeyType="done"
+                      onSubmitEditing={() => {
+                        Keyboard.dismiss();
+                        handleEndTimeBlur();
+                      }}
+                    />
+                    <TouchableOpacity 
+                      style={[
+                        styles.periodPill,
+                        tempEndPeriod === 'PM' && styles.periodPillActive
+                      ]}
+                      onPress={() => setTempEndPeriod(tempEndPeriod === 'AM' ? 'PM' : 'AM')}
+                    >
+                      <Text style={[
+                        styles.periodPillText,
+                        tempEndPeriod === 'PM' && styles.periodPillTextActive
+                      ]}>{tempEndPeriod}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>
@@ -935,49 +821,55 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
-  timeDropdownButton: {
-    backgroundColor: '#0A0A0A',
+  timeInputBox: {
+    backgroundColor: '#121212',
     borderWidth: 1,
-    borderColor: 'rgba(255, 211, 61, 0.6)',
+    borderColor: 'rgba(255, 211, 61, 0.4)',
     borderRadius: 5,
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 36,
-    position: 'relative',
+    height: 40,
   },
-  timeDropdownButtonActive: {
+  timeInputBoxFocused: {
+    borderColor: 'rgba(255, 211, 61, 0.9)',
     shadowColor: '#FFD33D',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 8,
   },
-  scrollTooltip: {
-    position: 'absolute',
-    top: -28,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 211, 61, 0.95)',
-    borderRadius: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollTooltipText: {
-    color: '#000000',
-    fontSize: 9,
-    fontWeight: '600' as const,
-    letterSpacing: 0.3,
-  },
-  timeDropdownText: {
+  timeInput: {
+    flex: 1,
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '500' as const,
     letterSpacing: 1,
+    paddingVertical: 0,
+  },
+  periodPill: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 211, 61, 0.3)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginLeft: 8,
+  },
+  periodPillActive: {
+    backgroundColor: 'rgba(255, 211, 61, 0.6)',
+    borderColor: 'rgba(255, 211, 61, 0.9)',
+  },
+  periodPillText: {
+    color: '#FFD33D',
+    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 0.5,
+  },
+  periodPillTextActive: {
+    color: '#000000',
   },
   timeRangeSeparator: {
     color: '#777777',
@@ -986,35 +878,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 4,
   },
-  timePickerDropdown: {
-    backgroundColor: '#121212',
-    borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 5,
-    marginTop: 6,
-    maxHeight: 180,
-    overflow: 'hidden',
-  },
-  timePickerItem: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    height: 32,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  timePickerItemSelected: {
-    backgroundColor: 'rgba(255, 211, 61, 0.2)',
-  },
-  timePickerText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '500' as const,
-  },
-  timePickerTextSelected: {
-    color: '#FFD33D',
-    fontWeight: '600' as const,
-  },
+
   applyButtonDisabled: {
     opacity: 0.4,
   },
