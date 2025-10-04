@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
@@ -9,18 +9,93 @@ import { useNewsStore } from '../store/newsStore';
 import { useScrollReset } from '../utils/useScrollReset';
 import CriticalAlerts from '../components/CriticalAlerts';
 import AlertSearchBar from '../components/AlertSearchBar';
+import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 
 export default function NewsScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
   const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines } = useNewsStore();
   const { watchlist, feedItems, ui } = state;
+  const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
+  const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
   
   // Filter feed items to only show news for tickers in watchlist
   const watchlistFeedItems = useMemo(() => {
     if (!watchlist || watchlist.length === 0) {
       return [];
     }
+    
+    const getWeekStart = (date: Date): Date => {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day;
+      return new Date(d.getFullYear(), d.getMonth(), diff, 0, 0, 0, 0);
+    };
+
+    const isNewsInTimeRange = (publishedAt: string): boolean => {
+      const newsTime = new Date(publishedAt);
+      const now = new Date();
+      
+      switch (timeRange) {
+        case 'last_hour': {
+          const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+          return newsTime >= oneHourAgo;
+        }
+        case 'today': {
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          return newsTime >= todayStart;
+        }
+        case 'past_2_days': {
+          const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+          return newsTime >= twoDaysAgo;
+        }
+        case 'past_5_days': {
+          const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+          return newsTime >= fiveDaysAgo;
+        }
+        case 'week_to_date': {
+          const weekStart = getWeekStart(now);
+          return newsTime >= weekStart;
+        }
+        case 'custom': {
+          if (!customTimeRange) return true;
+          
+          const currentYear = now.getFullYear();
+          const startDateParts = customTimeRange.startDate.split('/');
+          const endDateParts = customTimeRange.endDate.split('/');
+          
+          if (startDateParts.length !== 2 || endDateParts.length !== 2) return true;
+          
+          const startMonth = parseInt(startDateParts[0]) - 1;
+          const startDay = parseInt(startDateParts[1]);
+          const endMonth = parseInt(endDateParts[0]) - 1;
+          const endDay = parseInt(endDateParts[1]);
+          
+          const convertTo24Hour = (hour: string, period: 'AM' | 'PM'): number => {
+            let h = parseInt(hour);
+            if (period === 'AM') {
+              if (h === 12) return 0;
+              return h;
+            } else {
+              if (h === 12) return 12;
+              return h + 12;
+            }
+          };
+          
+          const startHour = convertTo24Hour(customTimeRange.startHour, customTimeRange.startPeriod);
+          const startMinute = parseInt(customTimeRange.startMinute);
+          const endHour = convertTo24Hour(customTimeRange.endHour, customTimeRange.endPeriod);
+          const endMinute = parseInt(customTimeRange.endMinute);
+          
+          const rangeStart = new Date(currentYear, startMonth, startDay, startHour, startMinute);
+          const rangeEnd = new Date(currentYear, endMonth, endDay, endHour, endMinute);
+          
+          return newsTime >= rangeStart && newsTime <= rangeEnd;
+        }
+        default:
+          return true;
+      }
+    };
     
     return feedItems
       .filter(item => {
@@ -31,11 +106,12 @@ export default function NewsScreen() {
           return watchlist.includes(sanitizedTicker);
         });
       })
+      .filter(item => isNewsInTimeRange(item.published_at))
       .sort((a, b) => {
         // Sort by published_at DESC (most recent first)
         return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
       });
-  }, [feedItems, watchlist]);
+  }, [feedItems, watchlist, timeRange, customTimeRange]);
 
   const handleTickerPress = (ticker: string) => {
     if (!ticker || !ticker.trim() || ticker.length > 10) return;
@@ -45,6 +121,16 @@ export default function NewsScreen() {
 
   const handleCloseDrawer = () => {
     closeTicker();
+  };
+
+  const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {
+    console.log('Time range changed:', range, customRange);
+    setTimeRange(range);
+    if (range === 'custom' && customRange) {
+      setCustomTimeRange(customRange);
+    } else {
+      setCustomTimeRange(undefined);
+    }
   };
 
 
@@ -86,8 +172,17 @@ export default function NewsScreen() {
             onAlertPress={handleCriticalAlertPress}
           />
         )}
-        <View nativeID="banner-anchor-point" style={styles.sectionHeader} testID="watchlist-based-news-header">
-          <Text style={styles.sectionTitle}>WATCHLIST BASED NEWS</Text>
+        <View style={styles.sectionHeaderContainer}>
+          <View style={styles.divider} />
+          <View nativeID="banner-anchor-point" style={styles.sectionHeader} testID="watchlist-based-news-header">
+            <Text style={styles.sectionTitle}>WATCHLIST BASED NEWS</Text>
+            <TimeRangeFilterPill
+              selectedRange={timeRange}
+              customRange={customTimeRange}
+              onRangeChange={handleTimeRangeChange}
+            />
+          </View>
+          <View style={styles.divider} />
         </View>
         {watchlist.length === 0 ? (
           <View style={styles.emptyState}>
@@ -141,15 +236,17 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: theme.spacing.sm,
   },
-  sectionHeader: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.sectionTitle,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    paddingTop: 8,
-    paddingBottom: 6,
-    paddingHorizontal: 16,
+  sectionHeaderContainer: {
     marginTop: 8,
+    marginBottom: 0,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#000000',
   },
   sectionTitle: {
     fontSize: 11,
@@ -157,6 +254,10 @@ const styles = StyleSheet.create({
     color: theme.colors.sectionTitle,
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.sectionTitle,
   },
   newsTable: {
     backgroundColor: theme.colors.bg,

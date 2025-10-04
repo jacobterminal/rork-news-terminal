@@ -718,7 +718,6 @@ export default function TimeRangeFilterPill({
                 <Text style={styles.applyButtonText}>Apply</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalFooterNote}>Filtered range applies to all watchlist news alerts.</Text>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1007,14 +1006,6 @@ const styles = StyleSheet.create({
 
   applyButtonDisabled: {
     opacity: 0.4,
-  },
-  modalFooterNote: {
-    color: '#777777',
-    fontSize: 9,
-    fontWeight: '500' as const,
-    textAlign: 'center',
-    marginTop: 8,
-    fontStyle: 'italic',
   },
   modalButtons: {
     flexDirection: 'row',
