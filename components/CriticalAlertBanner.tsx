@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Text, StyleSheet, Animated, Platform } from 'react-native';
+import { Text, StyleSheet, Animated, Platform, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 
 interface CriticalAlertBannerProps {
@@ -9,7 +10,9 @@ interface CriticalAlertBannerProps {
 }
 
 export default function CriticalAlertBanner({ message, sentiment, onDismiss }: CriticalAlertBannerProps) {
-  const [slideAnim] = useState(new Animated.Value(-100));
+  const insets = useSafeAreaInsets();
+  const bannerHeight = 44 + insets.top;
+  const [slideAnim] = useState(new Animated.Value(-bannerHeight));
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -18,14 +21,14 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
       
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 350,
+        duration: 320,
         useNativeDriver: true,
       }).start();
 
       const timer = setTimeout(() => {
         Animated.timing(slideAnim, {
-          toValue: -100,
-          duration: 350,
+          toValue: -bannerHeight,
+          duration: 320,
           useNativeDriver: true,
         }).start(() => {
           setIsVisible(false);
@@ -35,7 +38,18 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
 
       return () => clearTimeout(timer);
     }
-  }, [message, slideAnim, onDismiss]);
+  }, [message, slideAnim, onDismiss, bannerHeight]);
+
+  const handlePress = () => {
+    Animated.timing(slideAnim, {
+      toValue: -bannerHeight,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsVisible(false);
+      onDismiss?.();
+    });
+  };
 
   if (!isVisible && !message) return null;
 
@@ -50,13 +64,20 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
         styles.banner,
         {
           backgroundColor,
+          height: bannerHeight,
+          paddingTop: insets.top,
           transform: [{ translateY: slideAnim }],
         },
       ]}
     >
-      <Text style={styles.bannerText} numberOfLines={1}>
-        {message}
-      </Text>
+      <Pressable 
+        onPress={handlePress}
+        style={styles.pressable}
+      >
+        <Text style={styles.bannerText} numberOfLines={1}>
+          {message}
+        </Text>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -67,23 +88,28 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 38,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
     zIndex: 9999,
     ...Platform.select({
       web: {
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
       },
       default: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.35,
         shadowRadius: 4,
-        elevation: 8,
+        elevation: 10,
       },
     }),
+  },
+  pressable: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
   },
   bannerText: {
     fontSize: 13,
