@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Text, StyleSheet, Animated, Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../constants/theme';
 
 interface CriticalAlertBannerProps {
   message: string | null;
@@ -11,7 +10,7 @@ interface CriticalAlertBannerProps {
 
 export default function CriticalAlertBanner({ message, sentiment, onDismiss }: CriticalAlertBannerProps) {
   const insets = useSafeAreaInsets();
-  const bannerHeight = 58 + insets.top;
+  const bannerHeight = 108 + insets.top;
   const [slideAnim] = useState(new Animated.Value(-bannerHeight));
   const [isVisible, setIsVisible] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,10 +64,7 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
 
   if (!isVisible && !message) return null;
 
-  const backgroundColor = 
-    sentiment === 'bull' ? theme.colors.bullish :
-    sentiment === 'bear' ? theme.colors.bearish :
-    theme.colors.neutral;
+  const backgroundColor = '#000000';
 
   return (
     <Animated.View
