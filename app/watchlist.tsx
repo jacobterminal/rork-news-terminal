@@ -54,7 +54,7 @@ export default function WatchlistScreen() {
   const scrollViewRef = useScrollReset();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [savedArticlesExpanded, setSavedArticlesExpanded] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>('all');
+  const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
   const { 
     state, 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
-export type TimeRange = 'all' | 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
+export type TimeRange = 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
 
 export interface CustomTimeRange {
   startDate: string;
@@ -27,16 +27,29 @@ export default function TimeRangeFilterPill({
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [tempStartDate, setTempStartDate] = useState(customRange?.startDate || '');
-  const [tempStartHour, setTempStartHour] = useState(customRange?.startHour || '09');
-  const [tempStartMinute, setTempStartMinute] = useState(customRange?.startMinute || '30');
   const [tempEndDate, setTempEndDate] = useState(customRange?.endDate || '');
-  const [tempEndHour, setTempEndHour] = useState(customRange?.endHour || '16');
-  const [tempEndMinute, setTempEndMinute] = useState(customRange?.endMinute || '00');
   const [rangeError, setRangeError] = useState<string | null>(null);
+  const [startDatePickerVisible, setStartDatePickerVisible] = useState(false);
+  const [endDatePickerVisible, setEndDatePickerVisible] = useState(false);
+
+  const generatePast7Days = () => {
+    const dates = [];
+    const now = new Date();
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const month = date.toLocaleString('en-US', { month: 'short' });
+      const day = date.getDate();
+      dates.push({ label: `${month} ${day}`, value: `${date.getMonth() + 1}/${day}` });
+    }
+    return dates;
+  };
+
+  const past7Days = generatePast7Days();
 
   const getPillText = () => {
     if (selectedRange === 'custom' && customRange) {
-      return `${customRange.startDate} ${customRange.startHour}:${customRange.startMinute} – ${customRange.endDate} ${customRange.endHour}:${customRange.endMinute}`;
+      return `${customRange.startDate} – ${customRange.endDate}`;
     }
     switch (selectedRange) {
       case 'last_hour':
@@ -50,7 +63,7 @@ export default function TimeRangeFilterPill({
       case 'week_to_date':
         return 'Week-to-Date';
       default:
-        return 'All Day';
+        return 'Last Hour';
     }
   };
 
@@ -70,12 +83,21 @@ export default function TimeRangeFilterPill({
       return;
     }
     
-    const startDateTime = new Date(`${tempStartDate}T${tempStartHour.padStart(2, '0')}:${tempStartMinute.padStart(2, '0')}`);
-    const endDateTime = new Date(`${tempEndDate}T${tempEndHour.padStart(2, '0')}:${tempEndMinute.padStart(2, '0')}`);
+    const currentYear = new Date().getFullYear();
+    const startParts = tempStartDate.split('/');
+    const endParts = tempEndDate.split('/');
+    
+    if (startParts.length !== 2 || endParts.length !== 2) {
+      setRangeError('Invalid date format');
+      return;
+    }
+    
+    const startDateTime = new Date(currentYear, parseInt(startParts[0]) - 1, parseInt(startParts[1]), 0, 0, 0);
+    const endDateTime = new Date(currentYear, parseInt(endParts[0]) - 1, parseInt(endParts[1]), 23, 59, 59);
     const diffInDays = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60 * 24);
     
     if (diffInDays > 7) {
-      setRangeError('Range limit: one week maximum');
+      setRangeError('Custom range limited to 7 days.');
       return;
     }
     
@@ -84,13 +106,20 @@ export default function TimeRangeFilterPill({
       return;
     }
     
+    const formatDateLabel = (dateStr: string) => {
+      const parts = dateStr.split('/');
+      const date = new Date(currentYear, parseInt(parts[0]) - 1, parseInt(parts[1]));
+      const month = date.toLocaleString('en-US', { month: 'short' });
+      return `${month} ${parts[1]}`;
+    };
+    
     const newCustomRange: CustomTimeRange = {
-      startDate: tempStartDate,
-      startHour: tempStartHour.padStart(2, '0'),
-      startMinute: tempStartMinute.padStart(2, '0'),
-      endDate: tempEndDate,
-      endHour: tempEndHour.padStart(2, '0'),
-      endMinute: tempEndMinute.padStart(2, '0'),
+      startDate: formatDateLabel(tempStartDate),
+      startHour: '00',
+      startMinute: '00',
+      endDate: formatDateLabel(tempEndDate),
+      endHour: '23',
+      endMinute: '59',
     };
     onRangeChange('custom', newCustomRange);
     setModalVisible(false);
@@ -102,12 +131,11 @@ export default function TimeRangeFilterPill({
       <TouchableOpacity 
         style={[
           styles.pill,
-          selectedRange !== 'all' && styles.pillActive
+          selectedRange !== 'last_hour' && styles.pillActive
         ]}
         onPress={() => setDropdownVisible(!dropdownVisible)}
       >
-        <Text style={styles.pillText}>{getPillText()}</Text>
-        <ChevronDown size={12} color="#FFFFFF" style={styles.chevron} />
+        <Text style={styles.pillText}>{getPillText()} ⌄</Text>
       </TouchableOpacity>
 
       {dropdownVisible && (
@@ -179,8 +207,8 @@ export default function TimeRangeFilterPill({
             activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={styles.modalTitle}>Custom Time Range</Text>
-            <Text style={styles.modalSubtitle}>Maximum 7 days</Text>
+            <Text style={styles.modalTitle}>Custom Date Range</Text>
+            <Text style={styles.modalSubtitle}>Select dates within the past 7 days</Text>
             
             {rangeError && (
               <View style={styles.errorTooltip}>
@@ -189,101 +217,81 @@ export default function TimeRangeFilterPill({
             )}
             
             <View style={styles.timeSection}>
-              <Text style={styles.timeLabel}>Start Date & Time</Text>
-              <View style={styles.dateInputRow}>
-                <TextInput
-                  style={styles.dateInput}
-                  value={tempStartDate}
-                  onChangeText={(text) => {
-                    setTempStartDate(text);
-                    setRangeError(null);
-                  }}
-                  placeholder="MM/DD"
-                  placeholderTextColor="#555555"
-                  selectionColor="#FFD33D"
-                  maxLength={5}
-                />
-                <TextInput
-                  style={styles.timeInput}
-                  value={tempStartHour}
-                  onChangeText={(text) => {
-                    const num = text.replace(/[^0-9]/g, '');
-                    if (num === '' || (parseInt(num) >= 0 && parseInt(num) <= 23)) {
-                      setTempStartHour(num);
-                    }
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="HH"
-                  placeholderTextColor="#555555"
-                  selectionColor="#FFD33D"
-                />
-                <Text style={styles.timeSeparator}>:</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  value={tempStartMinute}
-                  onChangeText={(text) => {
-                    const num = text.replace(/[^0-9]/g, '');
-                    if (num === '' || (parseInt(num) >= 0 && parseInt(num) <= 59)) {
-                      setTempStartMinute(num);
-                    }
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="MM"
-                  placeholderTextColor="#555555"
-                  selectionColor="#FFD33D"
-                />
-              </View>
+              <Text style={styles.timeLabel}>Start Date</Text>
+              <TouchableOpacity 
+                style={styles.dateDropdownButton}
+                onPress={() => setStartDatePickerVisible(!startDatePickerVisible)}
+              >
+                <Text style={styles.dateDropdownText}>
+                  {tempStartDate ? past7Days.find(d => d.value === tempStartDate)?.label || tempStartDate : 'Select date'}
+                </Text>
+                <ChevronDown size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+              
+              {startDatePickerVisible && (
+                <View style={styles.datePickerDropdown}>
+                  {past7Days.map((date) => (
+                    <TouchableOpacity
+                      key={date.value}
+                      style={[
+                        styles.datePickerItem,
+                        tempStartDate === date.value && styles.datePickerItemSelected
+                      ]}
+                      onPress={() => {
+                        setTempStartDate(date.value);
+                        setStartDatePickerVisible(false);
+                        setRangeError(null);
+                      }}
+                    >
+                      <Text style={[
+                        styles.datePickerText,
+                        tempStartDate === date.value && styles.datePickerTextSelected
+                      ]}>
+                        {date.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={styles.timeSection}>
-              <Text style={styles.timeLabel}>End Date & Time</Text>
-              <View style={styles.dateInputRow}>
-                <TextInput
-                  style={styles.dateInput}
-                  value={tempEndDate}
-                  onChangeText={(text) => {
-                    setTempEndDate(text);
-                    setRangeError(null);
-                  }}
-                  placeholder="MM/DD"
-                  placeholderTextColor="#555555"
-                  selectionColor="#FFD33D"
-                  maxLength={5}
-                />
-                <TextInput
-                  style={styles.timeInput}
-                  value={tempEndHour}
-                  onChangeText={(text) => {
-                    const num = text.replace(/[^0-9]/g, '');
-                    if (num === '' || (parseInt(num) >= 0 && parseInt(num) <= 23)) {
-                      setTempEndHour(num);
-                    }
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="HH"
-                  placeholderTextColor="#555555"
-                  selectionColor="#FFD33D"
-                />
-                <Text style={styles.timeSeparator}>:</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  value={tempEndMinute}
-                  onChangeText={(text) => {
-                    const num = text.replace(/[^0-9]/g, '');
-                    if (num === '' || (parseInt(num) >= 0 && parseInt(num) <= 59)) {
-                      setTempEndMinute(num);
-                    }
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="MM"
-                  placeholderTextColor="#555555"
-                  selectionColor="#FFD33D"
-                />
-              </View>
+              <Text style={styles.timeLabel}>End Date</Text>
+              <TouchableOpacity 
+                style={styles.dateDropdownButton}
+                onPress={() => setEndDatePickerVisible(!endDatePickerVisible)}
+              >
+                <Text style={styles.dateDropdownText}>
+                  {tempEndDate ? past7Days.find(d => d.value === tempEndDate)?.label || tempEndDate : 'Select date'}
+                </Text>
+                <ChevronDown size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+              
+              {endDatePickerVisible && (
+                <View style={styles.datePickerDropdown}>
+                  {past7Days.map((date) => (
+                    <TouchableOpacity
+                      key={date.value}
+                      style={[
+                        styles.datePickerItem,
+                        tempEndDate === date.value && styles.datePickerItemSelected
+                      ]}
+                      onPress={() => {
+                        setTempEndDate(date.value);
+                        setEndDatePickerVisible(false);
+                        setRangeError(null);
+                      }}
+                    >
+                      <Text style={[
+                        styles.datePickerText,
+                        tempEndDate === date.value && styles.datePickerTextSelected
+                      ]}>
+                        {date.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={styles.modalButtons}>
@@ -311,30 +319,21 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#121212',
+    backgroundColor: '#000000',
     borderWidth: 1,
     borderColor: '#FFD33D',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    gap: 4,
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   pillActive: {
-    borderColor: '#FFE066',
-    shadowColor: '#FFD33D',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    backgroundColor: 'rgba(255, 211, 61, 0.08)',
   },
   pillText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '600' as const,
+    fontWeight: '500' as const,
     letterSpacing: 0.3,
-  },
-  chevron: {
-    marginLeft: 2,
   },
   overlay: {
     position: 'absolute',
@@ -348,21 +347,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 32,
     right: 16,
-    backgroundColor: 'rgba(26, 26, 26, 0.98)',
+    backgroundColor: '#0A0A0A',
     borderWidth: 1,
     borderColor: '#FFD33D',
-    borderRadius: 8,
+    borderRadius: 4,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
     minWidth: 160,
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 10,
   },
   dropdownItem: {
     paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
   },
   dropdownText: {
     color: '#FFFFFF',
@@ -371,7 +372,8 @@ const styles = StyleSheet.create({
   },
   dropdownDivider: {
     height: 1,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#1E1E1E',
+    marginVertical: 6,
   },
   modalOverlay: {
     flex: 1,
@@ -442,35 +444,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dateInput: {
+  dateDropdownButton: {
     backgroundColor: '#0A0A0A',
     borderWidth: 1,
     borderColor: '#333333',
     borderRadius: 6,
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600' as const,
-    textAlign: 'center',
-    width: 70,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  timeInput: {
+  dateDropdownText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  datePickerDropdown: {
     backgroundColor: '#0A0A0A',
     borderWidth: 1,
     borderColor: '#333333',
     borderRadius: 6,
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '600' as const,
-    textAlign: 'center',
-    width: 60,
-    paddingVertical: 10,
+    marginTop: 8,
+    maxHeight: 200,
   },
-  timeSeparator: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '700' as const,
-    marginHorizontal: 8,
+  datePickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E1E1E',
+  },
+  datePickerItemSelected: {
+    backgroundColor: 'rgba(255, 211, 61, 0.15)',
+  },
+  datePickerText: {
+    color: '#BBBBBB',
+    fontSize: 14,
+    fontWeight: '500' as const,
+  },
+  datePickerTextSelected: {
+    color: '#FFD33D',
+    fontWeight: '600' as const,
   },
   modalButtons: {
     flexDirection: 'row',
