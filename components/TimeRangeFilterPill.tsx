@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Keyboard } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
 export type TimeRange = 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
@@ -39,10 +39,37 @@ export default function TimeRangeFilterPill({
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [startDatePickerVisible, setStartDatePickerVisible] = useState(false);
   const [endDatePickerVisible, setEndDatePickerVisible] = useState(false);
-  const [startTimeInput, setStartTimeInput] = useState('');
-  const [endTimeInput, setEndTimeInput] = useState('');
-  const [startTimeFocused, setStartTimeFocused] = useState(false);
-  const [endTimeFocused, setEndTimeFocused] = useState(false);
+  const [startTimePickerVisible, setStartTimePickerVisible] = useState(false);
+  const [endTimePickerVisible, setEndTimePickerVisible] = useState(false);
+  
+  const startHourScrollRef = useRef<ScrollView>(null);
+  const startMinuteScrollRef = useRef<ScrollView>(null);
+  const startPeriodScrollRef = useRef<ScrollView>(null);
+  const endHourScrollRef = useRef<ScrollView>(null);
+  const endMinuteScrollRef = useRef<ScrollView>(null);
+  const endPeriodScrollRef = useRef<ScrollView>(null);
+
+  const HOURS = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  const MINUTES = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
+  const PERIODS = ['AM', 'PM'];
+  const ITEM_HEIGHT = 36 as const;
+  
+  const scrollToIndex = (scrollRef: React.RefObject<ScrollView | null>, index: number) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ y: index * ITEM_HEIGHT, animated: true });
+    }
+  };
+  
+  const handleScroll = (
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+    items: string[],
+    setter: (value: string) => void
+  ) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
+    const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
+    setter(items[clampedIndex]);
+  };
 
   const generatePast7Days = () => {
     const dates = [];
@@ -55,40 +82,6 @@ export default function TimeRangeFilterPill({
       dates.push({ label: `${month} ${day}`, value: `${date.getMonth() + 1}/${day}`, dateObj: date });
     }
     return dates;
-  };
-
-  const parseTimeInput = (input: string): { hour: string; minute: string; period: 'AM' | 'PM' } | null => {
-    const cleaned = input.replace(/[^0-9APMapm]/g, '');
-    const match = cleaned.match(/^(\d{1,4})([APap][Mm]?)$/);
-    
-    if (!match) return null;
-    
-    const digits = match[1];
-    const periodStr = match[2].toUpperCase();
-    const period = periodStr.startsWith('A') ? 'AM' : 'PM';
-    
-    let hour: number;
-    let minute: number;
-    
-    if (digits.length <= 2) {
-      hour = parseInt(digits);
-      minute = 0;
-    } else if (digits.length === 3) {
-      hour = parseInt(digits[0]);
-      minute = parseInt(digits.slice(1));
-    } else {
-      hour = parseInt(digits.slice(0, 2));
-      minute = parseInt(digits.slice(2));
-    }
-    
-    if (hour < 1 || hour > 12) hour = 12;
-    if (minute > 59) minute = 0;
-    
-    return {
-      hour: hour.toString().padStart(2, '0'),
-      minute: minute.toString().padStart(2, '0'),
-      period
-    };
   };
 
   const convertTo24Hour = (hour: string, period: 'AM' | 'PM'): number => {
@@ -107,40 +100,30 @@ export default function TimeRangeFilterPill({
     return hour24 * 60 + parseInt(minute);
   };
 
-  const handleStartTimeInputChange = (text: string) => {
-    setStartTimeInput(text);
-    setRangeError(null);
+  const openStartTimePicker = () => {
+    setStartTimePickerVisible(true);
+    setTimeout(() => {
+      const hourIndex = HOURS.indexOf(tempStartHour);
+      const minuteIndex = MINUTES.indexOf(tempStartMinute);
+      const periodIndex = PERIODS.indexOf(tempStartPeriod);
+      
+      if (hourIndex >= 0) scrollToIndex(startHourScrollRef, hourIndex);
+      if (minuteIndex >= 0) scrollToIndex(startMinuteScrollRef, minuteIndex);
+      if (periodIndex >= 0) scrollToIndex(startPeriodScrollRef, periodIndex);
+    }, 100);
   };
-
-  const handleEndTimeInputChange = (text: string) => {
-    setEndTimeInput(text);
-    setRangeError(null);
-  };
-
-  const handleStartTimeBlur = () => {
-    setStartTimeFocused(false);
-    if (startTimeInput.trim()) {
-      const parsed = parseTimeInput(startTimeInput);
-      if (parsed) {
-        setTempStartHour(parsed.hour);
-        setTempStartMinute(parsed.minute);
-        setTempStartPeriod(parsed.period);
-      }
-      setStartTimeInput('');
-    }
-  };
-
-  const handleEndTimeBlur = () => {
-    setEndTimeFocused(false);
-    if (endTimeInput.trim()) {
-      const parsed = parseTimeInput(endTimeInput);
-      if (parsed) {
-        setTempEndHour(parsed.hour);
-        setTempEndMinute(parsed.minute);
-        setTempEndPeriod(parsed.period);
-      }
-      setEndTimeInput('');
-    }
+  
+  const openEndTimePicker = () => {
+    setEndTimePickerVisible(true);
+    setTimeout(() => {
+      const hourIndex = HOURS.indexOf(tempEndHour);
+      const minuteIndex = MINUTES.indexOf(tempEndMinute);
+      const periodIndex = PERIODS.indexOf(tempEndPeriod);
+      
+      if (hourIndex >= 0) scrollToIndex(endHourScrollRef, hourIndex);
+      if (minuteIndex >= 0) scrollToIndex(endMinuteScrollRef, minuteIndex);
+      if (periodIndex >= 0) scrollToIndex(endPeriodScrollRef, periodIndex);
+    }, 100);
   };
 
   const past7Days = generatePast7Days();
@@ -489,84 +472,48 @@ export default function TimeRangeFilterPill({
               <View style={styles.timeRangeRow}>
                 <View style={styles.timeInputContainer}>
                   <Text style={styles.timeInputLabel}>START TIME</Text>
-                  <View style={[
-                    styles.timeInputBox,
-                    startTimeFocused && styles.timeInputBoxFocused
-                  ]}>
-                    <TextInput
-                      style={styles.timeInput}
-                      value={startTimeInput || `${tempStartHour} : ${tempStartMinute}`}
-                      onChangeText={handleStartTimeInputChange}
-                      onFocus={() => {
-                        setStartTimeFocused(true);
-                        setStartTimeInput('');
-                      }}
-                      onBlur={handleStartTimeBlur}
-                      placeholder="00:00 AM"
-                      placeholderTextColor="#555555"
-                      keyboardType="default"
-                      autoCapitalize="characters"
-                      returnKeyType="done"
-                      onSubmitEditing={() => {
-                        Keyboard.dismiss();
-                        handleStartTimeBlur();
-                      }}
-                    />
-                    <TouchableOpacity 
-                      style={[
-                        styles.periodPill,
-                        tempStartPeriod === 'AM' && styles.periodPillActive
-                      ]}
-                      onPress={() => setTempStartPeriod(tempStartPeriod === 'AM' ? 'PM' : 'AM')}
-                    >
-                      <Text style={[
-                        styles.periodPillText,
-                        tempStartPeriod === 'AM' && styles.periodPillTextActive
-                      ]}>{tempStartPeriod}</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity 
+                    style={[
+                      styles.timeInputBox,
+                      startTimePickerVisible && styles.timeInputBoxFocused
+                    ]}
+                    onPress={openStartTimePicker}
+                  >
+                    <Text style={styles.timeDisplayText}>
+                      {tempStartHour} : {tempStartMinute}
+                    </Text>
+                    <View style={[
+                      styles.periodPillInline,
+                      styles.periodPillActive
+                    ]}>
+                      <Text style={styles.periodPillTextActive}>{tempStartPeriod}</Text>
+                    </View>
+                    <ChevronDown size={14} color="rgba(255, 211, 61, 0.6)" style={styles.chevronIcon} />
+                  </TouchableOpacity>
                 </View>
                 
                 <Text style={styles.timeRangeSeparator}>to</Text>
                 
                 <View style={styles.timeInputContainer}>
                   <Text style={styles.timeInputLabel}>END TIME</Text>
-                  <View style={[
-                    styles.timeInputBox,
-                    endTimeFocused && styles.timeInputBoxFocused
-                  ]}>
-                    <TextInput
-                      style={styles.timeInput}
-                      value={endTimeInput || `${tempEndHour} : ${tempEndMinute}`}
-                      onChangeText={handleEndTimeInputChange}
-                      onFocus={() => {
-                        setEndTimeFocused(true);
-                        setEndTimeInput('');
-                      }}
-                      onBlur={handleEndTimeBlur}
-                      placeholder="11:59 PM"
-                      placeholderTextColor="#555555"
-                      keyboardType="default"
-                      autoCapitalize="characters"
-                      returnKeyType="done"
-                      onSubmitEditing={() => {
-                        Keyboard.dismiss();
-                        handleEndTimeBlur();
-                      }}
-                    />
-                    <TouchableOpacity 
-                      style={[
-                        styles.periodPill,
-                        tempEndPeriod === 'PM' && styles.periodPillActive
-                      ]}
-                      onPress={() => setTempEndPeriod(tempEndPeriod === 'AM' ? 'PM' : 'AM')}
-                    >
-                      <Text style={[
-                        styles.periodPillText,
-                        tempEndPeriod === 'PM' && styles.periodPillTextActive
-                      ]}>{tempEndPeriod}</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity 
+                    style={[
+                      styles.timeInputBox,
+                      endTimePickerVisible && styles.timeInputBoxFocused
+                    ]}
+                    onPress={openEndTimePicker}
+                  >
+                    <Text style={styles.timeDisplayText}>
+                      {tempEndHour} : {tempEndMinute}
+                    </Text>
+                    <View style={[
+                      styles.periodPillInline,
+                      styles.periodPillActive
+                    ]}>
+                      <Text style={styles.periodPillTextActive}>{tempEndPeriod}</Text>
+                    </View>
+                    <ChevronDown size={14} color="rgba(255, 211, 61, 0.6)" style={styles.chevronIcon} />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -591,6 +538,232 @@ export default function TimeRangeFilterPill({
             </View>
             <Text style={styles.modalFooterNote}>Filtered range applies to all watchlist news alerts.</Text>
           </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Start Time Picker Wheel */}
+      <Modal
+        visible={startTimePickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStartTimePickerVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.wheelModalOverlay}
+          activeOpacity={1}
+          onPress={() => setStartTimePickerVisible(false)}
+        >
+          <View style={styles.wheelContainer}>
+            <View style={styles.wheelHeader}>
+              <Text style={styles.wheelTitle}>Select Start Time</Text>
+            </View>
+            <View style={styles.wheelContent}>
+              <View style={styles.wheelHighlight} />
+              <View style={styles.wheelColumns}>
+                <ScrollView
+                  ref={startHourScrollRef}
+                  style={styles.wheelColumn}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => handleScroll(e, HOURS, setTempStartHour)}
+                  contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
+                >
+                  {HOURS.map((hour) => (
+                    <TouchableOpacity
+                      key={hour}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setTempStartHour(hour);
+                        scrollToIndex(startHourScrollRef, HOURS.indexOf(hour));
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        tempStartHour === hour && styles.wheelItemTextActive
+                      ]}>{hour}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                
+                <Text style={styles.wheelSeparator}>:</Text>
+                
+                <ScrollView
+                  ref={startMinuteScrollRef}
+                  style={styles.wheelColumn}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => handleScroll(e, MINUTES, setTempStartMinute)}
+                  contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
+                >
+                  {MINUTES.map((minute) => (
+                    <TouchableOpacity
+                      key={minute}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setTempStartMinute(minute);
+                        scrollToIndex(startMinuteScrollRef, MINUTES.indexOf(minute));
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        tempStartMinute === minute && styles.wheelItemTextActive
+                      ]}>{minute}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                
+                <ScrollView
+                  ref={startPeriodScrollRef}
+                  style={styles.wheelColumn}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => handleScroll(e, PERIODS, (val) => setTempStartPeriod(val as 'AM' | 'PM'))}
+                  contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
+                >
+                  {PERIODS.map((period) => (
+                    <TouchableOpacity
+                      key={period}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setTempStartPeriod(period as 'AM' | 'PM');
+                        scrollToIndex(startPeriodScrollRef, PERIODS.indexOf(period));
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        tempStartPeriod === period && styles.wheelItemTextActive
+                      ]}>{period}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.wheelDoneButton}
+              onPress={() => {
+                setStartTimePickerVisible(false);
+                setRangeError(null);
+              }}
+            >
+              <Text style={styles.wheelDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* End Time Picker Wheel */}
+      <Modal
+        visible={endTimePickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEndTimePickerVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.wheelModalOverlay}
+          activeOpacity={1}
+          onPress={() => setEndTimePickerVisible(false)}
+        >
+          <View style={styles.wheelContainer}>
+            <View style={styles.wheelHeader}>
+              <Text style={styles.wheelTitle}>Select End Time</Text>
+            </View>
+            <View style={styles.wheelContent}>
+              <View style={styles.wheelHighlight} />
+              <View style={styles.wheelColumns}>
+                <ScrollView
+                  ref={endHourScrollRef}
+                  style={styles.wheelColumn}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => handleScroll(e, HOURS, setTempEndHour)}
+                  contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
+                >
+                  {HOURS.map((hour) => (
+                    <TouchableOpacity
+                      key={hour}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setTempEndHour(hour);
+                        scrollToIndex(endHourScrollRef, HOURS.indexOf(hour));
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        tempEndHour === hour && styles.wheelItemTextActive
+                      ]}>{hour}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                
+                <Text style={styles.wheelSeparator}>:</Text>
+                
+                <ScrollView
+                  ref={endMinuteScrollRef}
+                  style={styles.wheelColumn}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => handleScroll(e, MINUTES, setTempEndMinute)}
+                  contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
+                >
+                  {MINUTES.map((minute) => (
+                    <TouchableOpacity
+                      key={minute}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setTempEndMinute(minute);
+                        scrollToIndex(endMinuteScrollRef, MINUTES.indexOf(minute));
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        tempEndMinute === minute && styles.wheelItemTextActive
+                      ]}>{minute}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                
+                <ScrollView
+                  ref={endPeriodScrollRef}
+                  style={styles.wheelColumn}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => handleScroll(e, PERIODS, (val) => setTempEndPeriod(val as 'AM' | 'PM'))}
+                  contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
+                >
+                  {PERIODS.map((period) => (
+                    <TouchableOpacity
+                      key={period}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setTempEndPeriod(period as 'AM' | 'PM');
+                        scrollToIndex(endPeriodScrollRef, PERIODS.indexOf(period));
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        tempEndPeriod === period && styles.wheelItemTextActive
+                      ]}>{period}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.wheelDoneButton}
+              onPress={() => {
+                setEndTimePickerVisible(false);
+                setRangeError(null);
+              }}
+            >
+              <Text style={styles.wheelDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </Modal>
     </>
@@ -825,7 +998,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
     borderWidth: 1,
     borderColor: 'rgba(255, 211, 61, 0.4)',
-    borderRadius: 5,
+    borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -841,35 +1014,30 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  timeInput: {
-    flex: 1,
+  timeDisplayText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500' as const,
     letterSpacing: 1,
-    paddingVertical: 0,
   },
-  periodPill: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 211, 61, 0.3)',
+  periodPillInline: {
+    backgroundColor: 'rgba(255, 211, 61, 0.8)',
     borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     marginLeft: 8,
   },
   periodPillActive: {
-    backgroundColor: 'rgba(255, 211, 61, 0.6)',
-    borderColor: 'rgba(255, 211, 61, 0.9)',
-  },
-  periodPillText: {
-    color: '#FFD33D',
-    fontSize: 11,
-    fontWeight: '600' as const,
-    letterSpacing: 0.5,
+    backgroundColor: 'rgba(255, 211, 61, 0.8)',
   },
   periodPillTextActive: {
     color: '#000000',
+    fontSize: 11,
+    fontWeight: '700' as const,
+    letterSpacing: 0.5,
+  },
+  chevronIcon: {
+    marginLeft: 4,
   },
   timeRangeSeparator: {
     color: '#777777',
@@ -920,5 +1088,95 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 13,
     fontWeight: '700' as const,
+  },
+  wheelModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'flex-end',
+  },
+  wheelContainer: {
+    backgroundColor: 'rgba(10, 10, 10, 0.95)',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FFD33D',
+    paddingBottom: 20,
+  },
+  wheelHeader: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 211, 61, 0.3)',
+  },
+  wheelTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700' as const,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  wheelContent: {
+    height: 180,
+    position: 'relative',
+  },
+  wheelHighlight: {
+    position: 'absolute',
+    top: 72,
+    left: 0,
+    right: 0,
+    height: 36,
+    backgroundColor: 'rgba(255, 211, 61, 0.15)',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255, 211, 61, 0.6)',
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  wheelColumns: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    paddingHorizontal: 20,
+  },
+  wheelColumn: {
+    flex: 1,
+    maxWidth: 80,
+  },
+  wheelItem: {
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  wheelItemText: {
+    color: '#777777',
+    fontSize: 18,
+    fontWeight: '500' as const,
+  },
+  wheelItemTextActive: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700' as const,
+  },
+  wheelSeparator: {
+    color: '#FFD33D',
+    fontSize: 24,
+    fontWeight: '700' as const,
+    marginHorizontal: 8,
+    marginTop: -8,
+  },
+  wheelDoneButton: {
+    backgroundColor: '#FFD33D',
+    marginHorizontal: 20,
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  wheelDoneText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '700' as const,
+    letterSpacing: 0.5,
   },
 });
