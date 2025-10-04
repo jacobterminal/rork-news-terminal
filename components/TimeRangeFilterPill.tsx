@@ -28,9 +28,15 @@ export default function TimeRangeFilterPill({
   const [modalVisible, setModalVisible] = useState(false);
   const [tempStartDate, setTempStartDate] = useState(customRange?.startDate || '');
   const [tempEndDate, setTempEndDate] = useState(customRange?.endDate || '');
+  const [tempStartHour, setTempStartHour] = useState(customRange?.startHour || '00');
+  const [tempStartMinute, setTempStartMinute] = useState(customRange?.startMinute || '00');
+  const [tempEndHour, setTempEndHour] = useState(customRange?.endHour || '23');
+  const [tempEndMinute, setTempEndMinute] = useState(customRange?.endMinute || '59');
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [startDatePickerVisible, setStartDatePickerVisible] = useState(false);
   const [endDatePickerVisible, setEndDatePickerVisible] = useState(false);
+  const [startTimePickerVisible, setStartTimePickerVisible] = useState(false);
+  const [endTimePickerVisible, setEndTimePickerVisible] = useState(false);
 
   const generatePast7Days = () => {
     const dates = [];
@@ -40,16 +46,29 @@ export default function TimeRangeFilterPill({
       date.setDate(date.getDate() - i);
       const month = date.toLocaleString('en-US', { month: 'short' });
       const day = date.getDate();
-      dates.push({ label: `${month} ${day}`, value: `${date.getMonth() + 1}/${day}` });
+      dates.push({ label: `${month} ${day}`, value: `${date.getMonth() + 1}/${day}`, dateObj: date });
     }
     return dates;
   };
 
+  const generateTimeOptions = () => {
+    const times = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const hourStr = hour.toString().padStart(2, '0');
+        const minuteStr = minute.toString().padStart(2, '0');
+        times.push({ label: `${hourStr}:${minuteStr}`, hour: hourStr, minute: minuteStr });
+      }
+    }
+    return times;
+  };
+
   const past7Days = generatePast7Days();
+  const timeOptions = generateTimeOptions();
 
   const getPillText = () => {
     if (selectedRange === 'custom' && customRange) {
-      return `${customRange.startDate} – ${customRange.endDate}`;
+      return `${customRange.startDate} ${customRange.startHour}:${customRange.startMinute} – ${customRange.endDate} ${customRange.endHour}:${customRange.endMinute}`;
     }
     switch (selectedRange) {
       case 'last_hour':
@@ -92,18 +111,45 @@ export default function TimeRangeFilterPill({
       return;
     }
     
-    const startDateTime = new Date(currentYear, parseInt(startParts[0]) - 1, parseInt(startParts[1]), 0, 0, 0);
-    const endDateTime = new Date(currentYear, parseInt(endParts[0]) - 1, parseInt(endParts[1]), 23, 59, 59);
-    const diffInDays = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60 * 24);
+    const startDateTime = new Date(
+      currentYear, 
+      parseInt(startParts[0]) - 1, 
+      parseInt(startParts[1]), 
+      parseInt(tempStartHour), 
+      parseInt(tempStartMinute)
+    );
+    const endDateTime = new Date(
+      currentYear, 
+      parseInt(endParts[0]) - 1, 
+      parseInt(endParts[1]), 
+      parseInt(tempEndHour), 
+      parseInt(tempEndMinute)
+    );
+    
+    const diffInMs = endDateTime.getTime() - startDateTime.getTime();
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
     
     if (diffInDays > 7) {
       setRangeError('Custom range limited to 7 days.');
       return;
     }
     
-    if (diffInDays < 0) {
-      setRangeError('End date must be after start date');
+    if (diffInMs < 0) {
+      setRangeError('End date/time must be after start date/time');
       return;
+    }
+    
+    if (tempStartDate === tempEndDate) {
+      const startTimeInMinutes = parseInt(tempStartHour) * 60 + parseInt(tempStartMinute);
+      const endTimeInMinutes = parseInt(tempEndHour) * 60 + parseInt(tempEndMinute);
+      
+      if (endTimeInMinutes <= startTimeInMinutes) {
+        const newEndHour = (parseInt(tempStartHour) + 1) % 24;
+        setTempEndHour(newEndHour.toString().padStart(2, '0'));
+        setTempEndMinute(tempStartMinute);
+        setRangeError('End time adjusted to 1 hour after start time');
+        return;
+      }
     }
     
     const formatDateLabel = (dateStr: string) => {
@@ -115,11 +161,11 @@ export default function TimeRangeFilterPill({
     
     const newCustomRange: CustomTimeRange = {
       startDate: formatDateLabel(tempStartDate),
-      startHour: '00',
-      startMinute: '00',
+      startHour: tempStartHour,
+      startMinute: tempStartMinute,
       endDate: formatDateLabel(tempEndDate),
-      endHour: '23',
-      endMinute: '59',
+      endHour: tempEndHour,
+      endMinute: tempEndMinute,
     };
     onRangeChange('custom', newCustomRange);
     setModalVisible(false);
@@ -277,6 +323,18 @@ export default function TimeRangeFilterPill({
                         setTempStartDate(date.value);
                         setStartDatePickerVisible(false);
                         setRangeError(null);
+                        
+                        if (tempEndDate) {
+                          const currentYear = new Date().getFullYear();
+                          const startParts = date.value.split('/');
+                          const endParts = tempEndDate.split('/');
+                          const startDate = new Date(currentYear, parseInt(startParts[0]) - 1, parseInt(startParts[1]));
+                          const endDate = new Date(currentYear, parseInt(endParts[0]) - 1, parseInt(endParts[1]));
+                          
+                          if (startDate > endDate) {
+                            setTempEndDate(date.value);
+                          }
+                        }
                       }}
                     >
                       <Text style={[
@@ -305,29 +363,129 @@ export default function TimeRangeFilterPill({
               
               {endDatePickerVisible && (
                 <View style={styles.datePickerDropdown}>
-                  {past7Days.map((date) => (
-                    <TouchableOpacity
-                      key={date.value}
-                      style={[
-                        styles.datePickerItem,
-                        tempEndDate === date.value && styles.datePickerItemSelected
-                      ]}
-                      onPress={() => {
-                        setTempEndDate(date.value);
-                        setEndDatePickerVisible(false);
-                        setRangeError(null);
-                      }}
-                    >
-                      <Text style={[
-                        styles.datePickerText,
-                        tempEndDate === date.value && styles.datePickerTextSelected
-                      ]}>
-                        {date.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {past7Days.map((date) => {
+                    const isDisabled = tempStartDate ? (() => {
+                      const currentYear = new Date().getFullYear();
+                      const startParts = tempStartDate.split('/');
+                      const startDate = new Date(currentYear, parseInt(startParts[0]) - 1, parseInt(startParts[1]));
+                      return date.dateObj < startDate;
+                    })() : false;
+                    
+                    return (
+                      <TouchableOpacity
+                        key={date.value}
+                        style={[
+                          styles.datePickerItem,
+                          tempEndDate === date.value && styles.datePickerItemSelected,
+                          isDisabled && styles.datePickerItemDisabled
+                        ]}
+                        onPress={() => {
+                          if (isDisabled) return;
+                          setTempEndDate(date.value);
+                          setEndDatePickerVisible(false);
+                          setRangeError(null);
+                        }}
+                        disabled={isDisabled}
+                      >
+                        <Text style={[
+                          styles.datePickerText,
+                          tempEndDate === date.value && styles.datePickerTextSelected,
+                          isDisabled && styles.datePickerTextDisabled
+                        ]}>
+                          {date.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
+            </View>
+
+            <View style={styles.timeRangeSection}>
+              <Text style={styles.timeRangeSectionTitle}>TIME RANGE</Text>
+              <View style={styles.timeRangeRow}>
+                <View style={styles.timeInputContainer}>
+                  <Text style={styles.timeInputLabel}>START TIME</Text>
+                  <TouchableOpacity 
+                    style={styles.timeDropdownButton}
+                    onPress={() => setStartTimePickerVisible(!startTimePickerVisible)}
+                  >
+                    <Text style={styles.timeDropdownText}>
+                      {tempStartHour} : {tempStartMinute}
+                    </Text>
+                    <ChevronDown size={14} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  
+                  {startTimePickerVisible && (
+                    <View style={styles.timePickerDropdown}>
+                      {timeOptions.map((time) => (
+                        <TouchableOpacity
+                          key={`${time.hour}:${time.minute}`}
+                          style={[
+                            styles.timePickerItem,
+                            tempStartHour === time.hour && tempStartMinute === time.minute && styles.timePickerItemSelected
+                          ]}
+                          onPress={() => {
+                            setTempStartHour(time.hour);
+                            setTempStartMinute(time.minute);
+                            setStartTimePickerVisible(false);
+                            setRangeError(null);
+                          }}
+                        >
+                          <Text style={[
+                            styles.timePickerText,
+                            tempStartHour === time.hour && tempStartMinute === time.minute && styles.timePickerTextSelected
+                          ]}>
+                            {time.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+                
+                <Text style={styles.timeRangeSeparator}>to</Text>
+                
+                <View style={styles.timeInputContainer}>
+                  <Text style={styles.timeInputLabel}>END TIME</Text>
+                  <TouchableOpacity 
+                    style={styles.timeDropdownButton}
+                    onPress={() => setEndTimePickerVisible(!endTimePickerVisible)}
+                  >
+                    <Text style={styles.timeDropdownText}>
+                      {tempEndHour} : {tempEndMinute}
+                    </Text>
+                    <ChevronDown size={14} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  
+                  {endTimePickerVisible && (
+                    <View style={styles.timePickerDropdown}>
+                      {timeOptions.map((time) => (
+                        <TouchableOpacity
+                          key={`${time.hour}:${time.minute}`}
+                          style={[
+                            styles.timePickerItem,
+                            tempEndHour === time.hour && tempEndMinute === time.minute && styles.timePickerItemSelected
+                          ]}
+                          onPress={() => {
+                            setTempEndHour(time.hour);
+                            setTempEndMinute(time.minute);
+                            setEndTimePickerVisible(false);
+                            setRangeError(null);
+                          }}
+                        >
+                          <Text style={[
+                            styles.timePickerText,
+                            tempEndHour === time.hour && tempEndMinute === time.minute && styles.timePickerTextSelected
+                          ]}>
+                            {time.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
             </View>
 
             <View style={styles.modalButtons}>
@@ -338,12 +496,17 @@ export default function TimeRangeFilterPill({
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.applyButton}
+                style={[
+                  styles.applyButton,
+                  (!tempStartDate || !tempEndDate) && styles.applyButtonDisabled
+                ]}
                 onPress={handleCustomRangeApply}
+                disabled={!tempStartDate || !tempEndDate}
               >
                 <Text style={styles.applyButtonText}>Apply</Text>
               </TouchableOpacity>
             </View>
+            <Text style={styles.modalFooterNote}>Filtered range applies to all watchlist news alerts.</Text>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -436,7 +599,7 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '88%',
     maxWidth: 360,
-    maxHeight: 420,
+    maxHeight: 520,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.6,
@@ -449,12 +612,13 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     marginBottom: 4,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   modalSubtitle: {
     color: '#A0A0A0',
     fontSize: 10,
     fontWeight: '500' as const,
-    marginBottom: 14,
+    marginBottom: 16,
     textAlign: 'center',
   },
   errorTooltip: {
@@ -537,6 +701,107 @@ const styles = StyleSheet.create({
   datePickerTextSelected: {
     color: '#FFD33D',
     fontWeight: '600' as const,
+  },
+  datePickerItemDisabled: {
+    opacity: 0.3,
+  },
+  datePickerTextDisabled: {
+    color: '#555555',
+  },
+  timeRangeSection: {
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  timeRangeSectionTitle: {
+    color: '#A0A0A0',
+    fontSize: 11,
+    fontWeight: '600' as const,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  timeRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  timeInputContainer: {
+    flex: 1,
+  },
+  timeInputLabel: {
+    color: '#A0A0A0',
+    fontSize: 10,
+    fontWeight: '600' as const,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  timeDropdownButton: {
+    backgroundColor: '#0A0A0A',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 211, 61, 0.6)',
+    borderRadius: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 36,
+  },
+  timeDropdownText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '500' as const,
+    letterSpacing: 1,
+  },
+  timeRangeSeparator: {
+    color: '#777777',
+    fontSize: 11,
+    fontWeight: '500' as const,
+    marginTop: 24,
+    paddingHorizontal: 4,
+  },
+  timePickerDropdown: {
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderColor: '#333333',
+    borderRadius: 5,
+    marginTop: 6,
+    maxHeight: 180,
+    overflow: 'hidden',
+  },
+  timePickerItem: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    height: 32,
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  timePickerItemSelected: {
+    backgroundColor: 'rgba(255, 211, 61, 0.2)',
+  },
+  timePickerText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '500' as const,
+  },
+  timePickerTextSelected: {
+    color: '#FFD33D',
+    fontWeight: '600' as const,
+  },
+  applyButtonDisabled: {
+    opacity: 0.4,
+  },
+  modalFooterNote: {
+    color: '#777777',
+    fontSize: 9,
+    fontWeight: '500' as const,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   modalButtons: {
     flexDirection: 'row',
