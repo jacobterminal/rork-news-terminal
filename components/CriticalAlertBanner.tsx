@@ -92,7 +92,7 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
 
 const styles = StyleSheet.create({
   banner: {
-    position: 'absolute',
+    position: 'fixed' as any,
     top: 0,
     left: 0,
     right: 0,
