@@ -27,18 +27,21 @@ function RootLayoutNav() {
           borderTopWidth: 1,
           elevation: 0,
           shadowOpacity: 0,
-          height: 50,
+          height: 60,
+          paddingBottom: 6,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: theme.colors.activeCyan,
         tabBarInactiveTintColor: theme.colors.inactiveGray,
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: '600',
           fontFamily: 'monospace',
           letterSpacing: 0.5,
+          marginTop: 2,
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 2,
         },
       }}
     >
@@ -47,7 +50,7 @@ function RootLayoutNav() {
         options={{
           title: "Upcoming",
           tabBarIcon: ({ color, size }) => (
-            <Calendar size={size} color={color} />
+            <Calendar size={size * 1.15} color={color} />
           ),
         }}
       />
@@ -56,7 +59,7 @@ function RootLayoutNav() {
         options={{
           title: "News",
           tabBarIcon: ({ color, size }) => (
-            <Newspaper size={size} color={color} />
+            <Newspaper size={size * 1.15} color={color} />
           ),
         }}
       />
@@ -65,7 +68,7 @@ function RootLayoutNav() {
         options={{
           title: "Instant",
           tabBarIcon: ({ color, size }) => (
-            <Zap size={size} color={theme.colors.neutral} />
+            <Zap size={size * 1.15} color={theme.colors.neutral} />
           ),
         }}
       />
@@ -74,7 +77,7 @@ function RootLayoutNav() {
         options={{
           title: "TRACKER",
           tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size, color, fontWeight: 'bold' }}>𝕏</Text>
+            <Text style={{ fontSize: size * 1.15, color, fontWeight: 'bold' }}>𝕏</Text>
           ),
         }}
       />
@@ -83,7 +86,7 @@ function RootLayoutNav() {
         options={{
           title: "Watchlist",
           tabBarIcon: ({ color, size }) => (
-            <Star size={size} color={color} />
+            <Star size={size * 1.15} color={color} />
           ),
         }}
       />
