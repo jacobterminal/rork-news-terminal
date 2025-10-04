@@ -6,9 +6,10 @@ import { CriticalAlert } from '../types/news';
 import NewsCard from '../components/NewsCard';
 import TickerDrawer from '../components/TickerDrawer';
 import { useNewsStore } from '../store/newsStore';
-
 import CriticalAlerts from '../components/CriticalAlerts';
 import AlertSearchBar from '../components/AlertSearchBar';
+
+const BANNER_HEIGHT = 86;
 
 export default function NewsScreen() {
   const insets = useSafeAreaInsets();
@@ -137,7 +138,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingVertical: theme.spacing.sm,
+    paddingTop: BANNER_HEIGHT,
+    paddingBottom: theme.spacing.sm,
   },
   sectionHeader: {
     borderTopWidth: 1,
