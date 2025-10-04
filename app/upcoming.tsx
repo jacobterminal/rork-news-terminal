@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronDown } from 'lucide-react-native';
 import { theme } from '../constants/theme';
@@ -237,6 +238,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
 
 export default function UpcomingScreen() {
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [earnings, setEarnings] = useState<EarningsItem[]>([]);
   const [econ, setEcon] = useState<EconItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -246,6 +248,16 @@ export default function UpcomingScreen() {
   const [showMonthPicker, setShowMonthPicker] = useState<boolean>(false);
   const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
   const [feedItems, setFeedItems] = useState<any[]>([]);
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
+  
+  useEffect(() => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+  }, []);
 
   useEffect(() => {
     const mockData = generateMockData();
@@ -370,6 +382,7 @@ export default function UpcomingScreen() {
       </View>
       
       <ScrollView 
+        ref={scrollViewRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
