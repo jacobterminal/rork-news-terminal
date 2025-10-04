@@ -539,16 +539,66 @@ function TargetsTab() {
 
 function AnalyticsTab() {
   return (
-    <View style={styles.panel}>
-      <View style={styles.panelHeader}>
-        <Text style={styles.panelTitle}>Analytics</Text>
-      </View>
-      <View style={styles.panelBody}>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>Coming next…</Text>
+    <ScrollView style={styles.analyticsContainer} showsVerticalScrollIndicator={false}>
+      <View style={styles.analyticsGrid}>
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>Activity Heatmap</Text>
+          </View>
+          <View style={styles.panelBody}>
+            <View style={styles.chartPlaceholder}>
+              <Text style={styles.placeholderText}>Heatmap placeholder</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>Leaderboards</Text>
+          </View>
+          <View style={styles.panelBody}>
+            <View style={styles.leaderboardSection}>
+              <Text style={styles.leaderboardTitle}>Most active</Text>
+              <View style={styles.leaderboardList}>
+                {MOCK_HANDLES.sort((a, b) => b.postsPerDay - a.postsPerDay).map((handle, idx) => (
+                  <View key={handle.id} style={styles.leaderboardItem}>
+                    <Text style={styles.leaderboardRank}>{idx + 1}.</Text>
+                    <Text style={styles.leaderboardHandle}>{handle.handle}</Text>
+                    <View style={styles.flex1} />
+                    <Text style={styles.leaderboardValue}>{handle.postsPerDay}/day</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.leaderboardSection}>
+              <Text style={styles.leaderboardTitle}>Highest avg engagement</Text>
+              <View style={styles.leaderboardList}>
+                {MOCK_HANDLES.sort((a, b) => b.followers - a.followers).map((handle, idx) => (
+                  <View key={handle.id} style={styles.leaderboardItem}>
+                    <Text style={styles.leaderboardRank}>{idx + 1}.</Text>
+                    <Text style={styles.leaderboardHandle}>{handle.handle}</Text>
+                    <View style={styles.flex1} />
+                    <Text style={styles.leaderboardValue}>{Math.floor(handle.followers / 1000)}k</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>Top Links & Topics</Text>
+          </View>
+          <View style={styles.panelBody}>
+            <View style={styles.chartPlaceholder}>
+              <Text style={styles.placeholderText}>Bar/word cloud placeholder</Text>
+            </View>
+          </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -1089,5 +1139,78 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
+  },
+  analyticsContainer: {
+    flex: 1,
+  },
+  analyticsGrid: {
+    gap: 12,
+    padding: 12,
+  },
+  chartPlaceholder: {
+    height: 240,
+    backgroundColor: theme.colors.bg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeholderText: {
+    fontSize: 13,
+    color: theme.colors.textDim,
+    fontFamily: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      default: 'monospace',
+    }),
+  },
+  leaderboardSection: {
+    marginBottom: 16,
+    gap: 8,
+  },
+  leaderboardTitle: {
+    fontSize: 12,
+    color: theme.colors.textDim,
+    fontWeight: '600' as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.2,
+  },
+  leaderboardList: {
+    gap: 6,
+  },
+  leaderboardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  leaderboardRank: {
+    fontSize: 12,
+    color: theme.colors.textDim,
+    fontFamily: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      default: 'monospace',
+    }),
+    width: 24,
+  },
+  leaderboardHandle: {
+    fontSize: 13,
+    color: theme.colors.text,
+    fontFamily: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      default: 'monospace',
+    }),
+  },
+  leaderboardValue: {
+    fontSize: 12,
+    color: theme.colors.textDim,
+    fontFamily: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      default: 'monospace',
+    }),
   },
 });
