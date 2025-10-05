@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet, View, Text } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
-import { Newspaper, Calendar, Zap, Star, Settings } from "lucide-react-native";
+import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
 import { theme } from "../constants/theme";
 import { NewsStoreProvider, useNewsStore } from "../store/newsStore";
 import DropBanner from "../components/DropBanner";
@@ -99,10 +99,7 @@ function RootLayoutNav() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ color, size }) => (
-            <Settings size={size * 1.15} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen

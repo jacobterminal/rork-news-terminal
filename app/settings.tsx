@@ -1,35 +1,61 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronRight, User, Layout, Bell, CreditCard, MessageSquare, Mail, Shield } from 'lucide-react-native';
+import { ChevronRight, User, Layout, Bell, CreditCard, MessageSquare, Mail, Shield, X } from 'lucide-react-native';
 
 interface SettingRowProps {
   icon: React.ReactNode;
   title: string;
-  onPress: () => void;
+  onPress?: () => void;
+  rightElement?: React.ReactNode;
 }
 
-function SettingRow({ icon, title, onPress }: SettingRowProps) {
+function SettingRow({ icon, title, onPress, rightElement }: SettingRowProps) {
+  const content = (
+    <View style={styles.settingRowLeft}>
+      <View>{icon}</View>
+      <Text style={styles.settingRowTitle}>{title}</Text>
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
+        {content}
+        {rightElement || <ChevronRight size={20} color="#666" />}
+      </TouchableOpacity>
+    );
+  }
+
   return (
-    <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.settingRowLeft}>
-        <View>{icon}</View>
-        <Text style={styles.settingRowTitle}>{title}</Text>
-      </View>
-      <ChevronRight size={20} color="#666" />
-    </TouchableOpacity>
+    <View style={styles.settingRow}>
+      {content}
+      {rightElement}
+    </View>
   );
 }
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [criticalAlerts, setCriticalAlerts] = React.useState(true);
+  const [earningsAlerts, setEarningsAlerts] = React.useState(true);
+  const [cpiAlerts, setCpiAlerts] = React.useState(true);
+  const [fedAlerts, setFedAlerts] = React.useState(true);
+  const [watchlistAlerts, setWatchlistAlerts] = React.useState(true);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>Account Settings</Text>
+        <TouchableOpacity 
+          style={styles.closeButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <X size={24} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -54,27 +80,122 @@ export default function SettingsScreen() {
           <ChevronRight size={20} color="#666" />
         </TouchableOpacity>
 
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>INTERFACE PRESETS</Text>
+        <View style={styles.settingsSection}>
+          <SettingRow
+            icon={<Layout size={20} color="#FFD600" />}
+            title="Watchlist-Based News"
+            rightElement={
+              <View style={styles.presetBadge}>
+                <Text style={styles.presetBadgeText}>ACTIVE</Text>
+              </View>
+            }
+          />
+          <SettingRow
+            icon={<Layout size={20} color="#888" />}
+            title="Overall Incoming News"
+          />
+        </View>
+
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>SUBSCRIPTION MANAGEMENT</Text>
+        <View style={styles.settingsSection}>
+          <SettingRow
+            icon={<CreditCard size={20} color="#FFD600" />}
+            title="Current Plan: Free"
+            onPress={() => router.push('/settings/billing')}
+          />
+        </View>
+
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>ALERT SETTINGS</Text>
+        <View style={styles.settingsSection}>
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="Critical Alerts"
+            rightElement={
+              <Switch
+                value={criticalAlerts}
+                onValueChange={setCriticalAlerts}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={criticalAlerts ? '#000' : '#666'}
+              />
+            }
+          />
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="Earnings"
+            rightElement={
+              <Switch
+                value={earningsAlerts}
+                onValueChange={setEarningsAlerts}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={earningsAlerts ? '#000' : '#666'}
+              />
+            }
+          />
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="CPI / Economic Events"
+            rightElement={
+              <Switch
+                value={cpiAlerts}
+                onValueChange={setCpiAlerts}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={cpiAlerts ? '#000' : '#666'}
+              />
+            }
+          />
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="Fed Updates"
+            rightElement={
+              <Switch
+                value={fedAlerts}
+                onValueChange={setFedAlerts}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={fedAlerts ? '#000' : '#666'}
+              />
+            }
+          />
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="Watchlist Alerts"
+            rightElement={
+              <Switch
+                value={watchlistAlerts}
+                onValueChange={setWatchlistAlerts}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={watchlistAlerts ? '#000' : '#666'}
+              />
+            }
+          />
+        </View>
+
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>PREFERENCES</Text>
+        <View style={styles.settingsSection}>
+          <SettingRow
+            icon={<Layout size={20} color="#FFD600" />}
+            title="Interface & Layout"
+            onPress={() => router.push('/settings/interface')}
+          />
+        </View>
+
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>ACCOUNT MANAGEMENT</Text>
         <View style={styles.settingsSection}>
           <SettingRow
             icon={<User size={20} color="#FFD600" />}
             title="Account Settings"
             onPress={() => router.push('/settings/account')}
           />
-          <SettingRow
-            icon={<Layout size={20} color="#FFD600" />}
-            title="Interface & Layout"
-            onPress={() => router.push('/settings/interface')}
-          />
-          <SettingRow
-            icon={<Bell size={20} color="#FFD600" />}
-            title="Alerts & Notifications"
-            onPress={() => router.push('/settings/alerts')}
-          />
-          <SettingRow
-            icon={<CreditCard size={20} color="#FFD600" />}
-            title="Subscriptions & Billing"
-            onPress={() => router.push('/settings/billing')}
-          />
+        </View>
+
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>SUPPORT & FEEDBACK</Text>
+        <View style={styles.settingsSection}>
           <SettingRow
             icon={<MessageSquare size={20} color="#FFD600" />}
             title="Requests & Feedback"
@@ -85,6 +206,11 @@ export default function SettingsScreen() {
             title="Contact & Support"
             onPress={() => router.push('/settings/support')}
           />
+        </View>
+
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>DATA & PRIVACY</Text>
+        <View style={styles.settingsSection}>
           <SettingRow
             icon={<Shield size={20} color="#FFD600" />}
             title="Data & Privacy"
@@ -93,7 +219,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Version 1.0.0</Text>
+          <Text style={styles.footerText}>AI summaries are generated for convenience. Not financial advice.</Text>
         </View>
       </ScrollView>
     </View>
@@ -106,6 +232,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
@@ -116,6 +245,9 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  closeButton: {
+    padding: 8,
   },
   scrollView: {
     flex: 1,
@@ -185,14 +317,45 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: '#FFFFFF',
     marginLeft: 12,
+    flex: 1,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: '#1C1C1C',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFD600',
+    letterSpacing: 1,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  presetBadge: {
+    backgroundColor: '#FFD600',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  presetBadgeText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: '#000',
+    letterSpacing: 0.5,
   },
   footer: {
     alignItems: 'center',
     marginTop: 40,
     paddingBottom: 20,
+    paddingHorizontal: 32,
   },
   footerText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: '#777',
+    textAlign: 'center',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
   },
 });
