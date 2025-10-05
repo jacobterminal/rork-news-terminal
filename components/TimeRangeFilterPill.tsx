@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, NativeSyntheticEvent, NativeScrollEvent, LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
 export type TimeRange = 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
@@ -247,24 +247,28 @@ export default function TimeRangeFilterPill({
     setRangeError(null);
   };
 
-  const handlePillLayout = (event: LayoutChangeEvent) => {
-    const { x, y, width, height } = event.nativeEvent.layout;
-    setPillLayout({ x, y, width, height });
+  const handlePillPress = () => {
+    if (pillRef.current) {
+      pillRef.current.measureInWindow((x, y, width, height) => {
+        setPillLayout({ x, y, width, height });
+        setDropdownVisible(!dropdownVisible);
+      });
+    }
   };
 
   return (
     <>
-      <TouchableOpacity 
-        ref={pillRef}
-        style={[
-          styles.pill,
-          selectedRange !== 'last_hour' && styles.pillActive
-        ]}
-        onPress={() => setDropdownVisible(!dropdownVisible)}
-        onLayout={handlePillLayout}
-      >
-        <Text style={styles.pillText}>{getPillText()} ⌄</Text>
-      </TouchableOpacity>
+      <View ref={pillRef}>
+        <TouchableOpacity 
+          style={[
+            styles.pill,
+            selectedRange !== 'last_hour' && styles.pillActive
+          ]}
+          onPress={handlePillPress}
+        >
+          <Text style={styles.pillText}>{getPillText()} ⌄</Text>
+        </TouchableOpacity>
+      </View>
 
       {dropdownVisible && pillLayout && (
         <Modal
