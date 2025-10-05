@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
+import { router } from 'expo-router';
 
 interface NewsHeadline {
   time: string;
@@ -113,11 +114,27 @@ export default function TerminalTickerRow({
       
       {isExpanded && newsHeadlines.length > 0 && (
         <View style={styles.dropdownContainer}>
-          {newsHeadlines.map((headline, index) => (
+          {newsHeadlines.map((headline, index) => {
+            const newsData = {
+              id: `${ticker}-${Date.now()}-${index}`,
+              ticker,
+              headline: headline.headline,
+              source: headline.source,
+              time: headline.time,
+              summary: headline.headline,
+              sentiment: headline.sentiment,
+              confidence: headline.confidence,
+              impact: headline.impact,
+            };
+            
+            return (
             <TouchableOpacity
               key={`${headline.headline}-${index}`}
               style={[styles.headlineRow, index > 0 && styles.headlineRowBorder]}
-              onPress={() => onHeadlinePress?.(headline)}
+              onPress={() => {
+                onHeadlinePress?.(headline);
+                router.push(`/news/${encodeURIComponent(JSON.stringify(newsData))}`);
+              }}
               activeOpacity={0.7}
             >
               <View style={styles.headlineLeft}>
@@ -150,7 +167,8 @@ export default function TerminalTickerRow({
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
+            );
+          })}
           
           <TouchableOpacity style={styles.viewFullStory} onPress={onPress}>
             <Text style={styles.viewFullStoryText}>View Full Story →</Text>
