@@ -140,7 +140,9 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy < 0) {
-          slideAnimation.setValue(gestureState.dy / 2);
+          requestAnimationFrame(() => {
+            slideAnimation.setValue(gestureState.dy / 2);
+          });
         }
       },
       onPanResponderRelease: (_, gestureState) => {
