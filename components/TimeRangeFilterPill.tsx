@@ -279,8 +279,8 @@ export default function TimeRangeFilterPill({
             onPress={() => setDropdownVisible(false)}
           >
             <View style={[styles.dropdown, { 
-              top: pillLayout.y + pillLayout.height + 6,
-              left: pillLayout.x + pillLayout.width - 140
+              top: pillLayout.y + pillLayout.height + 8,
+              left: pillLayout.x
             }]}>
               <TouchableOpacity 
                 style={[
@@ -774,6 +774,7 @@ const styles = StyleSheet.create({
   dropdownOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 9998,
   },
   dropdown: {
     position: 'absolute',
@@ -787,6 +788,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 12,
     elevation: 10,
+    zIndex: 9999,
   },
   dropdownItem: {
     paddingVertical: 8,
