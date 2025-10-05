@@ -128,17 +128,17 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   };
 
   // Pan responder for swipe up to dismiss
-  const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      return Math.abs(gestureState.dy) > 10 && gestureState.dy < 0;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dy < 0) {
-        slideAnimation.setValue(gestureState.dy / 2);
-      }
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (currentAlert) {
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 10 && gestureState.dy < 0;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy < 0) {
+          slideAnimation.setValue(gestureState.dy / 2);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy < -30) {
           dismissCurrentAlert();
         } else {
@@ -147,9 +147,9 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
             useNativeDriver: true,
           }).start();
         }
-      }
-    },
-  });
+      },
+    })
+  ).current;
 
   // Cleanup timers
   useEffect(() => {
