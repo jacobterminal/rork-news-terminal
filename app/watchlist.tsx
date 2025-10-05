@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
 import AlertSearchBar from '../components/AlertSearchBar';
 import CriticalAlerts from '../components/CriticalAlerts';
@@ -63,6 +63,7 @@ export default function WatchlistScreen() {
     state, 
     criticalAlerts,
     savedArticles,
+    unsaveArticle,
   } = useNewsStore();
   
   const watchlistFolders = useMemo(() => state.watchlistFolders || [], [state.watchlistFolders]);
@@ -256,6 +257,17 @@ export default function WatchlistScreen() {
     setModalVisible(true);
   };
 
+  const handleSavedArticlePress = (article: FeedItem) => {
+    console.log('Saved article pressed:', article.title);
+    setSelectedArticle(article);
+    setModalVisible(true);
+  };
+
+  const handleClearAllSavedArticles = () => {
+    console.log('Clearing all saved articles');
+    savedArticles.forEach(article => unsaveArticle(article.id));
+  };
+
   const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {
     console.log('Time range changed:', range, customRange);
     setTimeRange(range);
@@ -348,32 +360,51 @@ export default function WatchlistScreen() {
         {/* Saved Articles Section */}
         {savedArticles.length > 0 && (
           <>
-            <TouchableOpacity 
-              style={styles.savedArticlesHeader}
-              onPress={() => setSavedArticlesExpanded(!savedArticlesExpanded)}
-            >
-              <View style={styles.savedArticlesTitleRow}>
-                <Text style={styles.sectionTitle}>SAVED ARTICLES</Text>
-                <View style={styles.savedArticlesCounter}>
-                  <Text style={styles.savedArticlesCountText}>{savedArticles.length}</Text>
+            <View style={styles.divider} />
+            <View style={styles.savedArticlesHeaderContainer}>
+              <TouchableOpacity 
+                style={styles.savedArticlesHeader}
+                onPress={() => setSavedArticlesExpanded(!savedArticlesExpanded)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.savedArticlesTitleRow}>
+                  <Text style={styles.sectionTitle}>SAVED ARTICLES</Text>
+                  <View style={styles.savedArticlesCounter}>
+                    <Text style={styles.savedArticlesCountText}>({savedArticles.length})</Text>
+                  </View>
                 </View>
-              </View>
-              {savedArticlesExpanded ? (
-                <ChevronUp size={16} color={theme.colors.textSecondary} />
-              ) : (
-                <ChevronDown size={16} color={theme.colors.textSecondary} />
+                {savedArticlesExpanded ? (
+                  <ChevronUp size={16} color={theme.colors.textSecondary} />
+                ) : (
+                  <ChevronDown size={16} color={theme.colors.textSecondary} />
+                )}
+              </TouchableOpacity>
+              {savedArticlesExpanded && (
+                <TouchableOpacity 
+                  style={styles.clearAllButton}
+                  onPress={handleClearAllSavedArticles}
+                  activeOpacity={0.7}
+                >
+                  <Trash2 size={14} color={theme.colors.textDim} />
+                  <Text style={styles.clearAllText}>Clear All</Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
             <View style={styles.divider} />
             
             {savedArticlesExpanded && (
-              <>
+              <View style={styles.savedArticlesContent}>
                 {savedArticles.map(article => (
-                  <View key={article.id} style={styles.savedArticleContainer}>
+                  <TouchableOpacity 
+                    key={article.id} 
+                    style={styles.savedArticleContainer}
+                    onPress={() => handleSavedArticlePress(article)}
+                    activeOpacity={0.8}
+                  >
                     <SavedArticleCard article={article} />
-                  </View>
+                  </TouchableOpacity>
                 ))}
-              </>
+              </View>
             )}
           </>
         )}
@@ -447,32 +478,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
-  savedArticleContainer: {
-    marginHorizontal: 16,
-  },
-  savedArticlesHeader: {
+  savedArticlesHeaderContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    backgroundColor: '#000000',
+  },
+  savedArticlesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
   },
   savedArticlesTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   savedArticlesCounter: {
-    backgroundColor: '#333',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    minWidth: 20,
-    alignItems: 'center',
+    justifyContent: 'center',
   },
   savedArticlesCountText: {
-    color: '#E6E6E6',
-    fontSize: 10,
+    color: '#888888',
+    fontSize: 11,
     fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  clearAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearAllText: {
+    color: '#888888',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  savedArticlesContent: {
+    paddingTop: 8,
+  },
+  savedArticleContainer: {
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
 });

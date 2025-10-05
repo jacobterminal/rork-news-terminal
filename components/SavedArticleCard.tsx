@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { router } from 'expo-router';
-import { Bookmark, ExternalLink } from 'lucide-react-native';
-import { theme, impactColors } from '@/constants/theme';
+import { Bookmark, TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
+import { theme } from '@/constants/theme';
 import { FeedItem } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
 
@@ -15,16 +14,17 @@ export default function SavedArticleCard({ article }: SavedArticleCardProps) {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit',
-      hour12: false 
-    });
-  };
-
-  const handlePress = () => {
-    router.push(`/article/${article.id}`);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const handleUnsave = (e: any) => {
@@ -32,29 +32,43 @@ export default function SavedArticleCard({ article }: SavedArticleCardProps) {
     unsaveArticle(article.id);
   };
 
-  const handleOpenOriginal = (e: any) => {
-    e.stopPropagation();
-    // Open original URL logic would go here
-    console.log('Open original:', article.url);
+  const getSentimentColor = (sentiment: string) => {
+    switch (sentiment) {
+      case 'Bullish': return theme.colors.bullish;
+      case 'Bearish': return theme.colors.bearish;
+      default: return theme.colors.neutral;
+    }
+  };
+
+  const getSentimentIcon = (sentiment: string) => {
+    const iconSize = 14;
+    const color = getSentimentColor(sentiment);
+    
+    switch (sentiment) {
+      case 'Bullish':
+        return <TrendingUp size={iconSize} color={color} />;
+      case 'Bearish':
+        return <TrendingDown size={iconSize} color={color} />;
+      default:
+        return <Minus size={iconSize} color={color} />;
+    }
   };
 
   return (
-    <TouchableOpacity style={styles.container} onPress={handlePress}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.sourceRow}>
-          <Text style={styles.sourceText}>
-            {article.source.name} • {formatTime(article.published_at)}
-          </Text>
-        </View>
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleOpenOriginal}>
-            <ExternalLink size={14} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleUnsave}>
+        <Text style={styles.sourceText}>{article.source.name}</Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.timeText}>{formatTime(article.published_at)}</Text>
+          <TouchableOpacity 
+            style={styles.unsaveButton} 
+            onPress={handleUnsave}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Bookmark 
               size={14} 
-              color={theme.colors.activeCyan}
-              fill={theme.colors.activeCyan}
+              color={theme.colors.sectionTitle}
+              fill={theme.colors.sectionTitle}
             />
           </TouchableOpacity>
         </View>
@@ -65,71 +79,105 @@ export default function SavedArticleCard({ article }: SavedArticleCardProps) {
       </Text>
       
       <View style={styles.footer}>
-        <View style={[styles.impactPill, { backgroundColor: impactColors[article.classification.impact] }]}>
-          <Text style={styles.impactText}>{article.classification.impact}</Text>
+        <View style={styles.sentimentRow}>
+          {getSentimentIcon(article.classification.sentiment)}
+          <Text style={[styles.sentimentText, { color: getSentimentColor(article.classification.sentiment) }]}>
+            {article.classification.sentiment} {article.classification.confidence}%
+          </Text>
         </View>
-        <Text style={styles.summary} numberOfLines={1}>
-          {article.classification.summary_15}
-        </Text>
+        
+        {article.tickers && article.tickers.length > 0 && (
+          <View style={styles.tickersRow}>
+            {article.tickers.slice(0, 3).map((ticker, index) => (
+              <View key={index} style={styles.tickerPill}>
+                <Text style={styles.tickerText}>{ticker}</Text>
+              </View>
+            ))}
+            {article.tickers.length > 3 && (
+              <Text style={styles.moreTickersText}>+{article.tickers.length - 3}</Text>
+            )}
+          </View>
+        )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 8,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
+    backgroundColor: '#0A0A0A',
+    borderRadius: 6,
+    padding: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
-  },
-  sourceRow: {
-    flex: 1,
+    marginBottom: 8,
   },
   sourceText: {
-    fontSize: theme.fontSize.tight,
+    fontSize: 11,
     color: theme.colors.textSecondary,
+    fontWeight: '600',
   },
-  actions: {
+  headerRight: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    alignItems: 'center',
+    gap: 8,
   },
-  actionButton: {
-    padding: theme.spacing.xs,
+  timeText: {
+    fontSize: 11,
+    color: theme.colors.textDim,
+  },
+  unsaveButton: {
+    padding: 2,
   },
   title: {
-    fontSize: theme.fontSize.base,
+    fontSize: 13,
     fontWeight: '600',
     color: theme.colors.text,
-    lineHeight: 18,
-    marginBottom: theme.spacing.sm,
+    lineHeight: 17,
+    marginBottom: 10,
   },
   footer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
-  impactPill: {
-    paddingHorizontal: theme.spacing.xs,
+  sentimentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  sentimentText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  tickersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  tickerPill: {
+    backgroundColor: '#1A1A1A',
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.sectionTitle,
   },
-  impactText: {
+  tickerText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.sectionTitle,
   },
-  summary: {
-    fontSize: theme.fontSize.tight,
-    color: theme.colors.textSecondary,
-    flex: 1,
+  moreTickersText: {
+    fontSize: 10,
+    color: theme.colors.textDim,
+    fontWeight: '600',
   },
 });
