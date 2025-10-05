@@ -158,14 +158,14 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
       const title = 'title' in article ? article.title : article.headline;
       const source = 'source' in article && typeof article.source === 'object' ? article.source.name : article.source;
       
-      const summaryPrompt = `Summarize this news headline in 1-2 concise sentences:\n"${title}"\nSource: ${source}`;
-      const overviewPrompt = `Provide a factual overview (2-3 sentences) of this event:\n"${title}"`;
-      const opinionPrompt = `Analyze the market sentiment and provide a directional outlook for this news:\n"${title}"\nProvide: sentiment (Bullish/Bearish/Neutral), confidence (0-100), and a brief explanation why.`;
+      const summaryPrompt = `Summarize this news headline in 1-2 concise sentences: "${title}" Source: ${source}`;
+      const overviewPrompt = `Provide a factual overview (2-3 sentences) of this event: "${title}"`;
+      const opinionPrompt = `Analyze the market sentiment and provide a directional outlook for this news: "${title}" Provide: sentiment (Bullish/Bearish/Neutral), confidence (0-100), and a brief explanation why.`;
       
       const [summary, overview, opinionText] = await Promise.all([
-        generateText(summaryPrompt),
-        generateText(overviewPrompt),
-        generateText(opinionPrompt),
+        generateText({ messages: [{ role: 'user', content: summaryPrompt }] }),
+        generateText({ messages: [{ role: 'user', content: overviewPrompt }] }),
+        generateText({ messages: [{ role: 'user', content: opinionPrompt }] }),
       ]);
       
       const sentimentMatch = opinionText.match(/\b(Bullish|Bearish|Neutral)\b/i);
