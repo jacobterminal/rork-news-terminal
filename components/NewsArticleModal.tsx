@@ -143,17 +143,75 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
       const impactConfidence = Math.min(95, confidence + Math.floor(Math.random() * 15));
       
       const keyPhrases: string[] = [];
-      if (titleLower.includes('china')) keyPhrases.push('China');
-      if (titleLower.includes('demand')) keyPhrases.push('Demand');
-      if (titleLower.includes('revenue')) keyPhrases.push('Revenue');
-      if (titleLower.includes('earnings') || titleLower.includes('eps')) keyPhrases.push('Earnings');
-      if (titleLower.includes('beat') || titleLower.includes('miss')) keyPhrases.push(titleLower.includes('beat') ? 'Beat' : 'Miss');
-      if (titleLower.includes('iphone')) keyPhrases.push('iPhone');
-      if (titleLower.includes('ai') || titleLower.includes('artificial intelligence')) keyPhrases.push('AI');
-      if (titleLower.includes('fed') || titleLower.includes('federal reserve')) keyPhrases.push('Fed');
+      
+      if (titleLower.includes('earnings') && titleLower.includes('beat')) {
+        keyPhrases.push('Earnings Beat');
+      } else if (titleLower.includes('earnings') && titleLower.includes('miss')) {
+        keyPhrases.push('Earnings Miss');
+      } else if (titleLower.includes('earnings')) {
+        keyPhrases.push('Earnings Report');
+      }
+      
+      if (titleLower.includes('china') && titleLower.includes('demand')) {
+        keyPhrases.push('China Demand Growth');
+      } else if (titleLower.includes('china')) {
+        keyPhrases.push('China Market Exposure');
+      }
+      
+      if (titleLower.includes('revenue') && (titleLower.includes('beat') || titleLower.includes('surge'))) {
+        keyPhrases.push('Revenue Beat Expectations');
+      } else if (titleLower.includes('revenue')) {
+        keyPhrases.push('Revenue Performance');
+      }
+      
+      if (titleLower.includes('fed') && titleLower.includes('rate')) {
+        keyPhrases.push('Fed Rate Decision');
+      } else if (titleLower.includes('fed')) {
+        keyPhrases.push('Federal Reserve Policy');
+      }
+      
+      if (titleLower.includes('ai') || titleLower.includes('artificial intelligence')) {
+        keyPhrases.push('AI Technology Growth');
+      }
+      
+      if (titleLower.includes('iphone') && titleLower.includes('sales')) {
+        keyPhrases.push('iPhone Sales Performance');
+      } else if (titleLower.includes('iphone')) {
+        keyPhrases.push('iPhone Product Line');
+      }
+      
+      if (titleLower.includes('guidance') && (titleLower.includes('raise') || titleLower.includes('increase'))) {
+        keyPhrases.push('Guidance Raised');
+      } else if (titleLower.includes('guidance') && (titleLower.includes('lower') || titleLower.includes('cut'))) {
+        keyPhrases.push('Guidance Lowered');
+      } else if (titleLower.includes('guidance')) {
+        keyPhrases.push('Forward Guidance Update');
+      }
+      
+      if (titleLower.includes('market share')) {
+        keyPhrases.push('Market Share Expansion');
+      }
+      
+      if (titleLower.includes('merger') || titleLower.includes('acquisition')) {
+        keyPhrases.push('M&A Activity');
+      }
+      
+      if (titleLower.includes('dividend')) {
+        keyPhrases.push('Dividend Policy Change');
+      }
+      
+      if (titleLower.includes('buyback') || titleLower.includes('repurchase')) {
+        keyPhrases.push('Share Buyback Program');
+      }
+      
       if (keyPhrases.length === 0) {
-        const words = title.split(' ').filter(w => w.length > 4).slice(0, 4);
-        keyPhrases.push(...words);
+        if (sentiment === 'Bullish') {
+          keyPhrases.push('Positive Market Momentum', 'Growth Indicators');
+        } else if (sentiment === 'Bearish') {
+          keyPhrases.push('Downward Pressure', 'Market Headwinds');
+        } else {
+          keyPhrases.push('Market Update', 'Neutral Sentiment');
+        }
       }
       
       setAiContent({
