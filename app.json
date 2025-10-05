@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Vega Exit",
-    "slug": "vega-exit",
+    "name": "Insider Vega",
+    "slug": "insider-vega",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.vega-exit"
+      "bundleIdentifier": "app.rork.insidervega"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.vega-exit"
+      "package": "app.rork.insidervega"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
