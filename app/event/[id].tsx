@@ -100,7 +100,11 @@ export default function EventDetailsScreen() {
         
         Format as JSON: {"overview": "...", "summary": "...", "impact": "...", "sentiment": "...", "relatedTickers": ["...", "..."]}`;
         
-        const response = await generateText(prompt);
+        const response = await generateText({
+          messages: [
+            { role: 'user', content: prompt }
+          ]
+        });
         const parsed = JSON.parse(response);
         
         return {
@@ -125,7 +129,11 @@ export default function EventDetailsScreen() {
         
         Format as JSON: {"overview": "...", "summary": "...", "sentiment": "...", "relatedTickers": ["...", "..."]}`;
         
-        const response = await generateText(prompt);
+        const response = await generateText({
+          messages: [
+            { role: 'user', content: prompt }
+          ]
+        });
         const parsed = JSON.parse(response);
         
         return {
