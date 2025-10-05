@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Dimensions } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
 export type TimeRange = 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
@@ -29,6 +29,7 @@ export default function TimeRangeFilterPill({
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [pillLayout, setPillLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const pillRef = useRef<View>(null);
+  const dropdownRef = useRef<View>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [tempStartDate, setTempStartDate] = useState(customRange?.startDate || '');
   const [tempEndDate, setTempEndDate] = useState(customRange?.endDate || '');
@@ -282,10 +283,41 @@ export default function TimeRangeFilterPill({
             activeOpacity={1}
             onPress={() => setDropdownVisible(false)}
           >
-            <View style={[styles.dropdown, { 
-              top: pillLayout.y + pillLayout.height + 8,
-              left: pillLayout.x
-            }]}>
+            <View 
+              ref={dropdownRef}
+              style={[styles.dropdown, { 
+                top: pillLayout.y + pillLayout.height + 8,
+                left: pillLayout.x
+              }]}
+              onLayout={(event) => {
+                const { width, height } = event.nativeEvent.layout;
+                
+                const screenWidth = Dimensions.get('window').width;
+                const screenHeight = Dimensions.get('window').height;
+                
+                let adjustedLeft = pillLayout.x;
+                let adjustedTop = pillLayout.y + pillLayout.height + 8;
+                
+                if (adjustedLeft + width > screenWidth - 16) {
+                  adjustedLeft = screenWidth - width - 16;
+                }
+                
+                if (adjustedLeft < 16) {
+                  adjustedLeft = 16;
+                }
+                
+                if (adjustedTop + height > screenHeight - 16) {
+                  adjustedTop = pillLayout.y - height - 8;
+                  if (adjustedTop < 16) {
+                    adjustedTop = 16;
+                  }
+                }
+                
+                if (dropdownRef.current && (adjustedLeft !== pillLayout.x || adjustedTop !== (pillLayout.y + pillLayout.height + 8))) {
+                  setPillLayout(prev => prev ? { ...prev, x: adjustedLeft, y: adjustedTop - pillLayout.height - 8 } : null);
+                }
+              }}
+            >
               <TouchableOpacity 
                 style={[
                   styles.dropdownItem,
@@ -787,6 +819,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFD33D',
     borderRadius: 4,
     minWidth: 140,
+    maxWidth: Dimensions.get('window').width - 32,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.6,
@@ -828,7 +861,7 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '88%',
     maxWidth: 360,
-    maxHeight: 520,
+    maxHeight: Dimensions.get('window').height * 0.85,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.6,
@@ -908,7 +941,7 @@ const styles = StyleSheet.create({
     borderColor: '#333333',
     borderRadius: 5,
     marginTop: 6,
-    maxHeight: 240,
+    maxHeight: Math.min(240, Dimensions.get('window').height * 0.3),
     overflow: 'hidden',
   },
   datePickerItem: {
