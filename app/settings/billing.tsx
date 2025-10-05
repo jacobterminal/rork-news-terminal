@@ -1,44 +1,82 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, CreditCard, FileText, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 
-interface InfoItemProps {
-  label: string;
-  value: string;
+type PlanTier = 'free' | 'standard' | 'pro' | 'elite';
+
+interface PlanCardProps {
+  tier: PlanTier;
+  name: string;
+  price: string;
+  badge: string;
+  badgeColor: string;
+  features: string[];
+  borderColor: string;
+  currentPlan: PlanTier;
+  onSelect: () => void;
 }
 
-function InfoItem({ label, value }: InfoItemProps) {
+function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor, currentPlan, onSelect }: PlanCardProps) {
+  const isActive = tier === currentPlan;
+  
   return (
-    <View style={styles.infoItem}>
-      <Text style={styles.infoItemLabel}>{label}</Text>
-      <Text style={styles.infoItemValue}>{value}</Text>
-    </View>
-  );
-}
-
-interface ActionItemProps {
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-}
-
-function ActionItem({ icon, label, onPress }: ActionItemProps) {
-  return (
-    <TouchableOpacity style={styles.actionItem} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.actionItemLeft}>
-        <View>{icon}</View>
-        <Text style={styles.actionItemLabel}>{label}</Text>
+    <View style={[styles.planCard, { borderColor }]}>
+      <View style={styles.planHeader}>
+        <Text style={styles.planName}>{name}</Text>
+        <View style={[styles.planBadge, { backgroundColor: badgeColor }]}>
+          <Text style={styles.planBadgeText}>{isActive ? 'ACTIVE' : badge}</Text>
+        </View>
       </View>
-      <ChevronRight size={18} color="#666" />
-    </TouchableOpacity>
+      
+      <Text style={[styles.planPrice, { color: borderColor }]}>{price}</Text>
+      
+      <View style={styles.featuresContainer}>
+        {features.map((feature, index) => (
+          <View key={index} style={styles.featureRow}>
+            <Text style={styles.featureBullet}>•</Text>
+            <Text style={styles.featureText}>{feature}</Text>
+          </View>
+        ))}
+      </View>
+      
+      <TouchableOpacity 
+        style={[styles.selectButton, isActive && styles.selectButtonActive, { borderColor }]} 
+        onPress={onSelect}
+        activeOpacity={0.7}
+        disabled={isActive}
+      >
+        <Text style={[styles.selectButtonText, isActive && styles.selectButtonTextActive, { color: isActive ? '#888' : borderColor }]}>
+          {isActive ? 'CURRENT PLAN' : 'SELECT PLAN'}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 export default function BillingSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [currentPlan, setCurrentPlan] = useState<PlanTier>('free');
+  const [showModal, setShowModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{ tier: PlanTier; name: string; price: string } | null>(null);
+
+  const handleSelectPlan = (tier: PlanTier, name: string, price: string) => {
+    if (tier === currentPlan) return;
+    setSelectedPlan({ tier, name, price });
+    setShowModal(true);
+  };
+
+  const handleConfirmUpgrade = () => {
+    if (selectedPlan) {
+      setCurrentPlan(selectedPlan.tier);
+      setShowModal(false);
+      setTimeout(() => {
+        setSelectedPlan(null);
+      }, 300);
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -46,7 +84,7 @@ export default function BillingSettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Subscriptions & Billing</Text>
+        <Text style={styles.headerTitle}>Subscription Plans</Text>
       </View>
 
       <ScrollView 
@@ -54,49 +92,104 @@ export default function BillingSettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>CURRENT PLAN</Text>
-          <View style={styles.planCard}>
-            <View style={styles.planHeader}>
-              <Text style={styles.planName}>Pro Plan</Text>
-              <View style={styles.planBadge}>
-                <Text style={styles.planBadgeText}>ACTIVE</Text>
-              </View>
-            </View>
-            <Text style={styles.planPrice}>$29.99/month</Text>
-            <Text style={styles.planDescription}>
-              Full access to all features, real-time alerts, and AI-powered insights
-            </Text>
-            <TouchableOpacity style={styles.upgradeButton}>
-              <Text style={styles.upgradeButtonText}>Manage Subscription</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.introSection}>
+          <Text style={styles.introTitle}>Unlock advanced AI modules and real-time news intelligence.</Text>
+          <Text style={styles.currentPlanText}>(Current Plan: {currentPlan === 'free' ? 'Free' : currentPlan === 'standard' ? 'Nova Standard' : currentPlan === 'pro' ? 'Nova Pro' : 'Nova Elite'})</Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PAYMENT METHOD</Text>
-          <ActionItem
-            icon={<CreditCard size={18} color="#FFD600" />}
-            label="•••• •••• •••• 4242"
-            onPress={() => console.log('Manage payment method')}
-          />
-        </View>
+        <PlanCard
+          tier="standard"
+          name="NOVA STANDARD"
+          price="$35 / month"
+          badge="STANDARD"
+          badgeColor="#22C55E"
+          borderColor="#22C55E"
+          currentPlan={currentPlan}
+          features={[
+            'AI News Tracker (all major sources)',
+            'Instant Breaking News Feed',
+            'Watchlist-Based News Tracking',
+            'Upcoming Earnings & Economic Events Calendar',
+            'AI Summary, Overview, Opinion, Forecast, and Key Phrases integrated in all news',
+            'Smart Filtering by Ticker, Sentiment, and Impact',
+          ]}
+          onSelect={() => handleSelectPlan('standard', 'NOVA STANDARD', '$35 / month')}
+        />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>BILLING INFORMATION</Text>
-          <InfoItem label="Next billing date" value="January 15, 2025" />
-          <InfoItem label="Billing cycle" value="Monthly" />
-        </View>
+        <PlanCard
+          tier="pro"
+          name="NOVA PRO"
+          price="$75 / month"
+          badge="PRO – Advanced"
+          badgeColor="#FFD43B"
+          borderColor="#FFD43B"
+          currentPlan={currentPlan}
+          features={[
+            'Everything in Tier 1 plus:',
+            'Twitter Tracker (BETA) — live signal & sentiment tracking from verified sources',
+            'Real-Time AI Signal Detection for trending tickers',
+            'Customizable filters (handles, keywords, watchlist-linked)',
+          ]}
+          onSelect={() => handleSelectPlan('pro', 'NOVA PRO', '$75 / month')}
+        />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>BILLING HISTORY</Text>
-          <ActionItem
-            icon={<FileText size={18} color="#FFD600" />}
-            label="View all invoices"
-            onPress={() => console.log('View billing history')}
-          />
+        <PlanCard
+          tier="elite"
+          name="NOVA ELITE"
+          price="$95 / month"
+          badge="ELITE – Institutional"
+          badgeColor="#EF4444"
+          borderColor="#EF4444"
+          currentPlan={currentPlan}
+          features={[
+            'Everything in Tier 2 plus:',
+            'Reddit Tracker — sentiment mapping & post activity analytics',
+            'Dark Pool Activity Monitor — institutional orderflow and hidden liquidity detection',
+            'AI-Powered Context Integration across all modules',
+            'Early Access to future AI features (whale alerts, cross-feed correlation)',
+          ]}
+          onSelect={() => handleSelectPlan('elite', 'NOVA ELITE', '$95 / month')}
+        />
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>• Each plan includes full AI integration (summary, overview, opinion, forecast, key phrases)</Text>
+          <Text style={styles.footerText}>• Cancel anytime from your account settings.</Text>
+          <Text style={styles.footerText}>• Prices billed monthly.</Text>
+          <Text style={styles.footerText}>• Upgrade instantly — no data loss between tiers.</Text>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirm Upgrade</Text>
+            <Text style={styles.modalText}>
+              Upgrade to {selectedPlan?.name} for {selectedPlan?.price}?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonCancel]} 
+                onPress={() => setShowModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonConfirm]} 
+                onPress={handleConfirmUpgrade}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalButtonTextConfirm}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -104,7 +197,7 @@ export default function BillingSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#0B0B0B',
   },
   header: {
     flexDirection: 'row',
@@ -112,7 +205,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: 'rgba(255, 212, 59, 0.2)',
   },
   backButton: {
     marginRight: 12,
@@ -120,7 +213,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#EAEAEA',
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
   },
   scrollView: {
     flex: 1,
@@ -128,112 +225,218 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  section: {
-    marginTop: 24,
+  introSection: {
     paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#FFD600',
-    letterSpacing: 1,
-    marginBottom: 12,
+  introTitle: {
+    fontSize: 15,
+    color: '#EAEAEA',
+    lineHeight: 22,
+    marginBottom: 8,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  currentPlanText: {
+    fontSize: 13,
+    color: '#888888',
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
   },
   planCard: {
-    backgroundColor: '#000000',
+    backgroundColor: 'rgba(20, 20, 20, 0.6)',
     borderWidth: 1,
-    borderColor: '#FFD600',
     borderRadius: 12,
     padding: 20,
+    marginHorizontal: 16,
+    marginTop: 20,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 20px rgba(255, 212, 59, 0.1)',
+      } as any,
+    }),
   },
   planHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   planName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: '#EAEAEA',
+    letterSpacing: 0.5,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
   },
   planBadge: {
-    backgroundColor: '#FFD600',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   planBadgeText: {
     fontSize: 10,
     fontWeight: '700' as const,
-    color: '#000000',
+    color: '#0B0B0B',
     letterSpacing: 0.5,
   },
   planPrice: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700' as const,
-    color: '#FFD600',
-    marginBottom: 8,
-  },
-  planDescription: {
-    fontSize: 14,
-    color: '#888',
-    lineHeight: 20,
     marginBottom: 16,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
   },
-  upgradeButton: {
+  featuresContainer: {
+    marginBottom: 20,
+    gap: 10,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  featureBullet: {
+    fontSize: 14,
+    color: '#FFD43B',
+    fontWeight: '700' as const,
+    marginTop: 2,
+  },
+  featureText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#EAEAEA',
+    lineHeight: 20,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  selectButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 15px rgba(255, 212, 59, 0.3)',
+      } as any,
+    }),
+  },
+  selectButtonActive: {
+    backgroundColor: '#111',
+    borderColor: '#333',
+    ...Platform.select({
+      web: {
+        boxShadow: 'none',
+      } as any,
+    }),
+  },
+  selectButtonText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    letterSpacing: 1,
+  },
+  selectButtonTextActive: {
+    color: '#888',
+  },
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 32,
+    gap: 8,
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#888888',
+    lineHeight: 18,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#0B0B0B',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 212, 59, 0.3)',
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 30px rgba(255, 212, 59, 0.2)',
+      } as any,
+    }),
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#EAEAEA',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  modalText: {
+    fontSize: 15,
+    color: '#888888',
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 24,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
     backgroundColor: '#111',
     borderWidth: 1,
     borderColor: '#333',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
   },
-  upgradeButtonText: {
+  modalButtonConfirm: {
+    backgroundColor: '#FFD43B',
+    borderWidth: 1,
+    borderColor: '#FFD43B',
+  },
+  modalButtonTextCancel: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#FFD600',
+    color: '#EAEAEA',
   },
-  infoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    borderWidth: 1,
-    borderColor: '#222',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-  },
-  infoItemLabel: {
+  modalButtonTextConfirm: {
     fontSize: 15,
-    fontWeight: '500' as const,
-    color: '#FFFFFF',
-  },
-  infoItemValue: {
-    fontSize: 14,
-    color: '#888',
-  },
-  actionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#000000',
-    borderWidth: 1,
-    borderColor: '#222',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-  },
-  actionItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  actionItemLabel: {
-    fontSize: 15,
-    fontWeight: '500' as const,
-    color: '#FFFFFF',
-    marginLeft: 12,
+    fontWeight: '700' as const,
+    color: '#0B0B0B',
+    letterSpacing: 0.5,
   },
 });
