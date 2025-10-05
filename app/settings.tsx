@@ -101,15 +101,30 @@ export default function SettingsScreen() {
         <View style={styles.sectionDivider} />
         <Text style={styles.sectionLabel}>SUBSCRIPTION MANAGEMENT</Text>
         <View style={styles.settingsSection}>
-          <SettingRow
-            icon={<CreditCard size={20} color="#FFD600" />}
-            title="Current Plan: Free"
-            onPress={() => router.push('/settings/billing')}
-          />
+          <View style={styles.subscriptionCard}>
+            <View style={styles.subscriptionHeader}>
+              <CreditCard size={20} color="#FFD600" />
+              <Text style={styles.subscriptionTitle}>Current Plan: Base Tier</Text>
+              <View style={styles.activeBadge}>
+                <Text style={styles.activeBadgeText}>ACTIVE</Text>
+              </View>
+            </View>
+            <Text style={styles.subscriptionSubtext}>
+              Includes: News Tracker, Instant News, Watchlist Tracking, Economic Calendar
+            </Text>
+            <TouchableOpacity 
+              style={styles.upgradeButton}
+              onPress={() => router.push('/settings/billing')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.sectionDivider} />
-        <Text style={styles.sectionLabel}>ALERT SETTINGS</Text>
+        <Text style={styles.sectionLabel}>INSTANT NEWS</Text>
+        <Text style={styles.sectionDescription}>Configure what appears in the Instant News page</Text>
         <View style={styles.settingsSection}>
           <SettingRow
             icon={<Bell size={20} color="#FFD600" />}
@@ -174,22 +189,24 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.sectionDivider} />
-        <Text style={styles.sectionLabel}>PREFERENCES</Text>
+        <Text style={styles.sectionLabel}>INTERFACE & LAYOUT</Text>
         <View style={styles.settingsSection}>
           <SettingRow
             icon={<Layout size={20} color="#FFD600" />}
-            title="Interface & Layout"
-            onPress={() => router.push('/settings/interface')}
+            title="AI Summary"
+            rightElement={
+              <Switch
+                value={true}
+                onValueChange={() => {}}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={'#000'}
+              />
+            }
           />
-        </View>
-
-        <View style={styles.sectionDivider} />
-        <Text style={styles.sectionLabel}>ACCOUNT MANAGEMENT</Text>
-        <View style={styles.settingsSection}>
           <SettingRow
-            icon={<User size={20} color="#FFD600" />}
-            title="Account Settings"
-            onPress={() => router.push('/settings/account')}
+            icon={<Layout size={20} color="#FFD600" />}
+            title="Feed Preset"
+            onPress={() => router.push('/settings/interface')}
           />
         </View>
 
@@ -357,5 +374,62 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
+  },
+  sectionDescription: {
+    fontSize: 12,
+    color: '#888',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    marginTop: -4,
+  },
+  subscriptionCard: {
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: '#222',
+    borderRadius: 12,
+    padding: 16,
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  subscriptionTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  activeBadge: {
+    backgroundColor: '#00FF00',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  activeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: '#000',
+    letterSpacing: 0.5,
+  },
+  subscriptionSubtext: {
+    fontSize: 13,
+    color: '#888',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  upgradeButton: {
+    backgroundColor: '#FFD600',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#000',
+    letterSpacing: 0.5,
   },
 });

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Mail, MessageCircle, HelpCircle, ExternalLink } from 'lucide-react-native';
+import { ArrowLeft, Mail, HelpCircle, ExternalLink } from 'lucide-react-native';
 
 interface SupportItemProps {
   icon: React.ReactNode;
@@ -34,10 +34,6 @@ export default function SupportSettingsScreen() {
     Linking.openURL('mailto:support@example.com');
   };
 
-  const handleLiveChat = () => {
-    console.log('Open live chat');
-  };
-
   const handleFAQ = () => {
     Linking.openURL('https://example.com/faq');
   };
@@ -65,12 +61,6 @@ export default function SupportSettingsScreen() {
             onPress={handleEmail}
           />
           <SupportItem
-            icon={<MessageCircle size={24} color="#FFD600" />}
-            title="Live Chat"
-            description="Chat with our support team"
-            onPress={handleLiveChat}
-          />
-          <SupportItem
             icon={<HelpCircle size={24} color="#FFD600" />}
             title="FAQ"
             description="Find answers to common questions"
@@ -89,8 +79,7 @@ export default function SupportSettingsScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoBoxTitle}>Average Response Time</Text>
           <Text style={styles.infoBoxText}>
-            Email: Within 24 hours{'\n'}
-            Live Chat: Within 5 minutes
+            Email: Within 24 hours
           </Text>
         </View>
       </ScrollView>
