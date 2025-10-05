@@ -254,8 +254,7 @@ export default function TimeRangeFilterPill({
 
   return (
     <>
-      <View style={styles.pillWrapper}>
-        <TouchableOpacity 
+      <TouchableOpacity 
         ref={pillRef}
         style={[
           styles.pill,
@@ -268,94 +267,99 @@ export default function TimeRangeFilterPill({
       </TouchableOpacity>
 
       {dropdownVisible && pillLayout && (
-        <>
+        <Modal
+          visible={dropdownVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setDropdownVisible(false)}
+        >
           <TouchableOpacity 
-            style={styles.overlay}
+            style={styles.dropdownOverlay}
             activeOpacity={1}
             onPress={() => setDropdownVisible(false)}
-          />
-          <View style={[styles.dropdown, { top: pillLayout.height + 4, width: pillLayout.width }]}>
-            <TouchableOpacity 
-              style={[
-                styles.dropdownItem,
-                selectedRange === 'last_hour' && styles.dropdownItemSelected
-              ]}
-              onPress={() => handleRangeSelect('last_hour')}
-            >
-              <Text style={[
-                styles.dropdownText,
-                selectedRange !== 'last_hour' && styles.dropdownTextHover
-              ]}>Last Hour</Text>
-            </TouchableOpacity>
-            <View style={styles.dropdownDivider} />
-            <TouchableOpacity 
-              style={[
-                styles.dropdownItem,
-                selectedRange === 'today' && styles.dropdownItemSelected
-              ]}
-              onPress={() => handleRangeSelect('today')}
-            >
-              <Text style={[
-                styles.dropdownText,
-                selectedRange !== 'today' && styles.dropdownTextHover
-              ]}>Today</Text>
-            </TouchableOpacity>
-            <View style={styles.dropdownDivider} />
-            <TouchableOpacity 
-              style={[
-                styles.dropdownItem,
-                selectedRange === 'past_2_days' && styles.dropdownItemSelected
-              ]}
-              onPress={() => handleRangeSelect('past_2_days')}
-            >
-              <Text style={[
-                styles.dropdownText,
-                selectedRange !== 'past_2_days' && styles.dropdownTextHover
-              ]}>Past 2 Days</Text>
-            </TouchableOpacity>
-            <View style={styles.dropdownDivider} />
-            <TouchableOpacity 
-              style={[
-                styles.dropdownItem,
-                selectedRange === 'past_5_days' && styles.dropdownItemSelected
-              ]}
-              onPress={() => handleRangeSelect('past_5_days')}
-            >
-              <Text style={[
-                styles.dropdownText,
-                selectedRange !== 'past_5_days' && styles.dropdownTextHover
-              ]}>Past 5 Days</Text>
-            </TouchableOpacity>
-            <View style={styles.dropdownDivider} />
-            <TouchableOpacity 
-              style={[
-                styles.dropdownItem,
-                selectedRange === 'week_to_date' && styles.dropdownItemSelected
-              ]}
-              onPress={() => handleRangeSelect('week_to_date')}
-            >
-              <Text style={[
-                styles.dropdownText,
-                selectedRange !== 'week_to_date' && styles.dropdownTextHover
-              ]}>Week-to-Date</Text>
-            </TouchableOpacity>
-            <View style={styles.dropdownDivider} />
-            <TouchableOpacity 
-              style={[
-                styles.dropdownItem,
-                selectedRange === 'custom' && styles.dropdownItemSelected
-              ]}
-              onPress={() => handleRangeSelect('custom')}
-            >
-              <Text style={[
-                styles.dropdownText,
-                selectedRange !== 'custom' && styles.dropdownTextHover
-              ]}>Custom Range ▾</Text>
-            </TouchableOpacity>
-          </View>
-        </>
+          >
+            <View style={[styles.dropdown, { top: pillLayout.y + pillLayout.height + 4, right: 16 }]}>
+              <TouchableOpacity 
+                style={[
+                  styles.dropdownItem,
+                  selectedRange === 'last_hour' && styles.dropdownItemSelected
+                ]}
+                onPress={() => handleRangeSelect('last_hour')}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  selectedRange !== 'last_hour' && styles.dropdownTextHover
+                ]}>Last Hour</Text>
+              </TouchableOpacity>
+              <View style={styles.dropdownDivider} />
+              <TouchableOpacity 
+                style={[
+                  styles.dropdownItem,
+                  selectedRange === 'today' && styles.dropdownItemSelected
+                ]}
+                onPress={() => handleRangeSelect('today')}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  selectedRange !== 'today' && styles.dropdownTextHover
+                ]}>Today</Text>
+              </TouchableOpacity>
+              <View style={styles.dropdownDivider} />
+              <TouchableOpacity 
+                style={[
+                  styles.dropdownItem,
+                  selectedRange === 'past_2_days' && styles.dropdownItemSelected
+                ]}
+                onPress={() => handleRangeSelect('past_2_days')}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  selectedRange !== 'past_2_days' && styles.dropdownTextHover
+                ]}>Past 2 Days</Text>
+              </TouchableOpacity>
+              <View style={styles.dropdownDivider} />
+              <TouchableOpacity 
+                style={[
+                  styles.dropdownItem,
+                  selectedRange === 'past_5_days' && styles.dropdownItemSelected
+                ]}
+                onPress={() => handleRangeSelect('past_5_days')}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  selectedRange !== 'past_5_days' && styles.dropdownTextHover
+                ]}>Past 5 Days</Text>
+              </TouchableOpacity>
+              <View style={styles.dropdownDivider} />
+              <TouchableOpacity 
+                style={[
+                  styles.dropdownItem,
+                  selectedRange === 'week_to_date' && styles.dropdownItemSelected
+                ]}
+                onPress={() => handleRangeSelect('week_to_date')}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  selectedRange !== 'week_to_date' && styles.dropdownTextHover
+                ]}>Week-to-Date</Text>
+              </TouchableOpacity>
+              <View style={styles.dropdownDivider} />
+              <TouchableOpacity 
+                style={[
+                  styles.dropdownItem,
+                  selectedRange === 'custom' && styles.dropdownItemSelected
+                ]}
+                onPress={() => handleRangeSelect('custom')}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  selectedRange !== 'custom' && styles.dropdownTextHover
+                ]}>Custom Range ▾</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       )}
-      </View>
 
       <Modal
         visible={modalVisible}
@@ -740,9 +744,6 @@ export default function TimeRangeFilterPill({
 }
 
 const styles = StyleSheet.create({
-  pillWrapper: {
-    position: 'relative',
-  },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -767,26 +768,17 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     letterSpacing: 0.3,
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    zIndex: 999,
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   dropdown: {
     position: 'absolute',
-    right: 0,
     backgroundColor: '#0A0A0A',
     borderWidth: 1,
     borderColor: '#FFD33D',
     borderRadius: 4,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
     minWidth: 140,
-    zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.6,
