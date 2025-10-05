@@ -25,19 +25,9 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   const [isVisible, setIsVisible] = useState(false);
   const displayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMounted = useRef(false);
-  const slideAnimation = useRef<Animated.Value | null>(null);
-  const swipeAnimation = useRef<Animated.Value | null>(null);
-  const opacityAnimation = useRef<Animated.Value | null>(null);
-  
-  if (!slideAnimation.current) {
-    slideAnimation.current = new Animated.Value(-BANNER_HEIGHT - 50);
-  }
-  if (!swipeAnimation.current) {
-    swipeAnimation.current = new Animated.Value(0);
-  }
-  if (!opacityAnimation.current) {
-    opacityAnimation.current = new Animated.Value(1);
-  }
+  const slideAnimation = useRef(new Animated.Value(-BANNER_HEIGHT - 50));
+  const swipeAnimation = useRef(new Animated.Value(0));
+  const opacityAnimation = useRef(new Animated.Value(1));
 
   const dismissCurrentAlert = useCallback(() => {
     if (!currentAlert) return;
@@ -47,7 +37,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
       displayTimer.current = null;
     }
     
-    if (!swipeAnimation.current || !opacityAnimation.current) return;
+    if (!swipeAnimation.current || !opacityAnimation.current || !slideAnimation.current) return;
     
     // Swipe out to the right with fade
     Animated.parallel([
@@ -64,8 +54,8 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
     ]).start(() => {
       onDismiss(currentAlert.id);
       setCurrentAlert(null);
-      if (swipeAnimation.current) swipeAnimation.current.setValue(0);
-      if (opacityAnimation.current) opacityAnimation.current.setValue(1);
+      swipeAnimation.current.setValue(0);
+      opacityAnimation.current.setValue(1);
       
       // Check if there are more alerts in queue
       if (alertQueue.length > 0) {
@@ -74,15 +64,13 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         setCurrentAlert(nextAlert);
       } else {
         // No more alerts, hide banner
-        if (slideAnimation.current) {
-          Animated.timing(slideAnimation.current, {
-            toValue: -BANNER_HEIGHT - insets.top,
-            duration: ANIMATION_DURATION,
-            useNativeDriver: true,
-          }).start(() => {
-            setIsVisible(false);
-          });
-        }
+        Animated.timing(slideAnimation.current, {
+          toValue: -BANNER_HEIGHT - insets.top,
+          duration: ANIMATION_DURATION,
+          useNativeDriver: true,
+        }).start(() => {
+          setIsVisible(false);
+        });
       }
     });
   }, [currentAlert, alertQueue, insets.top, onDismiss]);
@@ -126,9 +114,9 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
 
   // Animate banner in when it becomes visible
   useEffect(() => {
-    if (isVisible && currentAlert && isMounted.current && slideAnimation.current) {
+    if (isVisible && currentAlert && isMounted.current) {
       const timeoutId = setTimeout(() => {
-        if (isMounted.current && slideAnimation.current) {
+        if (isMounted.current) {
           Animated.timing(slideAnimation.current, {
             toValue: 0,
             duration: ANIMATION_DURATION,
@@ -137,9 +125,9 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         }
       }, 0);
       return () => clearTimeout(timeoutId);
-    } else if (!isVisible && isMounted.current && slideAnimation.current) {
+    } else if (!isVisible && isMounted.current) {
       const timeoutId = setTimeout(() => {
-        if (isMounted.current && slideAnimation.current) {
+        if (isMounted.current) {
           slideAnimation.current.setValue(-BANNER_HEIGHT - 50);
         }
       }, 0);
@@ -164,14 +152,14 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         return Math.abs(gestureState.dy) > 10 && gestureState.dy < 0;
       },
       onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy < 0 && slideAnimation.current) {
+        if (gestureState.dy < 0) {
           slideAnimation.current.setValue(gestureState.dy / 2);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy < -30) {
           dismissCurrentAlert();
-        } else if (slideAnimation.current) {
+        } else {
           Animated.spring(slideAnimation.current, {
             toValue: 0,
             useNativeDriver: true,
@@ -185,7 +173,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   useEffect(() => {
     isMounted.current = true;
     const timeoutId = setTimeout(() => {
-      if (isMounted.current && slideAnimation.current) {
+      if (isMounted.current) {
         slideAnimation.current.setValue(-BANNER_HEIGHT - 50);
       }
     }, 0);
@@ -258,7 +246,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
     }
   };
 
-  if (!isVisible || !currentAlert || !slideAnimation.current || !swipeAnimation.current || !opacityAnimation.current) return null;
+  if (!isVisible || !currentAlert) return null;
   
   return (
     <Animated.View
