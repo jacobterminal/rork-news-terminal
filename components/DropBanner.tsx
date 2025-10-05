@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -127,9 +127,8 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
     dismissCurrentAlert();
   };
 
-  // Pan responder for swipe up to dismiss
-  const panResponder = useRef(
-    PanResponder.create({
+  const panResponder = useMemo(
+    () => PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
         return Math.abs(gestureState.dy) > 10 && gestureState.dy < 0;
       },
@@ -148,8 +147,9 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
           }).start();
         }
       },
-    })
-  ).current;
+    }),
+    [slideAnimation, dismissCurrentAlert]
+  );
 
   // Cleanup timers
   useEffect(() => {
