@@ -113,7 +113,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   // Animate banner in when it becomes visible
   useEffect(() => {
     if (isVisible && currentAlert && isMounted.current) {
-      requestAnimationFrame(() => {
+      const timeoutId = setTimeout(() => {
         if (isMounted.current) {
           Animated.timing(slideAnimation, {
             toValue: 0,
@@ -121,7 +121,9 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
             useNativeDriver: true,
           }).start();
         }
-      });
+      }, 0);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isVisible, currentAlert, slideAnimation]);
 
