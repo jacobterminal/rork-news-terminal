@@ -69,8 +69,12 @@ function RootLayoutNav() {
         name="instant"
         options={{
           title: "Instant",
-          tabBarIcon: ({ color, size }) => (
-            <Zap size={size * 1.15} color={theme.colors.neutral} />
+          tabBarIcon: ({ color, focused }) => (
+            <Zap 
+              size={24 * 1.15} 
+              color={focused ? '#FFD700' : theme.colors.inactiveGray}
+              fill={focused ? '#FFD700' : 'none'}
+            />
           ),
         }}
       />
