@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import { theme } from '../../constants/theme';
 import { EarningsItem, EconItem } from '../../types/news';
 import { generateMockData } from '../../utils/mockData';
-import { generateText } from '@rork/toolkit-sdk';
+
 
 interface EventDetails {
   type: 'earnings' | 'econ';
@@ -84,88 +84,58 @@ export default function EventDetailsScreen() {
     sentiment: 'Bullish' | 'Bearish' | 'Neutral';
     relatedTickers: string[];
   }> => {
-    try {
-      if (type === 'earnings') {
-        const earningsData = data as EarningsItem;
-        const prompt = `Generate a brief analysis for ${earningsData.ticker} earnings report scheduled at ${earningsData.scheduled_at}. 
-        Expected EPS: ${earningsData.cons_eps}, Expected Revenue: ${earningsData.cons_rev}B.
-        ${earningsData.actual_eps ? `Actual EPS: ${earningsData.actual_eps}, Actual Revenue: ${earningsData.actual_rev}B. Verdict: ${earningsData.verdict}` : ''}
-        
-        Provide:
-        1. A 2-3 sentence overview
-        2. A brief summary (1 sentence)
-        3. Impact rating (High/Medium/Low)
-        4. Sentiment (Bullish/Bearish/Neutral)
-        5. 2-3 related tickers
-        
-        Format as JSON: {"overview": "...", "summary": "...", "impact": "...", "sentiment": "...", "relatedTickers": ["...", "..."]}`;
-        
-        const response = await generateText({
-          messages: [
-            { role: 'user', content: prompt }
-          ]
-        });
-        const parsed = JSON.parse(response);
-        
-        return {
-          summary: parsed.summary || `${earningsData.ticker} earnings report analysis`,
-          overview: parsed.overview || `Earnings report for ${earningsData.ticker} with expected EPS of ${earningsData.cons_eps}`,
-          impact: parsed.impact || 'Medium',
-          sentiment: parsed.sentiment || 'Neutral',
-          relatedTickers: parsed.relatedTickers || [earningsData.ticker],
-        };
-      } else {
-        const econData = data as EconItem;
-        const prompt = `Generate a brief analysis for ${econData.name} economic event scheduled at ${econData.scheduled_at}.
-        Forecast: ${econData.forecast}%, Previous: ${econData.previous}%.
-        ${econData.actual !== null && econData.actual !== undefined ? `Actual: ${econData.actual}%` : ''}
-        Impact: ${econData.impact}
-        
-        Provide:
-        1. A 2-3 sentence overview
-        2. A brief summary (1 sentence)
-        3. Sentiment (Bullish/Bearish/Neutral)
-        4. 2-3 related tickers that would be affected
-        
-        Format as JSON: {"overview": "...", "summary": "...", "sentiment": "...", "relatedTickers": ["...", "..."]}`;
-        
-        const response = await generateText({
-          messages: [
-            { role: 'user', content: prompt }
-          ]
-        });
-        const parsed = JSON.parse(response);
-        
-        return {
-          summary: parsed.summary || `${econData.name} economic indicator analysis`,
-          overview: parsed.overview || `${econData.name} with forecast of ${econData.forecast}%`,
-          impact: econData.impact,
-          sentiment: parsed.sentiment || 'Neutral',
-          relatedTickers: parsed.relatedTickers || ['SPY', 'QQQ'],
-        };
-      }
-    } catch (error) {
-      console.error('Error generating AI content:', error);
+    if (type === 'earnings') {
+      const earningsData = data as EarningsItem;
       
-      if (type === 'earnings') {
-        const earningsData = data as EarningsItem;
-        return {
-          summary: `Earnings report for ${earningsData.ticker}`,
-          overview: `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time}. Analysts expect EPS of ${earningsData.cons_eps} and revenue of ${earningsData.cons_rev}B.`,
-          impact: 'Medium',
-          sentiment: 'Neutral',
-          relatedTickers: [earningsData.ticker],
-        };
-      } else {
-        const econData = data as EconItem;
-        return {
-          summary: `${econData.name} economic indicator`,
-          overview: `${econData.name} is scheduled for release. Forecast is ${econData.forecast}% compared to previous ${econData.previous}%.`,
-          impact: econData.impact,
-          sentiment: 'Neutral',
-          relatedTickers: ['SPY', 'QQQ'],
-        };
+      const hasActuals = earningsData.actual_eps !== null && earningsData.actual_eps !== undefined;
+      let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
+      let impact: 'High' | 'Medium' | 'Low' = 'Medium';
+      
+      if (hasActuals && earningsData.verdict) {
+        if (earningsData.verdict === 'Beat') {
+          sentiment = 'Bullish';
+          impact = 'High';
+        } else if (earningsData.verdict === 'Miss') {
+          sentiment = 'Bearish';
+          impact = 'High';
+        }
       }
+      
+      return {
+        summary: hasActuals 
+          ? `${earningsData.ticker} reported ${earningsData.verdict?.toLowerCase() || 'results'} with EPS of ${earningsData.actual_eps?.toFixed(2)} vs expected ${earningsData.cons_eps?.toFixed(2)}.`
+          : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time} with expected EPS of ${earningsData.cons_eps?.toFixed(2)}.`,
+        overview: hasActuals
+          ? `${earningsData.ticker} reported ${earningsData.report_time} earnings with actual EPS of ${earningsData.actual_eps?.toFixed(2)} compared to consensus of ${earningsData.cons_eps?.toFixed(2)}. Revenue came in at ${earningsData.actual_rev?.toFixed(1)}B versus expectations of ${earningsData.cons_rev?.toFixed(1)}B. The company ${earningsData.verdict?.toLowerCase() || 'met'} analyst expectations.`
+          : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time}. Analysts expect EPS of ${earningsData.cons_eps?.toFixed(2)} and revenue of ${earningsData.cons_rev?.toFixed(1)}B. This earnings report will provide insights into the company's recent performance and future guidance.`,
+        impact,
+        sentiment,
+        relatedTickers: [earningsData.ticker],
+      };
+    } else {
+      const econData = data as EconItem;
+      const hasActual = econData.actual !== null && econData.actual !== undefined;
+      
+      let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
+      if (hasActual && econData.forecast !== null && econData.forecast !== undefined) {
+        if (econData.actual! > econData.forecast) {
+          sentiment = econData.name.toLowerCase().includes('unemployment') ? 'Bearish' : 'Bullish';
+        } else if (econData.actual! < econData.forecast) {
+          sentiment = econData.name.toLowerCase().includes('unemployment') ? 'Bullish' : 'Bearish';
+        }
+      }
+      
+      return {
+        summary: hasActual
+          ? `${econData.name} came in at ${econData.actual?.toFixed(1)}% vs forecast of ${econData.forecast?.toFixed(1)}%.`
+          : `${econData.name} is expected to be released with a forecast of ${econData.forecast?.toFixed(1)}%.`,
+        overview: hasActual
+          ? `The ${econData.name} for ${econData.country} was released showing ${econData.actual?.toFixed(1)}% compared to the forecasted ${econData.forecast?.toFixed(1)}% and previous reading of ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator provides insights into economic conditions.`
+          : `The ${econData.name} for ${econData.country} is scheduled for release. Economists forecast ${econData.forecast?.toFixed(1)}% compared to the previous ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator is closely watched by market participants.`,
+        impact: econData.impact,
+        sentiment,
+        relatedTickers: ['SPY', 'QQQ', 'DXY'],
+      };
     }
   };
 
