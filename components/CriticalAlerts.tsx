@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { theme } from '../constants/theme';
 import { CriticalAlert } from '../types/news';
 
@@ -11,15 +11,40 @@ interface CriticalAlertsProps {
 }
 
 export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertId, onHighlightClear }: CriticalAlertsProps) {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const glowAnimation = useRef(new Animated.Value(0)).current;
+  
   useEffect(() => {
-    if (highlightedAlertId && onHighlightClear) {
-      const timeout = setTimeout(() => {
-        onHighlightClear();
-      }, 1000);
+    if (highlightedAlertId) {
+      const highlightedIndex = alerts.findIndex(alert => alert.id === highlightedAlertId);
       
-      return () => clearTimeout(timeout);
+      if (highlightedIndex !== -1 && scrollViewRef.current) {
+        const scrollOffset = highlightedIndex * 300;
+        scrollViewRef.current.scrollTo({ x: scrollOffset, animated: true });
+      }
+      
+      Animated.sequence([
+        Animated.timing(glowAnimation, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glowAnimation, {
+          toValue: 0,
+          duration: 1200,
+          useNativeDriver: false,
+        }),
+      ]).start();
+      
+      if (onHighlightClear) {
+        const timeout = setTimeout(() => {
+          onHighlightClear();
+        }, 1500);
+        
+        return () => clearTimeout(timeout);
+      }
     }
-  }, [highlightedAlertId, onHighlightClear]);
+  }, [highlightedAlertId, onHighlightClear, alerts, glowAnimation]);
   
   if (alerts.length === 0) return null;
 
@@ -45,6 +70,7 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
         <Text style={styles.sectionTitle}>CRITICAL ALERTS</Text>
       </View>
       <ScrollView 
+        ref={scrollViewRef}
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tableContainer}
@@ -53,17 +79,31 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
           const isHighlighted = highlightedAlertId === alert.id;
           const sentiment = getSentimentPill(alert.sentiment, alert.confidence);
           
+          const glowColor = glowAnimation.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(255, 215, 0, 0)', 'rgba(255, 215, 0, 0.3)'],
+          });
+          
           return (
-            <TouchableOpacity
+            <Animated.View
               key={alert.id}
               style={[
                 styles.tableRow,
-                isHighlighted && styles.highlightedRow,
+                isHighlighted && {
+                  backgroundColor: glowColor,
+                  shadowColor: '#FFD700',
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.8,
+                  shadowRadius: 8,
+                },
               ]}
-              onPress={() => onAlertPress(alert)}
-              activeOpacity={0.7}
             >
-              <View style={styles.rowContent}>
+              <TouchableOpacity
+                style={styles.rowContent}
+                onPress={() => onAlertPress(alert)}
+                activeOpacity={0.7}
+              >
+              <View style={styles.contentWrapper}>
                 <View style={styles.topLine}>
                   <Text style={styles.timeText}>{formatTime(alert.published_at)}</Text>
                   <Text style={styles.sourceText}>{alert.source}</Text>
@@ -141,7 +181,8 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
                   </View>
                 )}
               </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </ScrollView>
@@ -188,6 +229,9 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.bullish,
   },
   rowContent: {
+    flex: 1,
+  },
+  contentWrapper: {
     gap: 6,
   },
   topLine: {
