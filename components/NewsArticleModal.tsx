@@ -39,7 +39,11 @@ interface AIContent {
   opinion: string;
   sentiment: 'Bullish' | 'Bearish' | 'Neutral';
   confidence: number;
+  impact: 'Low' | 'Medium' | 'High';
   explainer: string;
+  forecast: string;
+  impactConfidence: number;
+  keyPhrases: string[];
 }
 
 
@@ -108,22 +112,49 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
       const source = 'source' in article && typeof article.source === 'object' ? article.source.name : article.source;
       const tickers = article.tickers || [];
       
+      const titleLower = title.toLowerCase();
+      
       const sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 
-        title.toLowerCase().includes('surge') || title.toLowerCase().includes('gain') || title.toLowerCase().includes('beat') ? 'Bullish' :
-        title.toLowerCase().includes('drop') || title.toLowerCase().includes('fall') || title.toLowerCase().includes('miss') ? 'Bearish' :
+        titleLower.includes('surge') || titleLower.includes('gain') || titleLower.includes('beat') || titleLower.includes('rally') || titleLower.includes('soar') ? 'Bullish' :
+        titleLower.includes('drop') || titleLower.includes('fall') || titleLower.includes('miss') || titleLower.includes('plunge') || titleLower.includes('crash') ? 'Bearish' :
         'Neutral';
       
-      const confidence = sentiment !== 'Neutral' ? 72 : 55;
+      const confidence = sentiment === 'Bullish' ? 78 : sentiment === 'Bearish' ? 72 : 55;
       
-      const summary = `${title.substring(0, 150)}${title.length > 150 ? '...' : ''}`;
+      const impact: 'Low' | 'Medium' | 'High' = 
+        confidence >= 75 ? 'High' : confidence >= 50 ? 'Medium' : 'Low';
       
-      const overview = `This news from ${typeof source === 'string' ? source : 'the source'} discusses developments ${tickers.length > 0 ? `related to ${tickers.slice(0, 2).join(' and ')}` : 'in the market'}. The information provides insights into recent market movements and potential implications for investors.`;
+      const summary = title.length > 120 ? `${title.substring(0, 120)}...` : title;
+      
+      const overview = `This ${typeof source === 'string' ? source : 'news'} article ${tickers.length > 0 ? `covers ${tickers.slice(0, 2).join(' and ')}` : 'discusses market developments'}, highlighting ${sentiment === 'Bullish' ? 'positive momentum and growth indicators' : sentiment === 'Bearish' ? 'challenges and downward pressure' : 'neutral market conditions'} with potential implications for investor positioning.`;
       
       const explainer = sentiment === 'Bullish' 
-        ? 'The positive tone and language in this headline suggest favorable market conditions or company performance, which typically indicates bullish sentiment.'
+        ? 'Driven by strong performance indicators and positive market reception, suggesting upward momentum.'
         : sentiment === 'Bearish'
-        ? 'The negative language and indicators in this headline suggest challenging conditions or underperformance, which typically indicates bearish sentiment.'
-        : 'The headline presents factual information without strong directional indicators, suggesting a neutral market stance.';
+        ? 'Negative sentiment driven by underperformance or adverse market conditions, indicating downward pressure.'
+        : 'Factual reporting without strong directional bias, reflecting balanced market conditions.';
+      
+      const forecast = sentiment === 'Bullish'
+        ? 'Likely bullish sentiment next 48 hours'
+        : sentiment === 'Bearish'
+        ? 'Likely bearish sentiment next 48 hours'
+        : 'Likely stable sentiment next 48 hours';
+      
+      const impactConfidence = Math.min(95, confidence + Math.floor(Math.random() * 15));
+      
+      const keyPhrases: string[] = [];
+      if (titleLower.includes('china')) keyPhrases.push('China');
+      if (titleLower.includes('demand')) keyPhrases.push('Demand');
+      if (titleLower.includes('revenue')) keyPhrases.push('Revenue');
+      if (titleLower.includes('earnings') || titleLower.includes('eps')) keyPhrases.push('Earnings');
+      if (titleLower.includes('beat') || titleLower.includes('miss')) keyPhrases.push(titleLower.includes('beat') ? 'Beat' : 'Miss');
+      if (titleLower.includes('iphone')) keyPhrases.push('iPhone');
+      if (titleLower.includes('ai') || titleLower.includes('artificial intelligence')) keyPhrases.push('AI');
+      if (titleLower.includes('fed') || titleLower.includes('federal reserve')) keyPhrases.push('Fed');
+      if (keyPhrases.length === 0) {
+        const words = title.split(' ').filter(w => w.length > 4).slice(0, 4);
+        keyPhrases.push(...words);
+      }
       
       setAiContent({
         summary,
@@ -131,7 +162,11 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
         opinion: `${sentiment} sentiment detected with ${confidence}% confidence. ${explainer}`,
         sentiment,
         confidence,
+        impact,
         explainer,
+        forecast,
+        impactConfidence,
+        keyPhrases: keyPhrases.slice(0, 4),
       });
     } catch (error) {
       console.error('Error generating AI content:', error);
@@ -143,7 +178,11 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
         opinion: 'Neutral sentiment with moderate confidence.',
         sentiment: 'Neutral',
         confidence: 50,
+        impact: 'Medium',
         explainer: 'Analysis based on headline content and market context.',
+        forecast: 'Likely stable sentiment next 48 hours',
+        impactConfidence: 61,
+        keyPhrases: ['Market', 'Update', 'News'],
       });
     } finally {
       setIsLoadingAI(false);
@@ -210,10 +249,23 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
     }
   };
 
-  const getImpactLabel = (sentiment: string, confidence: number) => {
-    if (confidence >= 75) return 'High';
-    if (confidence >= 50) return 'Medium';
-    return 'Low';
+  const renderImpactBar = (confidence: number) => {
+    const filledBlocks = Math.round((confidence / 100) * 5);
+    const blocks = [];
+    
+    for (let i = 0; i < 5; i++) {
+      blocks.push(
+        <View
+          key={i}
+          style={[
+            styles.impactBlock,
+            i < filledBlocks ? styles.impactBlockFilled : styles.impactBlockEmpty,
+          ]}
+        />
+      );
+    }
+    
+    return blocks;
   };
 
 
@@ -344,7 +396,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
                     <Text style={styles.sectionTitle}>AI OPINION</Text>
                     <View style={styles.opinionRow}>
                       {getSentimentIcon(aiContent.sentiment)}
-                      <Text style={styles.opinionLabel}>({getImpactLabel(aiContent.sentiment, aiContent.confidence)})</Text>
+                      <Text style={styles.opinionLabel}>({aiContent.impact})</Text>
                       <Text style={[
                         styles.opinionSentiment,
                         { color: aiContent.sentiment === 'Bullish' ? theme.colors.bullish : 
@@ -357,6 +409,32 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
 
                   <View style={styles.explainerSection}>
                     <Text style={styles.explainerText}>{aiContent.explainer}</Text>
+                  </View>
+
+                  <View style={styles.aiSection}>
+                    <Text style={styles.sectionTitle}>AI FORECAST</Text>
+                    <Text style={styles.aiText}>{aiContent.forecast}</Text>
+                  </View>
+
+                  <View style={styles.aiSection}>
+                    <Text style={styles.sectionTitle}>IMPACT CONFIDENCE</Text>
+                    <View style={styles.impactBarContainer}>
+                      <View style={styles.impactBar}>
+                        {renderImpactBar(aiContent.impactConfidence)}
+                      </View>
+                      <Text style={styles.impactPercentage}>{aiContent.impactConfidence}%</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.aiSection}>
+                    <Text style={styles.sectionTitle}>KEY PHRASES</Text>
+                    <View style={styles.keyPhrasesRow}>
+                      {aiContent.keyPhrases.map((phrase, index) => (
+                        <View key={index} style={styles.keyPhrasePill}>
+                          <Text style={styles.keyPhraseText}>{phrase}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 </>
               )}
@@ -597,6 +675,51 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    fontStyle: 'italic',
+    fontStyle: 'italic' as const,
+  },
+  impactBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  impactBar: {
+    flexDirection: 'row',
+    gap: 4,
+    flex: 1,
+  },
+  impactBlock: {
+    flex: 1,
+    height: 8,
+    borderRadius: 2,
+  },
+  impactBlockFilled: {
+    backgroundColor: theme.colors.neutral,
+  },
+  impactBlockEmpty: {
+    backgroundColor: theme.colors.border,
+  },
+  impactPercentage: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: theme.colors.text,
+    minWidth: 40,
+  },
+  keyPhrasesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  keyPhrasePill: {
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    borderWidth: 1,
+    borderColor: theme.colors.neutral,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  keyPhraseText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: theme.colors.text,
   },
 });
