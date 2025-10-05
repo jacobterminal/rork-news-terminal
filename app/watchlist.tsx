@@ -8,6 +8,7 @@ import CriticalAlerts from '../components/CriticalAlerts';
 import SavedArticleCard from '../components/SavedArticleCard';
 import TerminalTickerRow from '../components/TerminalTickerRow';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
+import NewsArticleModal from '../components/NewsArticleModal';
 import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
 import { theme } from '../constants/theme';
@@ -56,6 +57,8 @@ export default function WatchlistScreen() {
   const [savedArticlesExpanded, setSavedArticlesExpanded] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
+  const [selectedArticle, setSelectedArticle] = useState<FeedItem | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const { 
     state, 
     criticalAlerts,
@@ -233,6 +236,12 @@ export default function WatchlistScreen() {
 
   const handleHeadlinePress = (headline: any) => {
     console.log('Headline pressed:', headline.headline);
+    
+    const article = feedItems.find(item => item.title === headline.headline);
+    if (article) {
+      setSelectedArticle(article);
+      setModalVisible(true);
+    }
   };
 
   const handleTickerPress = (ticker: string) => {
@@ -368,6 +377,14 @@ export default function WatchlistScreen() {
         )}
       </ScrollView>
 
+      <NewsArticleModal
+        visible={modalVisible}
+        article={selectedArticle}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedArticle(null);
+        }}
+      />
     </View>
   );
 }
