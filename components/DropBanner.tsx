@@ -12,191 +12,140 @@ interface DropBannerProps {
   onNavigate?: (alertId: string) => void;
 }
 
-interface TickerState {
-  alerts: CriticalAlert[];
-  currentIndex: number;
-  translateX: Animated.Value;
-  opacity: Animated.Value;
-  isScrolling: boolean;
-}
-
 const BANNER_HEIGHT = 50;
 const ANIMATION_DURATION = 300;
-const TICKER_DURATION = 3000;
-const SCROLL_ANIMATION_DURATION = 500;
-const MAX_QUEUE_SIZE = 5;
+const DISPLAY_DURATION = 5000;
+const SWIPE_ANIMATION_DURATION = 400;
 
 export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBannerProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [tickerState, setTickerState] = useState<TickerState | null>(null);
+  const [currentAlert, setCurrentAlert] = useState<CriticalAlert | null>(null);
+  const [alertQueue, setAlertQueue] = useState<CriticalAlert[]>([]);
   const [isVisible, setIsVisible] = useState(false);
-  const tickerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const displayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const slideAnimation = useRef(new Animated.Value(-BANNER_HEIGHT - 50)).current;
-  const opacityAnimation = useRef(new Animated.Value(0)).current;
+  const swipeAnimation = useRef(new Animated.Value(0)).current;
+  const opacityAnimation = useRef(new Animated.Value(1)).current;
 
-  const dismissTicker = useCallback(() => {
-    if (!tickerState) return;
+  const dismissCurrentAlert = useCallback(() => {
+    if (!currentAlert) return;
     
-    if (tickerTimer.current) {
-      clearTimeout(tickerTimer.current);
-      tickerTimer.current = null;
+    if (displayTimer.current) {
+      clearTimeout(displayTimer.current);
+      displayTimer.current = null;
     }
     
-    if (dismissTimer.current) {
-      clearTimeout(dismissTimer.current);
-      dismissTimer.current = null;
-    }
-    
-    // Animate out
+    // Swipe out to the right with fade
     Animated.parallel([
-      Animated.timing(slideAnimation, {
-        toValue: -BANNER_HEIGHT - insets.top,
-        duration: ANIMATION_DURATION,
+      Animated.timing(swipeAnimation, {
+        toValue: 400,
+        duration: SWIPE_ANIMATION_DURATION,
         useNativeDriver: true,
       }),
       Animated.timing(opacityAnimation, {
         toValue: 0,
-        duration: ANIMATION_DURATION,
+        duration: SWIPE_ANIMATION_DURATION,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setIsVisible(false);
-      setTickerState(null);
-      // Dismiss all alerts in the ticker
-      tickerState.alerts.forEach(alert => onDismiss(alert.id));
+      onDismiss(currentAlert.id);
+      setCurrentAlert(null);
+      swipeAnimation.setValue(0);
+      opacityAnimation.setValue(1);
+      
+      // Check if there are more alerts in queue
+      if (alertQueue.length > 0) {
+        const nextAlert = alertQueue[0];
+        setAlertQueue(prev => prev.slice(1));
+        setCurrentAlert(nextAlert);
+      } else {
+        // No more alerts, hide banner
+        Animated.timing(slideAnimation, {
+          toValue: -BANNER_HEIGHT - insets.top,
+          duration: ANIMATION_DURATION,
+          useNativeDriver: true,
+        }).start(() => {
+          setIsVisible(false);
+        });
+      }
     });
-  }, [tickerState, insets.top, onDismiss, slideAnimation, opacityAnimation]);
+  }, [currentAlert, alertQueue, insets.top, onDismiss, slideAnimation, swipeAnimation, opacityAnimation]);
 
-  const startTicker = useCallback((state: TickerState) => {
-    if (state.alerts.length <= 1) return;
-    
-    const cycleTicker = () => {
-      if (!state || state.isScrolling) return;
-      
-      const nextIndex = (state.currentIndex + 1) % state.alerts.length;
-      state.isScrolling = true;
-      
-      // Animate to next alert
-      Animated.timing(state.translateX, {
-        toValue: -nextIndex * 300, // Approximate width for smooth scroll
-        duration: SCROLL_ANIMATION_DURATION,
-        useNativeDriver: true,
-      }).start(() => {
-        state.currentIndex = nextIndex;
-        state.isScrolling = false;
-        
-        // Schedule next cycle or dismiss if completed full loop
-        if (nextIndex === 0) {
-          // Completed full cycle - dismiss after showing first item again
-          dismissTimer.current = setTimeout(() => {
-            dismissTicker();
-          }, TICKER_DURATION) as ReturnType<typeof setTimeout>;
-        } else {
-          tickerTimer.current = setTimeout(cycleTicker, TICKER_DURATION) as ReturnType<typeof setTimeout>;
-        }
-      });
-    };
-    
-    // Start the ticker cycle
-    tickerTimer.current = setTimeout(cycleTicker, TICKER_DURATION) as ReturnType<typeof setTimeout>;
-  }, [dismissTicker]);
-
-  // Process new alerts into ticker
+  // Auto-dismiss current alert after display duration
   useEffect(() => {
-    if (alerts.length > 0 && !tickerState) {
-      // Limit to max queue size, keep most recent
-      const limitedAlerts = alerts.slice(-MAX_QUEUE_SIZE);
+    if (currentAlert && isVisible) {
+      displayTimer.current = setTimeout(() => {
+        dismissCurrentAlert();
+      }, DISPLAY_DURATION);
       
-      const newTickerState: TickerState = {
-        alerts: limitedAlerts,
-        currentIndex: 0,
-        translateX: new Animated.Value(0),
-        opacity: new Animated.Value(1),
-        isScrolling: false,
+      return () => {
+        if (displayTimer.current) {
+          clearTimeout(displayTimer.current);
+          displayTimer.current = null;
+        }
       };
-      
-      setTickerState(newTickerState);
-      setIsVisible(true);
-      
-      // Animate in
-      Animated.parallel([
+    }
+  }, [currentAlert, isVisible, dismissCurrentAlert]);
+
+  // Process new alerts
+  useEffect(() => {
+    if (alerts.length > 0) {
+      if (!currentAlert && !isVisible) {
+        // No alert currently showing, show the first one
+        const [firstAlert, ...restAlerts] = alerts;
+        setCurrentAlert(firstAlert);
+        setAlertQueue(restAlerts);
+        setIsVisible(true);
+        
+        // Slide down animation
         Animated.timing(slideAnimation, {
           toValue: 0,
           duration: ANIMATION_DURATION,
           useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnimation, {
-          toValue: 1,
-          duration: ANIMATION_DURATION,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      
-      // Start ticker if multiple alerts
-      if (limitedAlerts.length > 1) {
-        startTicker(newTickerState);
-      } else {
-        // Single alert - auto dismiss after delay
-        dismissTimer.current = setTimeout(() => {
-          dismissTicker();
-        }, TICKER_DURATION) as ReturnType<typeof setTimeout>;
+        }).start();
+      } else if (currentAlert) {
+        // Alert is showing, add new alerts to queue (avoid duplicates)
+        const newAlerts = alerts.filter(
+          alert => alert.id !== currentAlert.id && !alertQueue.some(q => q.id === alert.id)
+        );
+        if (newAlerts.length > 0) {
+          setAlertQueue(prev => [...prev, ...newAlerts]);
+        }
       }
     }
-    
-    // Cleanup function for memory leak prevention
-    return () => {
-      if (dismissTimer.current) {
-        clearTimeout(dismissTimer.current);
-        dismissTimer.current = null;
-      }
-      if (tickerTimer.current) {
-        clearTimeout(tickerTimer.current);
-        tickerTimer.current = null;
-      }
-    };
-  }, [alerts, tickerState, slideAnimation, opacityAnimation, dismissTicker, startTicker]);
+  }, [alerts, currentAlert, alertQueue, isVisible, slideAnimation]);
 
-  const handleTickerPress = () => {
-    if (!tickerState) return;
-    
-    const currentAlert = tickerState.alerts[tickerState.currentIndex];
+  const handleBannerPress = () => {
+    if (!currentAlert) return;
     
     // Navigate to instant tab and notify parent for highlighting
     router.push('/instant');
     if (onNavigate) {
       onNavigate(currentAlert.id);
     }
-    dismissTicker();
+    dismissCurrentAlert();
   };
 
   // Pan responder for swipe up to dismiss
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (_, gestureState) => {
-      return Math.abs(gestureState.dy) > 10 && gestureState.dy < 0; // Only respond to upward swipes
+      return Math.abs(gestureState.dy) > 10 && gestureState.dy < 0;
     },
     onPanResponderMove: (_, gestureState) => {
-      // Skip manual animation during pan to avoid conflicts
-      // Let the pan responder handle the visual feedback
+      if (gestureState.dy < 0) {
+        slideAnimation.setValue(gestureState.dy / 2);
+      }
     },
     onPanResponderRelease: (_, gestureState) => {
-      if (tickerState) {
+      if (currentAlert) {
         if (gestureState.dy < -30) {
-          // Swipe up threshold met - dismiss
-          dismissTicker();
+          dismissCurrentAlert();
         } else {
-          // Snap back to original position
-          Animated.parallel([
-            Animated.spring(slideAnimation, {
-              toValue: 0,
-              useNativeDriver: true,
-            }),
-            Animated.spring(opacityAnimation, {
-              toValue: 1,
-              useNativeDriver: true,
-            }),
-          ]).start();
+          Animated.spring(slideAnimation, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
         }
       }
     },
@@ -205,8 +154,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   // Cleanup timers
   useEffect(() => {
     return () => {
-      if (dismissTimer.current) clearTimeout(dismissTimer.current);
-      if (tickerTimer.current) clearTimeout(tickerTimer.current);
+      if (displayTimer.current) clearTimeout(displayTimer.current);
     };
   }, []);
 
@@ -272,7 +220,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
     }
   };
 
-  if (!isVisible || !tickerState) return null;
+  if (!isVisible || !currentAlert) return null;
   
   return (
     <Animated.View
@@ -281,54 +229,37 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         {
           paddingTop: insets.top,
           transform: [{ translateY: slideAnimation }],
-          opacity: opacityAnimation,
         },
       ]}
       {...panResponder.panHandlers}
     >
       <TouchableOpacity
         style={styles.banner}
-        onPress={handleTickerPress}
+        onPress={handleBannerPress}
         activeOpacity={0.9}
       >
-        <View style={styles.content}>
-          <View style={styles.tickerContainer}>
-            <Animated.View
-              style={[
-                styles.tickerContent,
-                {
-                  transform: [{ translateX: tickerState.translateX }],
-                },
-              ]}
-            >
-              {tickerState.alerts.map((alert, index) => {
-                const isActive = index === tickerState.currentIndex;
-                return (
-                  <View key={alert.id} style={styles.tickerItem}>
-                    <View style={styles.leftContent}>
-                      {getSentimentIcon(alert.sentiment)}
-                      <Text 
-                        style={[
-                          styles.tickerText,
-                          { opacity: isActive ? 1 : 0.7 }
-                        ]} 
-                        numberOfLines={2}
-                      >
-                        {generateTickerSentence(alert)}
-                      </Text>
-                    </View>
-                    
-                    <View style={styles.rightContent}>
-                      <View style={[styles.impactPill, getImpactPillStyle(alert.impact)]}>
-                        <Text style={styles.impactText}>{alert.impact}</Text>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </Animated.View>
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              transform: [{ translateX: swipeAnimation }],
+              opacity: opacityAnimation,
+            },
+          ]}
+        >
+          <View style={styles.leftContent}>
+            {getSentimentIcon(currentAlert.sentiment)}
+            <Text style={styles.tickerText} numberOfLines={2}>
+              {generateTickerSentence(currentAlert)}
+            </Text>
           </View>
-        </View>
+          
+          <View style={styles.rightContent}>
+            <View style={[styles.impactPill, getImpactPillStyle(currentAlert.impact)]}>
+              <Text style={styles.impactText}>{currentAlert.impact}</Text>
+            </View>
+          </View>
+        </Animated.View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -357,20 +288,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  tickerContainer: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  tickerContent: {
-    flexDirection: 'row',
-  },
-  tickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    width: 300, // Fixed width for smooth scrolling
-    paddingRight: 12,
   },
   leftContent: {
     flexDirection: 'row',
