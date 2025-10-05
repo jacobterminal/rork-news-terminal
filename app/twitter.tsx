@@ -143,8 +143,6 @@ export default function TwitterTrackerPage() {
             >
               <Text style={styles.applyButtonText}>APPLY FOR ACCESS</Text>
             </TouchableOpacity>
-
-            <Text style={styles.tierText}>(Current Tier: Free)</Text>
           </View>
 
           <Text style={styles.footerNote}>
@@ -377,12 +375,7 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     letterSpacing: 1,
   },
-  tierText: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 8,
-  },
+
   footerNote: {
     fontSize: 11,
     color: '#666666',
