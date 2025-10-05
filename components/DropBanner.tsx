@@ -97,15 +97,6 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         setCurrentAlert(firstAlert);
         setAlertQueue(restAlerts);
         setIsVisible(true);
-        
-        // Defer animation to avoid useInsertionEffect error
-        requestAnimationFrame(() => {
-          Animated.timing(slideAnimation, {
-            toValue: 0,
-            duration: ANIMATION_DURATION,
-            useNativeDriver: true,
-          }).start();
-        });
       } else if (currentAlert) {
         // Alert is showing, add new alerts to queue (avoid duplicates)
         const newAlerts = alerts.filter(
@@ -116,7 +107,18 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         }
       }
     }
-  }, [alerts, currentAlert, alertQueue, isVisible, slideAnimation]);
+  }, [alerts, currentAlert, alertQueue, isVisible]);
+
+  // Animate banner in when it becomes visible
+  useEffect(() => {
+    if (isVisible && currentAlert) {
+      Animated.timing(slideAnimation, {
+        toValue: 0,
+        duration: ANIMATION_DURATION,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isVisible, currentAlert, slideAnimation]);
 
   const handleBannerPress = () => {
     if (!currentAlert) return;
