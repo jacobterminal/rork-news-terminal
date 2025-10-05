@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Dimensions,
   PanResponder,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import {
   X,
@@ -20,17 +21,37 @@ import {
   Flag,
   ArrowUp,
   ArrowDown,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react-native';
-import { theme, impactColors } from '@/constants/theme';
-import { FeedItem, Comment, CommentSortType } from '@/types/news';
+import { theme } from '@/constants/theme';
+import { FeedItem, Comment, CommentSortType, CriticalAlert } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
+import { generateText } from '@rork/toolkit-sdk';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface NewsArticleModalProps {
   visible: boolean;
-  article: FeedItem | null;
+  article: FeedItem | CriticalAlert | null;
   onClose: () => void;
+}
+
+interface AIContent {
+  summary: string;
+  overview: string;
+  opinion: string;
+  sentiment: 'Bullish' | 'Bearish' | 'Neutral';
+  confidence: number;
+  explainer: string;
+}
+
+interface CommunitySentiment {
+  bearish: number;
+  neutral: number;
+  bullish: number;
+  userVote: 'bearish' | 'neutral' | 'bullish' | null;
 }
 
 export default function NewsArticleModal({ visible, article, onClose }: NewsArticleModalProps) {
@@ -38,6 +59,15 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [commentSort, setCommentSort] = useState<CommentSortType>('Hot');
+  const [aiContent, setAiContent] = useState<AIContent | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [communitySentiment, setCommunitySentiment] = useState<CommunitySentiment>({
+    bearish: 28,
+    neutral: 15,
+    bullish: 57,
+    userVote: null,
+  });
 
   const mockComments: Comment[] = [
     {
@@ -72,7 +102,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
       default:
         return comments;
     }
-  }, [commentSort]);
+  }, [commentSort, mockComments]);
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -98,7 +128,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
     },
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
       Animated.spring(translateY, {
         toValue: 0,
@@ -106,8 +136,59 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
         tension: 50,
         friction: 8,
       }).start();
+      
+      if (article) {
+        generateAIContent();
+      }
+    } else {
+      setAiContent(null);
+      setAiError(null);
+      setIsLoadingAI(false);
     }
-  }, [visible]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, article]);
+
+  const generateAIContent = async () => {
+    if (!article) return;
+    
+    setIsLoadingAI(true);
+    setAiError(null);
+    
+    try {
+      const title = 'title' in article ? article.title : article.headline;
+      const source = 'source' in article && typeof article.source === 'object' ? article.source.name : article.source;
+      
+      const summaryPrompt = `Summarize this news headline in 1-2 concise sentences:\n"${title}"\nSource: ${source}`;
+      const overviewPrompt = `Provide a factual overview (2-3 sentences) of this event:\n"${title}"`;
+      const opinionPrompt = `Analyze the market sentiment and provide a directional outlook for this news:\n"${title}"\nProvide: sentiment (Bullish/Bearish/Neutral), confidence (0-100), and a brief explanation why.`;
+      
+      const [summary, overview, opinionText] = await Promise.all([
+        generateText(summaryPrompt),
+        generateText(overviewPrompt),
+        generateText(opinionPrompt),
+      ]);
+      
+      const sentimentMatch = opinionText.match(/\b(Bullish|Bearish|Neutral)\b/i);
+      const confidenceMatch = opinionText.match(/\b(\d{1,3})%?\b/);
+      
+      const sentiment = (sentimentMatch?.[1] as 'Bullish' | 'Bearish' | 'Neutral') || 'Neutral';
+      const confidence = confidenceMatch ? Math.min(100, parseInt(confidenceMatch[1])) : 65;
+      
+      setAiContent({
+        summary: summary.trim(),
+        overview: overview.trim(),
+        opinion: opinionText.trim(),
+        sentiment,
+        confidence,
+        explainer: opinionText.trim(),
+      });
+    } catch (error) {
+      console.error('Error generating AI content:', error);
+      setAiError('Failed to generate AI analysis');
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
 
   const handleClose = () => {
     Animated.timing(translateY, {
@@ -120,7 +201,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   };
 
   const handleOpenOriginal = () => {
-    if (article?.url) {
+    if (article && 'url' in article && article.url) {
       Linking.openURL(article.url);
     }
   };
@@ -128,11 +209,68 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   const handleSave = () => {
     if (!article) return;
     
-    if (isArticleSaved(article.id)) {
-      unsaveArticle(article.id);
-    } else {
-      saveArticle(article);
+    if ('title' in article) {
+      if (isArticleSaved(article.id)) {
+        unsaveArticle(article.id);
+      } else {
+        saveArticle(article);
+      }
     }
+  };
+
+  const handleCommunitySentimentVote = (vote: 'bearish' | 'neutral' | 'bullish') => {
+    setCommunitySentiment(prev => {
+      if (prev.userVote === vote) {
+        return prev;
+      }
+      
+      const newSentiment = { ...prev };
+      
+      if (prev.userVote) {
+        newSentiment[prev.userVote] = Math.max(0, newSentiment[prev.userVote] - 1);
+      }
+      
+      newSentiment[vote] = newSentiment[vote] + 1;
+      newSentiment.userVote = vote;
+      
+      return newSentiment;
+    });
+  };
+
+  const getSentimentBorderColor = () => {
+    if (!aiContent) return theme.colors.border;
+    
+    switch (aiContent.sentiment) {
+      case 'Bullish':
+        return theme.colors.bullish;
+      case 'Bearish':
+        return theme.colors.bearish;
+      case 'Neutral':
+        return theme.colors.neutral;
+      default:
+        return theme.colors.border;
+    }
+  };
+
+  const getSentimentIcon = (sentiment: string) => {
+    const iconSize = 18;
+    const color = sentiment === 'Bullish' ? theme.colors.bullish : 
+                  sentiment === 'Bearish' ? theme.colors.bearish : theme.colors.neutral;
+    
+    switch (sentiment) {
+      case 'Bullish':
+        return <TrendingUp size={iconSize} color={color} />;
+      case 'Bearish':
+        return <TrendingDown size={iconSize} color={color} />;
+      default:
+        return <Minus size={iconSize} color={color} />;
+    }
+  };
+
+  const getImpactLabel = (sentiment: string, confidence: number) => {
+    if (confidence >= 75) return 'High';
+    if (confidence >= 50) return 'Medium';
+    return 'Low';
   };
 
   const handleVote = (commentId: string, type: 'up' | 'down') => {
@@ -195,6 +333,18 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
 
   if (!article) return null;
 
+  const title = 'title' in article ? article.title : article.headline;
+  const source = 'source' in article && typeof article.source === 'object' ? article.source.name : article.source;
+  const publishedAt = article.published_at;
+  const url = 'url' in article ? article.url : undefined;
+  const tickers = article.tickers || [];
+  const isSaved = 'title' in article && isArticleSaved(article.id);
+
+  const totalVotes = communitySentiment.bearish + communitySentiment.neutral + communitySentiment.bullish;
+  const bearishPercent = totalVotes > 0 ? Math.round((communitySentiment.bearish / totalVotes) * 100) : 0;
+  const neutralPercent = totalVotes > 0 ? Math.round((communitySentiment.neutral / totalVotes) * 100) : 0;
+  const bullishPercent = totalVotes > 0 ? Math.round((communitySentiment.bullish / totalVotes) * 100) : 0;
+
   return (
     <Modal
       visible={visible}
@@ -214,6 +364,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
             styles.modalContent,
             {
               transform: [{ translateY }],
+              borderColor: getSentimentBorderColor(),
             },
           ]}
         >
@@ -233,60 +384,154 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
             bounces={false}
           >
             <View style={styles.contentContainer}>
-              <Text style={styles.title}>{article.title}</Text>
+              <Text style={styles.title}>{title}</Text>
               
               <View style={styles.sourceRow}>
                 <Text style={styles.sourceText}>
-                  {article.source.name} • {formatTime(article.published_at)}
+                  {typeof source === 'string' ? source : 'Unknown'} • {formatTime(publishedAt)}
                 </Text>
               </View>
 
               <View style={styles.actions}>
-                <TouchableOpacity style={styles.actionButton} onPress={handleOpenOriginal}>
-                  <ExternalLink size={16} color={theme.colors.activeCyan} />
-                  <Text style={styles.actionText}>Open Original</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={handleSave}>
-                  <Bookmark 
-                    size={16} 
-                    color={isArticleSaved(article.id) ? theme.colors.activeCyan : theme.colors.text}
-                    fill={isArticleSaved(article.id) ? theme.colors.activeCyan : 'none'}
-                  />
-                  <Text style={[
-                    styles.actionText, 
-                    isArticleSaved(article.id) && { color: theme.colors.activeCyan }
-                  ]}>
-                    {isArticleSaved(article.id) ? 'Saved' : 'Save'}
-                  </Text>
-                </TouchableOpacity>
+                {url && (
+                  <TouchableOpacity style={styles.actionButton} onPress={handleOpenOriginal}>
+                    <ExternalLink size={16} color={theme.colors.text} />
+                    <Text style={styles.actionText}>Open Original</Text>
+                  </TouchableOpacity>
+                )}
+                {'title' in article && (
+                  <TouchableOpacity style={styles.actionButton} onPress={handleSave}>
+                    <Bookmark 
+                      size={16} 
+                      color={isSaved ? theme.colors.neutral : theme.colors.text}
+                      fill={isSaved ? theme.colors.neutral : 'none'}
+                    />
+                    <Text style={[
+                      styles.actionText, 
+                      isSaved && { color: theme.colors.neutral }
+                    ]}>
+                      {isSaved ? 'Saved' : 'Save'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               <View style={styles.divider} />
 
-              <View style={styles.aiSection}>
-                <Text style={styles.sectionTitle}>AI SUMMARY</Text>
-                <Text style={styles.aiText}>{article.classification.summary_15}</Text>
-              </View>
-
-              <View style={styles.metaRow}>
-                <View style={[styles.impactPill, { backgroundColor: impactColors[article.classification.impact] }]}>
-                  <Text style={styles.impactText}>{article.classification.impact}</Text>
+              {isLoadingAI && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={theme.colors.text} />
+                  <Text style={styles.loadingText}>Generating AI analysis...</Text>
                 </View>
-                <View style={styles.sentimentContainer}>
-                  <Text style={styles.sentimentText}>
-                    {article.classification.sentiment}
-                  </Text>
-                  <Text style={styles.confidenceText}>
-                    {article.classification.confidence}%
-                  </Text>
-                </View>
-              </View>
+              )}
 
-              {article.tickers && article.tickers.length > 0 && (
+              {aiError && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{aiError}</Text>
+                </View>
+              )}
+
+              {aiContent && (
+                <>
+                  <View style={styles.aiSection}>
+                    <Text style={styles.sectionTitle}>AI SUMMARY</Text>
+                    <Text style={styles.aiText}>{aiContent.summary}</Text>
+                  </View>
+
+                  <View style={styles.aiSection}>
+                    <Text style={styles.sectionTitle}>AI OVERVIEW</Text>
+                    <Text style={styles.aiText}>{aiContent.overview}</Text>
+                  </View>
+
+                  <View style={styles.aiSection}>
+                    <Text style={styles.sectionTitle}>AI OPINION</Text>
+                    <View style={styles.opinionRow}>
+                      {getSentimentIcon(aiContent.sentiment)}
+                      <Text style={styles.opinionLabel}>({getImpactLabel(aiContent.sentiment, aiContent.confidence)})</Text>
+                      <Text style={[
+                        styles.opinionSentiment,
+                        { color: aiContent.sentiment === 'Bullish' ? theme.colors.bullish : 
+                                 aiContent.sentiment === 'Bearish' ? theme.colors.bearish : theme.colors.neutral }
+                      ]}>
+                        {aiContent.sentiment} {aiContent.confidence}%
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.explainerSection}>
+                    <Text style={styles.explainerText}>{aiContent.explainer}</Text>
+                  </View>
+
+                  <View style={styles.divider} />
+
+                  <View style={styles.communitySection}>
+                    <Text style={styles.sectionTitle}>COMMUNITY SENTIMENT</Text>
+                    <View style={styles.sentimentButtons}>
+                      <TouchableOpacity
+                        style={[
+                          styles.sentimentButton,
+                          styles.bearishButton,
+                          communitySentiment.userVote === 'bearish' && styles.sentimentButtonActive,
+                        ]}
+                        onPress={() => handleCommunitySentimentVote('bearish')}
+                      >
+                        <Text style={[
+                          styles.sentimentButtonText,
+                          communitySentiment.userVote === 'bearish' && styles.sentimentButtonTextActive,
+                        ]}>
+                          Bearish
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.sentimentButton,
+                          styles.neutralButton,
+                          communitySentiment.userVote === 'neutral' && styles.sentimentButtonActive,
+                        ]}
+                        onPress={() => handleCommunitySentimentVote('neutral')}
+                      >
+                        <Text style={[
+                          styles.sentimentButtonText,
+                          communitySentiment.userVote === 'neutral' && styles.sentimentButtonTextActive,
+                        ]}>
+                          Neutral
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.sentimentButton,
+                          styles.bullishButton,
+                          communitySentiment.userVote === 'bullish' && styles.sentimentButtonActive,
+                        ]}
+                        onPress={() => handleCommunitySentimentVote('bullish')}
+                      >
+                        <Text style={[
+                          styles.sentimentButtonText,
+                          communitySentiment.userVote === 'bullish' && styles.sentimentButtonTextActive,
+                        ]}>
+                          Bullish
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.sentimentBar}>
+                      <View style={[styles.sentimentBarSegment, styles.bearishSegment, { flex: bearishPercent }]} />
+                      <View style={[styles.sentimentBarSegment, styles.neutralSegment, { flex: neutralPercent }]} />
+                      <View style={[styles.sentimentBarSegment, styles.bullishSegment, { flex: bullishPercent }]} />
+                    </View>
+                    <View style={styles.sentimentPercentages}>
+                      <Text style={styles.percentageText}>{bearishPercent}%</Text>
+                      <Text style={styles.percentageText}>{neutralPercent}%</Text>
+                      <Text style={styles.percentageText}>{bullishPercent}%</Text>
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {tickers.length > 0 && (
                 <View style={styles.tickersSection}>
                   <Text style={styles.sectionTitle}>RELATED TICKERS</Text>
                   <View style={styles.tickersRow}>
-                    {article.tickers.map((ticker, index) => (
+                    {tickers.map((ticker, index) => (
                       <TouchableOpacity key={index} style={styles.tickerPill}>
                         <Text style={styles.tickerText}>{ticker}</Text>
                       </TouchableOpacity>
@@ -370,12 +615,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: theme.colors.activeCyan,
     height: SCREEN_HEIGHT * 0.9,
-    shadowColor: theme.colors.activeCyan,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
     elevation: 10,
   },
   dragHandle: {
@@ -444,10 +688,124 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: theme.colors.activeCyan,
+    color: theme.colors.neutral,
     marginBottom: 8,
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    textTransform: 'uppercase' as const,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 24,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  errorContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 23, 68, 0.1)',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 13,
+    color: theme.colors.bearish,
+    textAlign: 'center',
+  },
+  opinionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  opinionLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontWeight: '600' as const,
+  },
+  opinionSentiment: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+  },
+  explainerSection: {
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  explainerText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+  },
+  communitySection: {
+    marginBottom: 16,
+  },
+  sentimentButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  sentimentButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  bearishButton: {
+    borderColor: theme.colors.bearish,
+    backgroundColor: 'rgba(255, 23, 68, 0.1)',
+  },
+  neutralButton: {
+    borderColor: theme.colors.neutral,
+    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+  },
+  bullishButton: {
+    borderColor: theme.colors.bullish,
+    backgroundColor: 'rgba(0, 230, 118, 0.1)',
+  },
+  sentimentButtonActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  sentimentButtonText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: theme.colors.textSecondary,
+  },
+  sentimentButtonTextActive: {
+    color: theme.colors.text,
+    fontWeight: '700' as const,
+  },
+  sentimentBar: {
+    flexDirection: 'row',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  sentimentBarSegment: {
+    height: '100%',
+  },
+  bearishSegment: {
+    backgroundColor: theme.colors.bearish,
+  },
+  neutralSegment: {
+    backgroundColor: theme.colors.neutral,
+  },
+  bullishSegment: {
+    backgroundColor: theme.colors.bullish,
+  },
+  sentimentPercentages: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  percentageText: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    fontWeight: '600' as const,
   },
   aiText: {
     fontSize: 14,
@@ -494,7 +852,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tickerPill: {
-    backgroundColor: theme.colors.activeCyan,
+    backgroundColor: theme.colors.neutral,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -527,7 +885,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
   },
   sortButtonActive: {
-    backgroundColor: theme.colors.activeCyan,
+    backgroundColor: theme.colors.neutral,
   },
   sortText: {
     fontSize: 12,
@@ -560,7 +918,7 @@ const styles = StyleSheet.create({
   },
   commentHandle: {
     fontSize: 12,
-    color: theme.colors.activeCyan,
+    color: theme.colors.neutral,
     fontWeight: '600' as const,
   },
   commentTime: {

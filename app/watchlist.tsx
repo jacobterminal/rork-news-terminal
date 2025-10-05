@@ -57,7 +57,7 @@ export default function WatchlistScreen() {
   const [savedArticlesExpanded, setSavedArticlesExpanded] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
-  const [selectedArticle, setSelectedArticle] = useState<FeedItem | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const { 
     state, 
@@ -252,6 +252,8 @@ export default function WatchlistScreen() {
 
   const handleCriticalAlertPress = (alert: CriticalAlert) => {
     console.log('Critical alert pressed:', alert.headline);
+    setSelectedArticle(alert);
+    setModalVisible(true);
   };
 
   const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {

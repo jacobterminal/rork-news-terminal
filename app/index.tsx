@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
-import { CriticalAlert } from '../types/news';
+import { CriticalAlert, FeedItem } from '../types/news';
 import NewsCard from '../components/NewsCard';
 import TickerDrawer from '../components/TickerDrawer';
 import { useNewsStore } from '../store/newsStore';
@@ -10,6 +10,7 @@ import { useScrollReset } from '../utils/useScrollReset';
 import CriticalAlerts from '../components/CriticalAlerts';
 import AlertSearchBar from '../components/AlertSearchBar';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
+import NewsArticleModal from '../components/NewsArticleModal';
 
 export default function NewsScreen() {
   const insets = useSafeAreaInsets();
@@ -18,6 +19,8 @@ export default function NewsScreen() {
   const { watchlist, feedItems, ui } = state;
   const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
+  const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
   
   // Filter feed items to only show news for tickers in watchlist
   const watchlistFeedItems = useMemo(() => {
@@ -137,7 +140,13 @@ export default function NewsScreen() {
 
   const handleCriticalAlertPress = (alert: CriticalAlert) => {
     console.log('Critical alert pressed:', alert.headline);
-    // Could navigate to full article or show alert details
+    setSelectedArticle(alert);
+    setModalVisible(true);
+  };
+
+  const handleNewsCardPress = (article: FeedItem) => {
+    setSelectedArticle(article);
+    setModalVisible(true);
   };
   
 
@@ -203,6 +212,7 @@ export default function NewsScreen() {
                 key={item.id}
                 item={item}
                 onTickerPress={handleTickerPress}
+                onPress={() => handleNewsCardPress(item)}
               />
             ))}
           </View>
@@ -214,6 +224,15 @@ export default function NewsScreen() {
         ticker={ui.tickerDrawer.ticker}
         headlines={ui.tickerDrawer.ticker ? getTickerHeadlines(ui.tickerDrawer.ticker) : []}
         onClose={handleCloseDrawer}
+      />
+
+      <NewsArticleModal
+        visible={modalVisible}
+        article={selectedArticle}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedArticle(null);
+        }}
       />
     </View>
   );

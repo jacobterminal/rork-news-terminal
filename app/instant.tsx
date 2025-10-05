@@ -1,12 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
-import { CriticalAlert } from '../types/news';
+import { CriticalAlert, FeedItem } from '../types/news';
 import NewsCard from '../components/NewsCard';
 import TickerDrawer from '../components/TickerDrawer';
 import CriticalAlerts from '../components/CriticalAlerts';
 import AlertSearchBar from '../components/AlertSearchBar';
+import NewsArticleModal from '../components/NewsArticleModal';
 import { useNewsStore } from '../store/newsStore';
 import { useScrollReset } from '../utils/useScrollReset';
 
@@ -22,6 +23,8 @@ export default function InstantScreen() {
     getTickerHeadlines,
     clearHighlightedAlert
   } = useNewsStore();
+  const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
   
   // Filter for high impact and breaking news only
   const instantNews = useMemo(() => {
@@ -54,7 +57,13 @@ export default function InstantScreen() {
 
   const handleCriticalAlertPress = (alert: CriticalAlert) => {
     console.log('Critical alert pressed:', alert.headline);
-    // Could navigate to full article or show alert details
+    setSelectedArticle(alert);
+    setModalVisible(true);
+  };
+
+  const handleNewsCardPress = (article: FeedItem) => {
+    setSelectedArticle(article);
+    setModalVisible(true);
   };
 
 
@@ -95,6 +104,7 @@ export default function InstantScreen() {
             key={item.id}
             item={item}
             onTickerPress={handleTickerPress}
+            onPress={() => handleNewsCardPress(item)}
           />
         ))}
       </ScrollView>
@@ -104,6 +114,15 @@ export default function InstantScreen() {
         ticker={state.ui.tickerDrawer.ticker}
         headlines={state.ui.tickerDrawer.ticker ? getTickerHeadlines(state.ui.tickerDrawer.ticker) : []}
         onClose={handleCloseDrawer}
+      />
+
+      <NewsArticleModal
+        visible={modalVisible}
+        article={selectedArticle}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedArticle(null);
+        }}
       />
     </View>
   );
