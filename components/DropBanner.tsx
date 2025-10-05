@@ -113,7 +113,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   // Animate banner in when it becomes visible
   useEffect(() => {
     if (isVisible && currentAlert && isMounted.current) {
-      const timer = setTimeout(() => {
+      requestAnimationFrame(() => {
         if (isMounted.current) {
           Animated.timing(slideAnimation, {
             toValue: 0,
@@ -121,15 +121,13 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
             useNativeDriver: true,
           }).start();
         }
-      }, 0);
-      return () => clearTimeout(timer);
+      });
     } else if (!isVisible && isMounted.current) {
-      const timer = setTimeout(() => {
+      requestAnimationFrame(() => {
         if (isMounted.current) {
           slideAnimation.setValue(-BANNER_HEIGHT - 50);
         }
-      }, 0);
-      return () => clearTimeout(timer);
+      });
     }
   }, [isVisible, currentAlert, slideAnimation]);
 
@@ -170,13 +168,8 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   // Mount tracking and cleanup
   useEffect(() => {
     isMounted.current = true;
-    const timer = setTimeout(() => {
-      if (isMounted.current) {
-        slideAnimation.setValue(-BANNER_HEIGHT - 50);
-      }
-    }, 0);
+    slideAnimation.setValue(-BANNER_HEIGHT - 50);
     return () => {
-      clearTimeout(timer);
       isMounted.current = false;
       if (displayTimer.current) clearTimeout(displayTimer.current);
     };
