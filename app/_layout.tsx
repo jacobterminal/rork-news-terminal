@@ -95,7 +95,12 @@ function RootLayoutNav() {
       <Tabs.Screen
         name="article/[id]"
         options={{
-          // Hide article subpage from tab bar
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="event/[id]"
+        options={{
           href: null,
         }}
       />

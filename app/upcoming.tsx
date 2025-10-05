@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { ChevronDown } from 'lucide-react-native';
 import { theme } from '../constants/theme';
 import { EarningsItem, EconItem } from '../types/news';
@@ -23,9 +24,10 @@ interface MonthOption {
 interface EventItemProps {
   item: EarningsItem | EconItem;
   type: 'earnings' | 'econ';
+  onPress: () => void;
 }
 
-function EventItem({ item, type }: EventItemProps) {
+function EventItem({ item, type, onPress }: EventItemProps) {
   const scheduledTime = new Date(item.scheduled_at);
   const timeString = scheduledTime.toLocaleTimeString('en-US', { 
     hour: 'numeric', 
@@ -38,7 +40,7 @@ function EventItem({ item, type }: EventItemProps) {
     const isReleased = !!earningsItem.actual_eps;
     
     return (
-      <View style={styles.eventRow}>
+      <TouchableOpacity style={styles.eventRow} onPress={onPress} activeOpacity={0.7}>
         <View style={styles.timeColumn}>
           <Text style={styles.eventTime}>{timeString}</Text>
           <Text style={styles.reportTime}>{earningsItem.report_time}</Text>
@@ -78,7 +80,7 @@ function EventItem({ item, type }: EventItemProps) {
             </Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   } else {
     const econItem = item as EconItem;
@@ -94,7 +96,7 @@ function EventItem({ item, type }: EventItemProps) {
     };
     
     return (
-      <View style={styles.eventRow}>
+      <TouchableOpacity style={styles.eventRow} onPress={onPress} activeOpacity={0.7}>
         <View style={styles.timeColumn}>
           <Text style={styles.eventTime}>{timeString}</Text>
           <Text style={styles.countryText}>{econItem.country} – USD</Text>
@@ -122,7 +124,7 @@ function EventItem({ item, type }: EventItemProps) {
             )}
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 }
@@ -238,6 +240,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
 
 export default function UpcomingScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const scrollViewRef = useScrollReset();
   const [earnings, setEarnings] = useState<EarningsItem[]>([]);
   const [econ, setEcon] = useState<EconItem[]>([]);
@@ -347,6 +350,14 @@ export default function UpcomingScreen() {
     console.log('Ticker pressed:', ticker);
   };
 
+  const handleEventPress = (item: EarningsItem | EconItem, type: 'earnings' | 'econ') => {
+    const eventId = type === 'earnings' ? (item as EarningsItem).ticker : (item as EconItem).id;
+    router.push({
+      pathname: '/event/[id]',
+      params: { id: eventId, type },
+    });
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Reserved space for drop banners and search */}
@@ -384,7 +395,12 @@ export default function UpcomingScreen() {
               <View style={styles.sectionDivider} />
             </View>
             {dayEcon.map((item) => (
-              <EventItem key={item.id} item={item} type="econ" />
+              <EventItem 
+                key={item.id} 
+                item={item} 
+                type="econ" 
+                onPress={() => handleEventPress(item, 'econ')}
+              />
             ))}
           </View>
         )}
@@ -396,7 +412,12 @@ export default function UpcomingScreen() {
               <View style={styles.sectionDivider} />
             </View>
             {dayEarnings.map((item) => (
-              <EventItem key={item.ticker} item={item} type="earnings" />
+              <EventItem 
+                key={item.ticker} 
+                item={item} 
+                type="earnings" 
+                onPress={() => handleEventPress(item, 'earnings')}
+              />
             ))}
           </View>
         )}
