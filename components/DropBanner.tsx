@@ -123,7 +123,9 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         }
       });
     } else if (!isVisible) {
-      slideAnimation.setValue(-BANNER_HEIGHT - 50);
+      requestAnimationFrame(() => {
+        slideAnimation.setValue(-BANNER_HEIGHT - 50);
+      });
     }
   }, [isVisible, currentAlert, slideAnimation]);
 
