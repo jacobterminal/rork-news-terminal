@@ -24,6 +24,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   const [alertQueue, setAlertQueue] = useState<CriticalAlert[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const displayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMounted = useRef(false);
   const slideAnimation = useRef(new Animated.Value(-BANNER_HEIGHT - 50)).current;
   const swipeAnimation = useRef(new Animated.Value(0)).current;
   const opacityAnimation = useRef(new Animated.Value(1)).current;
@@ -111,14 +112,15 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
 
   // Animate banner in when it becomes visible
   useEffect(() => {
-    if (isVisible && currentAlert) {
-      requestAnimationFrame(() => {
+    if (isVisible && currentAlert && isMounted.current) {
+      const timer = setTimeout(() => {
         Animated.timing(slideAnimation, {
           toValue: 0,
           duration: ANIMATION_DURATION,
           useNativeDriver: true,
         }).start();
-      });
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isVisible, currentAlert, slideAnimation]);
 
@@ -139,10 +141,8 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         return Math.abs(gestureState.dy) > 10 && gestureState.dy < 0;
       },
       onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy < 0) {
-          requestAnimationFrame(() => {
-            slideAnimation.setValue(gestureState.dy / 2);
-          });
+        if (gestureState.dy < 0 && isMounted.current) {
+          slideAnimation.setValue(gestureState.dy / 2);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
@@ -158,9 +158,11 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
     })
   ).current;
 
-  // Cleanup timers
+  // Mount tracking and cleanup
   useEffect(() => {
+    isMounted.current = true;
     return () => {
+      isMounted.current = false;
       if (displayTimer.current) clearTimeout(displayTimer.current);
     };
   }, []);
