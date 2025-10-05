@@ -98,12 +98,14 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         setAlertQueue(restAlerts);
         setIsVisible(true);
         
-        // Slide down animation
-        Animated.timing(slideAnimation, {
-          toValue: 0,
-          duration: ANIMATION_DURATION,
-          useNativeDriver: true,
-        }).start();
+        // Defer animation to avoid useInsertionEffect error
+        requestAnimationFrame(() => {
+          Animated.timing(slideAnimation, {
+            toValue: 0,
+            duration: ANIMATION_DURATION,
+            useNativeDriver: true,
+          }).start();
+        });
       } else if (currentAlert) {
         // Alert is showing, add new alerts to queue (avoid duplicates)
         const newAlerts = alerts.filter(
