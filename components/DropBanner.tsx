@@ -109,23 +109,27 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
 
   useEffect(() => {
     if (isVisible && currentAlert) {
-      slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
-      opacityAnimation.setValue(0);
-      
-      Animated.parallel([
-        Animated.timing(slideAnimation, {
-          toValue: 0,
-          duration: ANIMATION_DURATION,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnimation, {
-          toValue: 1,
-          duration: ANIMATION_DURATION,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      requestAnimationFrame(() => {
+        slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
+        opacityAnimation.setValue(0);
+        
+        Animated.parallel([
+          Animated.timing(slideAnimation, {
+            toValue: 0,
+            duration: ANIMATION_DURATION,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnimation, {
+            toValue: 1,
+            duration: ANIMATION_DURATION,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
     } else if (!isVisible) {
-      slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
+      requestAnimationFrame(() => {
+        slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
+      });
     }
   }, [isVisible, currentAlert, slideAnimation, opacityAnimation, insets.top]);
 
