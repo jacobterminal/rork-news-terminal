@@ -392,7 +392,7 @@ export default function EventDetailsScreen() {
               <View style={styles.aiSection}>
                 <Text style={styles.sectionTitle}>AI OPINION</Text>
                 <View style={styles.opinionRow}>
-                  {getSentimentIcon(eventDetails.sentiment)}
+                  <Text style={styles.opinionDash}>—</Text>
                   <Text style={styles.opinionLabel}>({eventDetails.impact})</Text>
                   <Text style={[
                     styles.opinionSentiment,
@@ -446,8 +446,8 @@ export default function EventDetailsScreen() {
                 ) : econData ? (
                   <View style={styles.metricsGrid}>
                     <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Country</Text>
-                      <Text style={styles.metricValue}>{econData.country}</Text>
+                      <Text style={styles.metricLabel}>Currency</Text>
+                      <Text style={styles.metricValue}>USD</Text>
                     </View>
                     <View style={styles.metricItem}>
                       <Text style={styles.metricLabel}>Forecast</Text>
@@ -585,6 +585,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  opinionDash: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '400' as const,
   },
   opinionLabel: {
     fontSize: 12,
