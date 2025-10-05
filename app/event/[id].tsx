@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+  Animated,
+  Dimensions,
+  PanResponder,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'lucide-react-native';
+import { X, TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
 import { theme } from '../../constants/theme';
 import { EarningsItem, EconItem } from '../../types/news';
 import { generateMockData } from '../../utils/mockData';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 
 interface EventDetails {
@@ -13,23 +25,32 @@ interface EventDetails {
   data: EarningsItem | EconItem;
   aiSummary: string;
   aiOverview: string;
+  aiOpinion: string;
+  aiForecast: string;
   impact: 'High' | 'Medium' | 'Low';
   sentiment: 'Bullish' | 'Bearish' | 'Neutral';
+  confidence: number;
   relatedTickers: string[];
   source: string;
   timestamp: string;
 }
 
 export default function EventDetailsScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id, type } = useLocalSearchParams<{ id: string; type: 'earnings' | 'econ' }>();
   
   const [eventDetails, setEventDetails] = useState<EventDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
 
   useEffect(() => {
     loadEventDetails();
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 8,
+    }).start();
   }, [id, type]);
 
   const loadEventDetails = async () => {
@@ -59,8 +80,11 @@ export default function EventDetailsScreen() {
         data: eventData,
         aiSummary: aiContent.summary,
         aiOverview: aiContent.overview,
+        aiOpinion: aiContent.opinion,
+        aiForecast: aiContent.forecast,
         impact: aiContent.impact,
         sentiment: aiContent.sentiment,
+        confidence: aiContent.confidence,
         relatedTickers: aiContent.relatedTickers,
         source: eventType === 'earnings' ? 'Company Filing' : 'Economic Calendar',
         timestamp: eventData.scheduled_at,
@@ -80,8 +104,11 @@ export default function EventDetailsScreen() {
   ): Promise<{
     summary: string;
     overview: string;
+    opinion: string;
+    forecast: string;
     impact: 'High' | 'Medium' | 'Low';
     sentiment: 'Bullish' | 'Bearish' | 'Neutral';
+    confidence: number;
     relatedTickers: string[];
   }> => {
     if (type === 'earnings') {
@@ -90,26 +117,50 @@ export default function EventDetailsScreen() {
       const hasActuals = earningsData.actual_eps !== null && earningsData.actual_eps !== undefined;
       let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
       let impact: 'High' | 'Medium' | 'Low' = 'Medium';
+      let confidence = 50;
       
       if (hasActuals && earningsData.verdict) {
         if (earningsData.verdict === 'Beat') {
           sentiment = 'Bullish';
           impact = 'High';
+          confidence = 78;
         } else if (earningsData.verdict === 'Miss') {
           sentiment = 'Bearish';
           impact = 'High';
+          confidence = 72;
+        } else {
+          confidence = 55;
         }
+      } else {
+        confidence = 60;
       }
       
+      const summary = hasActuals 
+        ? `${earningsData.ticker} reported ${earningsData.verdict?.toLowerCase() || 'results'} with EPS of ${earningsData.actual_eps?.toFixed(2)} vs expected ${earningsData.cons_eps?.toFixed(2)}.`
+        : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time} with expected EPS of ${earningsData.cons_eps?.toFixed(2)}.`;
+      
+      const overview = hasActuals
+        ? `${earningsData.ticker} reported ${earningsData.report_time} earnings with actual EPS of ${earningsData.actual_eps?.toFixed(2)} compared to consensus of ${earningsData.cons_eps?.toFixed(2)}. Revenue came in at ${earningsData.actual_rev?.toFixed(1)}B versus expectations of ${earningsData.cons_rev?.toFixed(1)}B. The company ${earningsData.verdict?.toLowerCase() || 'met'} analyst expectations.`
+        : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time}. Analysts expect EPS of ${earningsData.cons_eps?.toFixed(2)} and revenue of ${earningsData.cons_rev?.toFixed(1)}B. This earnings report will provide insights into the company's recent performance and future guidance.`;
+      
+      const opinion = `${sentiment} ${confidence}%`;
+      
+      const forecast = hasActuals
+        ? sentiment === 'Bullish'
+          ? 'Likely positive market reaction in next 24-48 hours.'
+          : sentiment === 'Bearish'
+          ? 'Likely negative market reaction in next 24-48 hours.'
+          : 'Likely stable market reaction in next 24-48 hours.'
+        : 'Likely moderate market volatility around earnings release.';
+      
       return {
-        summary: hasActuals 
-          ? `${earningsData.ticker} reported ${earningsData.verdict?.toLowerCase() || 'results'} with EPS of ${earningsData.actual_eps?.toFixed(2)} vs expected ${earningsData.cons_eps?.toFixed(2)}.`
-          : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time} with expected EPS of ${earningsData.cons_eps?.toFixed(2)}.`,
-        overview: hasActuals
-          ? `${earningsData.ticker} reported ${earningsData.report_time} earnings with actual EPS of ${earningsData.actual_eps?.toFixed(2)} compared to consensus of ${earningsData.cons_eps?.toFixed(2)}. Revenue came in at ${earningsData.actual_rev?.toFixed(1)}B versus expectations of ${earningsData.cons_rev?.toFixed(1)}B. The company ${earningsData.verdict?.toLowerCase() || 'met'} analyst expectations.`
-          : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time}. Analysts expect EPS of ${earningsData.cons_eps?.toFixed(2)} and revenue of ${earningsData.cons_rev?.toFixed(1)}B. This earnings report will provide insights into the company's recent performance and future guidance.`,
+        summary,
+        overview,
+        opinion,
+        forecast,
         impact,
         sentiment,
+        confidence,
         relatedTickers: [earningsData.ticker],
       };
     } else {
@@ -117,392 +168,491 @@ export default function EventDetailsScreen() {
       const hasActual = econData.actual !== null && econData.actual !== undefined;
       
       let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
+      let confidence = 50;
+      
       if (hasActual && econData.forecast !== null && econData.forecast !== undefined) {
         if (econData.actual! > econData.forecast) {
           sentiment = econData.name.toLowerCase().includes('unemployment') ? 'Bearish' : 'Bullish';
+          confidence = 72;
         } else if (econData.actual! < econData.forecast) {
           sentiment = econData.name.toLowerCase().includes('unemployment') ? 'Bullish' : 'Bearish';
+          confidence = 68;
+        } else {
+          confidence = 55;
         }
+      } else {
+        confidence = 60;
       }
       
+      const summary = hasActual
+        ? `${econData.name} came in at ${econData.actual?.toFixed(1)}% vs forecast of ${econData.forecast?.toFixed(1)}%.`
+        : `${econData.name} is expected to be released with a forecast of ${econData.forecast?.toFixed(1)}%.`;
+      
+      const overview = hasActual
+        ? `The ${econData.name} for ${econData.country} was released showing ${econData.actual?.toFixed(1)}% compared to the forecasted ${econData.forecast?.toFixed(1)}% and previous reading of ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator provides insights into economic conditions.`
+        : `The ${econData.name} for ${econData.country} is scheduled for release. Economists forecast ${econData.forecast?.toFixed(1)}% compared to the previous ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator is closely watched by market participants.`;
+      
+      const opinion = `${sentiment} ${confidence}%`;
+      
+      const forecast = hasActual
+        ? 'Likely moderate market volatility in next 24-48 hours.'
+        : 'Likely increased market volatility around data release.';
+      
       return {
-        summary: hasActual
-          ? `${econData.name} came in at ${econData.actual?.toFixed(1)}% vs forecast of ${econData.forecast?.toFixed(1)}%.`
-          : `${econData.name} is expected to be released with a forecast of ${econData.forecast?.toFixed(1)}%.`,
-        overview: hasActual
-          ? `The ${econData.name} for ${econData.country} was released showing ${econData.actual?.toFixed(1)}% compared to the forecasted ${econData.forecast?.toFixed(1)}% and previous reading of ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator provides insights into economic conditions.`
-          : `The ${econData.name} for ${econData.country} is scheduled for release. Economists forecast ${econData.forecast?.toFixed(1)}% compared to the previous ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator is closely watched by market participants.`,
+        summary,
+        overview,
+        opinion,
+        forecast,
         impact: econData.impact,
         sentiment,
+        confidence,
         relatedTickers: ['SPY', 'QQQ', 'DXY'],
       };
     }
+  };
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dy) > 5;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dy > 0) {
+        translateY.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+        handleClose();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 8,
+        }).start();
+      }
+    },
+  });
+
+  const handleClose = () => {
+    Animated.timing(translateY, {
+      toValue: SCREEN_HEIGHT,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      router.back();
+    });
   };
 
   const handleTickerPress = (ticker: string) => {
     console.log('Ticker pressed:', ticker);
   };
 
-  const getSentimentColor = (sentiment: 'Bullish' | 'Bearish' | 'Neutral') => {
+  const getSentimentBorderColor = () => {
+    if (!eventDetails) return theme.colors.border;
+    
+    switch (eventDetails.sentiment) {
+      case 'Bullish':
+        return theme.colors.bullish;
+      case 'Bearish':
+        return theme.colors.bearish;
+      case 'Neutral':
+        return theme.colors.neutral;
+      default:
+        return theme.colors.border;
+    }
+  };
+
+  const getSentimentIcon = (sentiment: string) => {
+    const iconSize = 18;
+    const color = sentiment === 'Bullish' ? theme.colors.bullish : 
+                  sentiment === 'Bearish' ? theme.colors.bearish : theme.colors.neutral;
+    
     switch (sentiment) {
-      case 'Bullish': return theme.colors.bullish;
-      case 'Bearish': return theme.colors.bearish;
-      default: return theme.colors.textDim;
+      case 'Bullish':
+        return <TrendingUp size={iconSize} color={color} />;
+      case 'Bearish':
+        return <TrendingDown size={iconSize} color={color} />;
+      default:
+        return <Minus size={iconSize} color={color} />;
     }
   };
 
-  const getImpactColor = (impact: 'High' | 'Medium' | 'Low') => {
-    switch (impact) {
-      case 'High': return '#FF1744';
-      case 'Medium': return '#FF8C00';
-      case 'Low': return '#6C757D';
-      default: return theme.colors.textDim;
+  const formatTime = (timeString: string) => {
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return timeString;
     }
   };
 
-  if (loading) {
+  if (loading || !eventDetails) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Event Details</Text>
+      <Modal visible transparent animationType="none">
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.backdrop} 
+            activeOpacity={1} 
+            onPress={handleClose}
+          />
+          <Animated.View
+            style={[
+              styles.modalContent,
+              { transform: [{ translateY }], borderColor: theme.colors.border },
+            ]}
+          >
+            <View {...panResponder.panHandlers} style={styles.dragHandle}>
+              <View style={styles.dragIndicator} />
+            </View>
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+                <X size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.neutral} />
+              <Text style={styles.loadingText}>
+                {loading ? 'Loading event details...' : 'Event not found'}
+              </Text>
+            </View>
+          </Animated.View>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.neutral} />
-          <Text style={styles.loadingText}>Loading event details...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (!eventDetails) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Event Details</Text>
-        </View>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Event not found</Text>
-        </View>
-      </View>
+      </Modal>
     );
   }
 
   const isEarnings = eventDetails.type === 'earnings';
   const earningsData = isEarnings ? (eventDetails.data as EarningsItem) : null;
   const econData = !isEarnings ? (eventDetails.data as EconItem) : null;
+  const title = isEarnings ? `${earningsData?.ticker} Earnings Report` : econData?.name || 'Event Details';
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Event Details</Text>
-      </View>
+    <Modal visible transparent animationType="none" onRequestClose={handleClose}>
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity 
+          style={styles.backdrop} 
+          activeOpacity={1} 
+          onPress={handleClose}
+        />
+        
+        <Animated.View
+          style={[
+            styles.modalContent,
+            {
+              transform: [{ translateY }],
+              borderColor: getSentimentBorderColor(),
+            },
+          ]}
+        >
+          <View {...panResponder.panHandlers} style={styles.dragHandle}>
+            <View style={styles.dragIndicator} />
+          </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          <View style={styles.titleSection}>
-            <Text style={styles.eventTitle}>
-              {isEarnings ? `${earningsData?.ticker} Earnings Report` : econData?.name}
-            </Text>
-            <View style={styles.badgeRow}>
-              <View style={[styles.impactBadge, { backgroundColor: getImpactColor(eventDetails.impact) }]}>
-                <Text style={styles.badgeText}>{eventDetails.impact.toUpperCase()}</Text>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <X size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView 
+            style={styles.scrollView} 
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <View style={styles.contentContainer}>
+              <Text style={styles.title}>{title}</Text>
+              
+              <View style={styles.sourceRow}>
+                <Text style={styles.sourceText}>
+                  {eventDetails.source} • {formatTime(eventDetails.timestamp)}
+                </Text>
               </View>
-              <View style={[styles.sentimentBadge, { backgroundColor: getSentimentColor(eventDetails.sentiment) }]}>
-                <Text style={[styles.badgeText, { color: '#000000' }]}>
-                  {eventDetails.sentiment.toUpperCase()}
+
+              <View style={styles.divider} />
+
+              <View style={styles.aiSection}>
+                <Text style={styles.sectionTitle}>AI SUMMARY</Text>
+                <Text style={styles.aiText}>{eventDetails.aiSummary}</Text>
+              </View>
+
+              <View style={styles.aiSection}>
+                <Text style={styles.sectionTitle}>AI OVERVIEW</Text>
+                <Text style={styles.aiText}>{eventDetails.aiOverview}</Text>
+              </View>
+
+              <View style={styles.aiSection}>
+                <Text style={styles.sectionTitle}>AI OPINION</Text>
+                <View style={styles.opinionRow}>
+                  {getSentimentIcon(eventDetails.sentiment)}
+                  <Text style={styles.opinionLabel}>({eventDetails.impact})</Text>
+                  <Text style={[
+                    styles.opinionSentiment,
+                    { color: eventDetails.sentiment === 'Bullish' ? theme.colors.bullish : 
+                             eventDetails.sentiment === 'Bearish' ? theme.colors.bearish : theme.colors.neutral }
+                  ]}>
+                    {eventDetails.sentiment} {eventDetails.confidence}%
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.aiSection}>
+                <Text style={styles.sectionTitle}>AI FORECAST</Text>
+                <Text style={styles.aiText}>{eventDetails.aiForecast}</Text>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.aiSection}>
+                <Text style={styles.sectionTitle}>KEY METRICS</Text>
+                {isEarnings && earningsData ? (
+                  <View style={styles.metricsGrid}>
+                    {earningsData.actual_eps !== null && earningsData.actual_eps !== undefined ? (
+                      <>
+                        <View style={styles.metricItem}>
+                          <Text style={styles.metricLabel}>EPS</Text>
+                          <Text style={styles.metricValue}>
+                            ${earningsData.actual_eps.toFixed(2)} vs ${earningsData.cons_eps?.toFixed(2)}
+                          </Text>
+                        </View>
+                        <View style={styles.metricItem}>
+                          <Text style={styles.metricLabel}>Revenue</Text>
+                          <Text style={styles.metricValue}>
+                            ${earningsData.actual_rev?.toFixed(1)}B vs ${earningsData.cons_rev?.toFixed(1)}B
+                          </Text>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <View style={styles.metricItem}>
+                          <Text style={styles.metricLabel}>Expected EPS</Text>
+                          <Text style={styles.metricValue}>${earningsData.cons_eps?.toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.metricItem}>
+                          <Text style={styles.metricLabel}>Expected Revenue</Text>
+                          <Text style={styles.metricValue}>${earningsData.cons_rev?.toFixed(1)}B</Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                ) : econData ? (
+                  <View style={styles.metricsGrid}>
+                    <View style={styles.metricItem}>
+                      <Text style={styles.metricLabel}>Country</Text>
+                      <Text style={styles.metricValue}>{econData.country}</Text>
+                    </View>
+                    <View style={styles.metricItem}>
+                      <Text style={styles.metricLabel}>Forecast</Text>
+                      <Text style={styles.metricValue}>{econData.forecast?.toFixed(1)}%</Text>
+                    </View>
+                    <View style={styles.metricItem}>
+                      <Text style={styles.metricLabel}>Previous</Text>
+                      <Text style={styles.metricValue}>{econData.previous?.toFixed(1)}%</Text>
+                    </View>
+                    {econData.actual !== null && econData.actual !== undefined && (
+                      <View style={styles.metricItem}>
+                        <Text style={styles.metricLabel}>Actual</Text>
+                        <Text style={styles.metricValue}>{econData.actual.toFixed(1)}%</Text>
+                      </View>
+                    )}
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.tickersSection}>
+                <Text style={styles.sectionTitle}>RELATED TICKERS</Text>
+                <View style={styles.tickersRow}>
+                  {eventDetails.relatedTickers.map((ticker, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.tickerPill}
+                      onPress={() => handleTickerPress(ticker)}
+                    >
+                      <Text style={styles.tickerText}>{ticker}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.disclaimer}>
+                <Text style={styles.disclaimerText}>
+                  AI summaries are generated for convenience. Not financial advice.
                 </Text>
               </View>
             </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>AI Overview</Text>
-            <Text style={styles.overviewText}>{eventDetails.aiOverview}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Summary</Text>
-            <Text style={styles.summaryText}>{eventDetails.aiSummary}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Key Metrics</Text>
-            {isEarnings && earningsData ? (
-              <View style={styles.metricsGrid}>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Report Time</Text>
-                  <Text style={styles.metricValue}>{earningsData.report_time}</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Expected EPS</Text>
-                  <Text style={styles.metricValue}>${earningsData.cons_eps?.toFixed(2)}</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Expected Revenue</Text>
-                  <Text style={styles.metricValue}>${earningsData.cons_rev?.toFixed(1)}B</Text>
-                </View>
-                {earningsData.actual_eps && (
-                  <>
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Actual EPS</Text>
-                      <Text style={[styles.metricValue, { color: theme.colors.bullish }]}>
-                        ${earningsData.actual_eps.toFixed(2)}
-                      </Text>
-                    </View>
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Actual Revenue</Text>
-                      <Text style={[styles.metricValue, { color: theme.colors.bullish }]}>
-                        ${earningsData.actual_rev?.toFixed(1)}B
-                      </Text>
-                    </View>
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Verdict</Text>
-                      <Text style={[styles.metricValue, { 
-                        color: earningsData.verdict === 'Beat' ? theme.colors.bullish : 
-                               earningsData.verdict === 'Miss' ? theme.colors.bearish : 
-                               theme.colors.textDim 
-                      }]}>
-                        {earningsData.verdict}
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </View>
-            ) : econData ? (
-              <View style={styles.metricsGrid}>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Country</Text>
-                  <Text style={styles.metricValue}>{econData.country}</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Forecast</Text>
-                  <Text style={styles.metricValue}>{econData.forecast?.toFixed(1)}%</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Previous</Text>
-                  <Text style={styles.metricValue}>{econData.previous?.toFixed(1)}%</Text>
-                </View>
-                {econData.actual !== null && econData.actual !== undefined && (
-                  <View style={styles.metricItem}>
-                    <Text style={styles.metricLabel}>Actual</Text>
-                    <Text style={[styles.metricValue, { color: theme.colors.bullish }]}>
-                      {econData.actual.toFixed(1)}%
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ) : null}
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Related Tickers</Text>
-            <View style={styles.tickersRow}>
-              {eventDetails.relatedTickers.map((ticker, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.tickerPill}
-                  onPress={() => handleTickerPress(ticker)}
-                >
-                  <Text style={styles.tickerPillText}>{ticker}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Event Information</Text>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Source:</Text>
-              <Text style={styles.infoValue}>{eventDetails.source}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Scheduled:</Text>
-              <Text style={styles.infoValue}>
-                {new Date(eventDetails.timestamp).toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
-    </View>
+          </ScrollView>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContent: {
     backgroundColor: theme.colors.bg,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 2,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    height: SCREEN_HEIGHT * 0.9,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  dragHandle: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  dragIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: theme.colors.border,
+    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
-  backButton: {
-    padding: theme.spacing.xs,
-    marginRight: theme.spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+  closeButton: {
+    padding: 4,
   },
   scrollView: {
     flex: 1,
   },
-  content: {
-    padding: theme.spacing.lg,
+  contentContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
   },
-  titleSection: {
-    marginBottom: theme.spacing.md,
-  },
-  eventTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  title: {
+    fontSize: 18,
+    fontWeight: '700' as const,
     color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    lineHeight: 24,
+    marginBottom: 12,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
+  sourceRow: {
+    marginBottom: 16,
   },
-  impactBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  sentimentBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.colors.text,
+  sourceText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.neutral,
-    marginVertical: theme.spacing.lg,
+    backgroundColor: theme.colors.border,
+    marginVertical: 16,
   },
-  section: {
-    marginBottom: theme.spacing.md,
+  aiSection: {
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '700' as const,
     color: theme.colors.neutral,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
   },
-  overviewText: {
-    fontSize: 16,
-    lineHeight: 24,
+  aiText: {
+    fontSize: 14,
     color: theme.colors.text,
+    lineHeight: 20,
   },
-  summaryText: {
-    fontSize: 15,
-    lineHeight: 22,
+  opinionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  opinionLabel: {
+    fontSize: 12,
     color: theme.colors.textSecondary,
+    fontWeight: '600' as const,
+  },
+  opinionSentiment: {
+    fontSize: 14,
+    fontWeight: '700' as const,
   },
   metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.md,
+    gap: 12,
   },
   metricItem: {
-    minWidth: '45%',
+    marginBottom: 8,
   },
   metricLabel: {
-    fontSize: 12,
-    color: theme.colors.textDim,
+    fontSize: 11,
+    color: theme.colors.textSecondary,
     marginBottom: 4,
+    textTransform: 'uppercase' as const,
   },
   metricValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '600' as const,
     color: theme.colors.text,
+  },
+  tickersSection: {
+    marginTop: 0,
+    marginBottom: 16,
   },
   tickersRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   tickerPill: {
-    backgroundColor: theme.colors.border,
-    paddingHorizontal: 12,
+    backgroundColor: theme.colors.neutral,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.neutral,
+    borderRadius: 12,
   },
-  tickerPillText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.text,
+  tickerText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: theme.colors.bg,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing.xs,
+  disclaimer: {
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
-  infoLabel: {
-    fontSize: 14,
-    color: theme.colors.textDim,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text,
+  disclaimerText: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    fontStyle: 'italic' as const,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 48,
   },
   loadingText: {
-    marginTop: theme.spacing.md,
-    fontSize: 14,
-    color: theme.colors.textDim,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 16,
-    color: theme.colors.textDim,
+    marginTop: 16,
+    fontSize: 13,
+    color: theme.colors.textSecondary,
   },
 });
