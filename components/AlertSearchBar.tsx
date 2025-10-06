@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text } from 'react-native';
-import { Search, X, User } from 'lucide-react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image } from 'react-native';
+import { Search, X, Bell, Settings } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { theme } from '../constants/theme';
 import { FeedItem } from '../types/news';
@@ -92,7 +92,7 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   return (
     <>
       <View style={styles.container}>
-        <View style={styles.actionsRow}>
+        <View style={styles.headerRow}>
           <TouchableOpacity
             testID="search-button"
             style={[styles.iconButton, showSearch && styles.iconButtonActive]}
@@ -100,16 +100,42 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
           >
             <Search size={18} color={showSearch ? theme.colors.green : theme.colors.text} />
           </TouchableOpacity>
+          
           <TouchableOpacity
-            testID="account-button"
-            style={styles.iconButton}
+            testID="profile-button"
+            style={styles.profileContainer}
             onPress={() => {
-              console.log('[AlertSearchBar] Navigate to settings');
-              router.push('/settings');
+              console.log('[AlertSearchBar] Navigate to account settings');
+              router.push('/settings/account');
             }}
           >
-            <User size={18} color={theme.colors.text} />
+            <Image
+              source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/1m3iru63lzrhxuttnpzm3' }}
+              style={styles.profileImage}
+            />
           </TouchableOpacity>
+          
+          <View style={styles.rightActions}>
+            <TouchableOpacity
+              testID="notifications-button"
+              style={styles.iconButton}
+              onPress={() => {
+                console.log('[AlertSearchBar] Open notifications');
+              }}
+            >
+              <Bell size={18} color={theme.colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="settings-button"
+              style={styles.iconButton}
+              onPress={() => {
+                console.log('[AlertSearchBar] Navigate to settings');
+                router.push('/settings');
+              }}
+            >
+              <Settings size={18} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -186,11 +212,30 @@ const styles = StyleSheet.create({
   container: {
     height: 50,
     justifyContent: 'center',
-    alignItems: 'flex-end',
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.bg,
   },
-  actionsRow: {
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  profileContainer: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -18,
+    padding: 2,
+    borderRadius: 20,
+    backgroundColor: 'rgba(42, 42, 42, 0.5)',
+  },
+  profileImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#2A2A2A',
+  },
+  rightActions: {
     flexDirection: 'row',
     gap: 8,
   },
