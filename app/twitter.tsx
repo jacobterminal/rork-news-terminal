@@ -63,9 +63,6 @@ export default function TwitterTrackerPage() {
       <View nativeID="banner-anchor-point" style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Twitter Tracker</Text>
-          <View style={styles.betaPill}>
-            <Text style={styles.betaPillText}>BETA</Text>
-          </View>
           <View style={styles.flex1} />
           <TouchableOpacity style={styles.settingsButton} activeOpacity={0.7}>
             <Settings size={18} color="#888888" />
@@ -237,18 +234,7 @@ const styles = StyleSheet.create({
       default: 'System',
     }),
   },
-  betaPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    backgroundColor: '#222222',
-  },
-  betaPillText: {
-    fontSize: 10,
-    color: '#888888',
-    fontWeight: '600' as const,
-    letterSpacing: 0.5,
-  },
+
   flex1: {
     flex: 1,
   },
