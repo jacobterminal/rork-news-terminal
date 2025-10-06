@@ -4,7 +4,6 @@ import { Search, X, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { theme } from '../constants/theme';
 import { FeedItem } from '../types/news';
-import AppHeader from './AppHeader';
 
 interface SearchResult {
   type: 'ticker' | 'headline';
@@ -93,7 +92,6 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   return (
     <>
       <View style={styles.container}>
-        <AppHeader />
         <View style={styles.actionsRow}>
           <TouchableOpacity
             testID="search-button"
@@ -187,9 +185,8 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 const styles = StyleSheet.create({
   container: {
     height: 50,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.bg,
   },
