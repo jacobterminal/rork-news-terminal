@@ -21,8 +21,36 @@ export default function TwitterTrackerPage() {
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const getWordCount = (text: string): number => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
 
   const handleApply = () => {
+    setErrorMessage('');
+
+    if (!fullName.trim()) {
+      setErrorMessage('Full name is required');
+      return;
+    }
+
+    if (!email.trim()) {
+      setErrorMessage('Email address is required');
+      return;
+    }
+
+    if (!reason.trim()) {
+      setErrorMessage('Reason for request is required');
+      return;
+    }
+
+    const wordCount = getWordCount(reason);
+    if (wordCount < 20) {
+      setErrorMessage(`Reason must be at least 20 words (currently ${wordCount} words)`);
+      return;
+    }
+
     setShowConfirmation(true);
     setTimeout(() => {
       setShowConfirmation(false);
@@ -124,17 +152,28 @@ export default function TwitterTrackerPage() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Reason for Request (optional)</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Reason for Request</Text>
+                <Text style={styles.wordCount}>
+                  {getWordCount(reason)} / 20 words minimum
+                </Text>
+              </View>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={reason}
                 onChangeText={setReason}
-                placeholder="Tell us why you need access"
+                placeholder="Tell us why you need access (minimum 20 words)"
                 placeholderTextColor="#444444"
                 multiline
                 numberOfLines={4}
               />
             </View>
+
+            {errorMessage ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+              </View>
+            ) : null}
 
             <TouchableOpacity 
               style={styles.applyButton} 
@@ -332,11 +371,21 @@ const styles = StyleSheet.create({
   inputGroup: {
     gap: 8,
   },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   inputLabel: {
     fontSize: 12,
     color: '#888888',
     fontWeight: '500' as const,
     letterSpacing: 0.3,
+  },
+  wordCount: {
+    fontSize: 11,
+    color: '#666666',
+    fontWeight: '400' as const,
   },
   input: {
     backgroundColor: '#0B0B0B',
@@ -375,7 +424,20 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     letterSpacing: 1,
   },
-
+  errorContainer: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 6,
+    padding: 12,
+    marginTop: 4,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    textAlign: 'center',
+    fontWeight: '500' as const,
+  },
   footerNote: {
     fontSize: 11,
     color: '#666666',
