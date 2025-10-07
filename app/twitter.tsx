@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInp
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useScrollReset } from '@/utils/useScrollReset';
-import { Settings } from 'lucide-react-native';
+
 
 type TabKey = 'dashboard' | 'ruleBuilder' | 'targets' | 'analytics';
 
@@ -63,10 +63,6 @@ export default function TwitterTrackerPage() {
       <View nativeID="banner-anchor-point" style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Twitter Tracker</Text>
-          <View style={styles.flex1} />
-          <TouchableOpacity style={styles.settingsButton} activeOpacity={0.7}>
-            <Settings size={18} color="#888888" />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -235,12 +231,7 @@ const styles = StyleSheet.create({
     }),
   },
 
-  flex1: {
-    flex: 1,
-  },
-  settingsButton: {
-    padding: 6,
-  },
+
   subnav: {
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 212, 59, 0.2)',
