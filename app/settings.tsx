@@ -196,23 +196,6 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.sectionDivider} />
-        <Text style={styles.sectionLabel}>INTERFACE & LAYOUT</Text>
-        <View style={styles.settingsSection}>
-          <SettingRow
-            icon={<Layout size={20} color="#FFD600" />}
-            title="AI Summary"
-            rightElement={
-              <Switch
-                value={true}
-                onValueChange={() => {}}
-                trackColor={{ false: '#333', true: '#FFD600' }}
-                thumbColor={'#000'}
-              />
-            }
-          />
-        </View>
-
-        <View style={styles.sectionDivider} />
         <Text style={styles.sectionLabel}>SUPPORT & FEEDBACK</Text>
         <View style={styles.settingsSection}>
           <SettingRow
