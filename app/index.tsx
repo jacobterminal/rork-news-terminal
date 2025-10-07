@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Pressable, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
+import { MoreVertical } from 'lucide-react-native';
 import NewsCard from '../components/NewsCard';
 import TickerDrawer from '../components/TickerDrawer';
 import { useNewsStore } from '../store/newsStore';
@@ -21,9 +22,92 @@ export default function NewsScreen() {
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
   const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showWatchlistFilter, setShowWatchlistFilter] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
   
   // Filter feed items to only show news for tickers in watchlist
   const watchlistFeedItems = useMemo(() => {
+    // If watchlist filter is disabled, show all feed items
+    if (!showWatchlistFilter) {
+      const getWeekStart = (date: Date): Date => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day;
+        return new Date(d.getFullYear(), d.getMonth(), diff, 0, 0, 0, 0);
+      };
+
+      const isNewsInTimeRange = (publishedAt: string): boolean => {
+        const newsTime = new Date(publishedAt);
+        const now = new Date();
+        
+        switch (timeRange) {
+          case 'last_hour': {
+            const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+            return newsTime >= oneHourAgo;
+          }
+          case 'today': {
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            return newsTime >= todayStart;
+          }
+          case 'past_2_days': {
+            const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+            return newsTime >= twoDaysAgo;
+          }
+          case 'past_5_days': {
+            const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+            return newsTime >= fiveDaysAgo;
+          }
+          case 'week_to_date': {
+            const weekStart = getWeekStart(now);
+            return newsTime >= weekStart;
+          }
+          case 'custom': {
+            if (!customTimeRange) return true;
+            
+            const currentYear = now.getFullYear();
+            const startDateParts = customTimeRange.startDate.split('/');
+            const endDateParts = customTimeRange.endDate.split('/');
+            
+            if (startDateParts.length !== 2 || endDateParts.length !== 2) return true;
+            
+            const startMonth = parseInt(startDateParts[0]) - 1;
+            const startDay = parseInt(startDateParts[1]);
+            const endMonth = parseInt(endDateParts[0]) - 1;
+            const endDay = parseInt(endDateParts[1]);
+            
+            const convertTo24Hour = (hour: string, period: 'AM' | 'PM'): number => {
+              let h = parseInt(hour);
+              if (period === 'AM') {
+                if (h === 12) return 0;
+                return h;
+              } else {
+                if (h === 12) return 12;
+                return h + 12;
+              }
+            };
+            
+            const startHour = convertTo24Hour(customTimeRange.startHour, customTimeRange.startPeriod);
+            const startMinute = parseInt(customTimeRange.startMinute);
+            const endHour = convertTo24Hour(customTimeRange.endHour, customTimeRange.endPeriod);
+            const endMinute = parseInt(customTimeRange.endMinute);
+            
+            const rangeStart = new Date(currentYear, startMonth, startDay, startHour, startMinute);
+            const rangeEnd = new Date(currentYear, endMonth, endDay, endHour, endMinute);
+            
+            return newsTime >= rangeStart && newsTime <= rangeEnd;
+          }
+          default:
+            return true;
+        }
+      };
+
+      return feedItems
+        .filter(item => isNewsInTimeRange(item.published_at))
+        .sort((a, b) => {
+          return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+        });
+    }
+    
     if (!watchlist || watchlist.length === 0) {
       return [];
     }
@@ -114,7 +198,7 @@ export default function NewsScreen() {
         // Sort by published_at DESC (most recent first)
         return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
       });
-  }, [feedItems, watchlist, timeRange, customTimeRange]);
+  }, [feedItems, watchlist, timeRange, customTimeRange, showWatchlistFilter]);
 
   const handleTickerPress = (ticker: string) => {
     if (!ticker || !ticker.trim() || ticker.length > 10) return;
@@ -184,7 +268,18 @@ export default function NewsScreen() {
         <View style={styles.sectionHeaderContainer}>
           <View style={styles.divider} />
           <View nativeID="banner-anchor-point" style={styles.sectionHeader} testID="watchlist-based-news-header">
-            <Text style={styles.sectionTitle}>WATCHLIST BASED NEWS</Text>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>
+                {showWatchlistFilter ? 'WATCHLIST BASED NEWS' : 'ALL NEWS'}
+              </Text>
+              <Pressable
+                style={styles.menuButton}
+                onPress={() => setMenuVisible(true)}
+                hitSlop={8}
+              >
+                <MoreVertical size={16} color={theme.colors.sectionTitle} />
+              </Pressable>
+            </View>
             <TimeRangeFilterPill
               selectedRange={timeRange}
               customRange={customTimeRange}
@@ -234,6 +329,46 @@ export default function NewsScreen() {
           setSelectedArticle(null);
         }}
       />
+
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={styles.menuContainer}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setShowWatchlistFilter(true);
+                setMenuVisible(false);
+              }}
+            >
+              <Text style={[styles.menuItemText, showWatchlistFilter && styles.menuItemTextActive]}>
+                Watchlist Based News
+              </Text>
+              {showWatchlistFilter && <View style={styles.activeIndicator} />}
+            </Pressable>
+            <View style={styles.menuDivider} />
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setShowWatchlistFilter(false);
+                setMenuVisible(false);
+              }}
+            >
+              <Text style={[styles.menuItemText, !showWatchlistFilter && styles.menuItemTextActive]}>
+                All News
+              </Text>
+              {!showWatchlistFilter && <View style={styles.activeIndicator} />}
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -267,12 +402,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#000000',
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
     color: theme.colors.sectionTitle,
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
+  },
+  menuButton: {
+    padding: 4,
   },
   divider: {
     height: 1,
@@ -293,5 +436,44 @@ const styles = StyleSheet.create({
     color: theme.colors.textDim,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContainer: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minWidth: 200,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  menuItemText: {
+    fontSize: 14,
+    color: theme.colors.text,
+    fontWeight: '500' as const,
+  },
+  menuItemTextActive: {
+    color: theme.colors.sectionTitle,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+  },
+  activeIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.sectionTitle,
   },
 });
