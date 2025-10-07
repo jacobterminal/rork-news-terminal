@@ -109,10 +109,10 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
 
   useEffect(() => {
     if (isVisible && currentAlert) {
-      requestAnimationFrame(() => {
-        slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
-        opacityAnimation.setValue(0);
-        
+      slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
+      opacityAnimation.setValue(0);
+      
+      const timer = setTimeout(() => {
         Animated.parallel([
           Animated.timing(slideAnimation, {
             toValue: 0,
@@ -125,11 +125,11 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
             useNativeDriver: true,
           }),
         ]).start();
-      });
+      }, 0);
+      
+      return () => clearTimeout(timer);
     } else if (!isVisible) {
-      requestAnimationFrame(() => {
-        slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
-      });
+      slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
     }
   }, [isVisible, currentAlert, slideAnimation, opacityAnimation, insets.top]);
 
