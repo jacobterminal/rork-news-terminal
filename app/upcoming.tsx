@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronDown } from 'lucide-react-native';
@@ -166,27 +166,24 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
   
   useEffect(() => {
     if (calendarDays.length > 0 && calendarScrollRef.current) {
-      const todayIndex = calendarDays.findIndex(day => day.isToday);
       const selectedIndex = calendarDays.findIndex(
         day => day.date.toDateString() === selectedDate.toDateString()
       );
       
-      const targetIndex = selectedIndex !== -1 ? selectedIndex : todayIndex !== -1 ? todayIndex : 0;
-      
-      if (targetIndex !== -1) {
+      if (selectedIndex !== -1) {
         setTimeout(() => {
           const dayWidth = 66;
-          const screenWidth = 375;
-          const scrollX = Math.max(0, (targetIndex * dayWidth) - (screenWidth / 2) + (dayWidth / 2));
+          const screenWidth = Dimensions.get('window').width;
+          const scrollX = Math.max(0, (selectedIndex * dayWidth) - (screenWidth / 2) + (dayWidth / 2));
           
           calendarScrollRef.current?.scrollTo({
             x: scrollX,
             animated: true,
           });
-        }, 150);
+        }, 100);
       }
     }
-  }, [calendarDays, selectedDate]);
+  }, [selectedDate, calendarDays]);
   
   return (
     <View style={styles.calendarContainer}>
