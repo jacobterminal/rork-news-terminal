@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, Animated, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
@@ -154,36 +154,39 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
       onStartShouldSetPanResponder: () => {
         swipeStartTime.current = Date.now();
         isSwiping.current = false;
-        return false;
+        return true;
       },
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        const shouldSet = Math.abs(gestureState.dy) > 5 || Math.abs(gestureState.dx) > 5;
+        const shouldSet = Math.abs(gestureState.dy) > 8 || Math.abs(gestureState.dx) > 8;
         if (shouldSet) {
           isSwiping.current = true;
         }
         return shouldSet;
       },
       onPanResponderGrant: () => {
-        isSwiping.current = true;
+        swipeStartTime.current = Date.now();
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy < 0) {
           slideAnimation.setValue(gestureState.dy / 2);
+          isSwiping.current = true;
         }
         if (Math.abs(gestureState.dx) > 10) {
           swipeAnimation.setValue(gestureState.dx);
+          isSwiping.current = true;
         }
       },
       onPanResponderRelease: (_, gestureState) => {
         const swipeDuration = Date.now() - swipeStartTime.current;
-        const isQuickTap = swipeDuration < 200 && Math.abs(gestureState.dy) < 5 && Math.abs(gestureState.dx) < 5;
+        const isQuickTap = swipeDuration < 200 && Math.abs(gestureState.dy) < 10 && Math.abs(gestureState.dx) < 10;
         
-        if (isQuickTap) {
+        if (isQuickTap && !isSwiping.current) {
           isSwiping.current = false;
+          handleBannerPress();
           return;
         }
         
-        if (gestureState.dy < -30 || Math.abs(gestureState.dx) > 100) {
+        if (gestureState.dy < -40 || Math.abs(gestureState.dx) > 100) {
           dismissCurrentAlert();
         } else {
           Animated.parallel([
@@ -303,10 +306,8 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
       ]}
       pointerEvents="box-none"
     >
-      <TouchableOpacity
+      <View
         style={styles.banner}
-        onPress={handleBannerPress}
-        activeOpacity={0.9}
         {...panResponder.panHandlers}
       >
         <Animated.View
@@ -330,7 +331,8 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
             </View>
           </View>
         </Animated.View>
-      </TouchableOpacity>
+        <View style={styles.grabIndicator} />
+      </View>
     </Animated.View>
   );
 }
@@ -398,5 +400,15 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: theme.colors.text,
     letterSpacing: 0.3,
+  },
+  grabIndicator: {
+    position: 'absolute',
+    bottom: 4,
+    left: '50%',
+    marginLeft: -20,
+    width: 40,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
 });
