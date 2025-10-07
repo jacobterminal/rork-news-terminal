@@ -97,15 +97,18 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         setIsVisible(true);
       } else if (currentAlert) {
         // Alert is showing, add new alerts to queue (avoid duplicates)
-        const newAlerts = alerts.filter(
-          alert => alert.id !== currentAlert.id && !alertQueue.some(q => q.id === alert.id)
-        );
-        if (newAlerts.length > 0) {
-          setAlertQueue(prev => [...prev, ...newAlerts]);
-        }
+        setAlertQueue(prev => {
+          const newAlerts = alerts.filter(
+            alert => alert.id !== currentAlert.id && !prev.some(q => q.id === alert.id)
+          );
+          if (newAlerts.length > 0) {
+            return [...prev, ...newAlerts];
+          }
+          return prev;
+        });
       }
     }
-  }, [alerts, currentAlert, alertQueue, isVisible]);
+  }, [alerts, currentAlert, isVisible]);
 
   useEffect(() => {
     if (isVisible && currentAlert) {
