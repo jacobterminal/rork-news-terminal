@@ -141,6 +141,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
   setShowMonthPicker: (show: boolean) => void;
 }) {
   const monthScrollRef = useRef<ScrollView>(null);
+  const calendarScrollRef = useRef<ScrollView>(null);
   
   useEffect(() => {
     if (showMonthPicker && monthScrollRef.current) {
@@ -163,6 +164,30 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
     }
   }, [showMonthPicker, monthOptions, selectedMonth, selectedYear]);
   
+  useEffect(() => {
+    if (calendarDays.length > 0 && calendarScrollRef.current) {
+      const todayIndex = calendarDays.findIndex(day => day.isToday);
+      const selectedIndex = calendarDays.findIndex(
+        day => day.date.toDateString() === selectedDate.toDateString()
+      );
+      
+      const targetIndex = selectedIndex !== -1 ? selectedIndex : todayIndex !== -1 ? todayIndex : 0;
+      
+      if (targetIndex !== -1) {
+        setTimeout(() => {
+          const dayWidth = 66;
+          const screenWidth = 375;
+          const scrollX = Math.max(0, (targetIndex * dayWidth) - (screenWidth / 2) + (dayWidth / 2));
+          
+          calendarScrollRef.current?.scrollTo({
+            x: scrollX,
+            animated: true,
+          });
+        }, 150);
+      }
+    }
+  }, [calendarDays, selectedDate]);
+  
   return (
     <View style={styles.calendarContainer}>
       <View style={styles.calendarHeader}>
@@ -178,6 +203,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
       </View>
       
       <ScrollView 
+        ref={calendarScrollRef}
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.calendarStrip}
