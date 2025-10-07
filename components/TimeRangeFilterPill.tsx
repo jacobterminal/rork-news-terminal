@@ -51,6 +51,8 @@ export default function TimeRangeFilterPill({
   const endHourScrollRef = useRef<ScrollView>(null);
   const endMinuteScrollRef = useRef<ScrollView>(null);
   const endPeriodScrollRef = useRef<ScrollView>(null);
+  const startDateScrollRef = useRef<ScrollView>(null);
+  const endDateScrollRef = useRef<ScrollView>(null);
 
   const HOURS = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const MINUTES = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
@@ -430,7 +432,21 @@ export default function TimeRangeFilterPill({
               <Text style={styles.timeLabel}>Start Date</Text>
               <TouchableOpacity 
                 style={styles.dateDropdownButton}
-                onPress={() => setStartDatePickerVisible(!startDatePickerVisible)}
+                onPress={() => {
+                  const willOpen = !startDatePickerVisible;
+                  setStartDatePickerVisible(willOpen);
+                  if (willOpen && tempStartDate) {
+                    setTimeout(() => {
+                      const selectedIndex = past7Days.findIndex(d => d.value === tempStartDate);
+                      if (selectedIndex !== -1 && startDateScrollRef.current) {
+                        const itemHeight = 32;
+                        const dropdownHeight = Math.min(240, Dimensions.get('window').height * 0.3);
+                        const scrollY = Math.max(0, (selectedIndex * itemHeight) - (dropdownHeight / 2) + (itemHeight / 2));
+                        startDateScrollRef.current.scrollTo({ y: scrollY, animated: false });
+                      }
+                    }, 50);
+                  }
+                }}
               >
                 <Text style={styles.dateDropdownText}>
                   {tempStartDate ? past7Days.find(d => d.value === tempStartDate)?.label || tempStartDate : 'Select date'}
@@ -439,7 +455,11 @@ export default function TimeRangeFilterPill({
               </TouchableOpacity>
               
               {startDatePickerVisible && (
-                <View style={styles.datePickerDropdown}>
+                <ScrollView 
+                  ref={startDateScrollRef}
+                  style={styles.datePickerDropdown}
+                  showsVerticalScrollIndicator={false}
+                >
                   {past7Days.map((date) => (
                     <TouchableOpacity
                       key={date.value}
@@ -473,7 +493,7 @@ export default function TimeRangeFilterPill({
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </View>
+                </ScrollView>
               )}
             </View>
 
@@ -481,7 +501,21 @@ export default function TimeRangeFilterPill({
               <Text style={styles.timeLabel}>End Date</Text>
               <TouchableOpacity 
                 style={styles.dateDropdownButton}
-                onPress={() => setEndDatePickerVisible(!endDatePickerVisible)}
+                onPress={() => {
+                  const willOpen = !endDatePickerVisible;
+                  setEndDatePickerVisible(willOpen);
+                  if (willOpen && tempEndDate) {
+                    setTimeout(() => {
+                      const selectedIndex = past7Days.findIndex(d => d.value === tempEndDate);
+                      if (selectedIndex !== -1 && endDateScrollRef.current) {
+                        const itemHeight = 32;
+                        const dropdownHeight = Math.min(240, Dimensions.get('window').height * 0.3);
+                        const scrollY = Math.max(0, (selectedIndex * itemHeight) - (dropdownHeight / 2) + (itemHeight / 2));
+                        endDateScrollRef.current.scrollTo({ y: scrollY, animated: false });
+                      }
+                    }, 50);
+                  }
+                }}
               >
                 <Text style={styles.dateDropdownText}>
                   {tempEndDate ? past7Days.find(d => d.value === tempEndDate)?.label || tempEndDate : 'Select date'}
@@ -490,7 +524,11 @@ export default function TimeRangeFilterPill({
               </TouchableOpacity>
               
               {endDatePickerVisible && (
-                <View style={styles.datePickerDropdown}>
+                <ScrollView 
+                  ref={endDateScrollRef}
+                  style={styles.datePickerDropdown}
+                  showsVerticalScrollIndicator={false}
+                >
                   {past7Days.map((date) => {
                     const isDisabled = tempStartDate ? (() => {
                       const currentYear = new Date().getFullYear();
@@ -525,7 +563,7 @@ export default function TimeRangeFilterPill({
                       </TouchableOpacity>
                     );
                   })}
-                </View>
+                </ScrollView>
               )}
             </View>
 
