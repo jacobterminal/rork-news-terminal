@@ -210,11 +210,6 @@ export default function SettingsScreen() {
               />
             }
           />
-          <SettingRow
-            icon={<Layout size={20} color="#FFD600" />}
-            title="Feed Preset"
-            onPress={() => router.push('/settings/interface')}
-          />
         </View>
 
         <View style={styles.sectionDivider} />
