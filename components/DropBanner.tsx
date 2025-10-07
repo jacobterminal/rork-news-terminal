@@ -27,6 +27,8 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   const slideAnimation = useRef(new Animated.Value(-BANNER_HEIGHT - 50)).current;
   const swipeAnimation = useRef(new Animated.Value(0)).current;
   const opacityAnimation = useRef(new Animated.Value(1)).current;
+  const isSwiping = useRef(false);
+  const swipeStartTime = useRef(0);
 
   const dismissCurrentAlert = useCallback(() => {
     if (!currentAlert) return;
@@ -134,7 +136,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   }, [isVisible, currentAlert, slideAnimation, opacityAnimation, insets.top]);
 
   const handleBannerPress = useCallback(() => {
-    if (!currentAlert) return;
+    if (!currentAlert || isSwiping.current) return;
     
     if (onNavigate) {
       onNavigate(currentAlert.id);
@@ -149,8 +151,20 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
 
   const panResponder = useRef(
     PanResponder.create({
+      onStartShouldSetPanResponder: () => {
+        swipeStartTime.current = Date.now();
+        isSwiping.current = false;
+        return false;
+      },
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 10 || Math.abs(gestureState.dx) > 10;
+        const shouldSet = Math.abs(gestureState.dy) > 5 || Math.abs(gestureState.dx) > 5;
+        if (shouldSet) {
+          isSwiping.current = true;
+        }
+        return shouldSet;
+      },
+      onPanResponderGrant: () => {
+        isSwiping.current = true;
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy < 0) {
@@ -161,6 +175,14 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         }
       },
       onPanResponderRelease: (_, gestureState) => {
+        const swipeDuration = Date.now() - swipeStartTime.current;
+        const isQuickTap = swipeDuration < 200 && Math.abs(gestureState.dy) < 5 && Math.abs(gestureState.dx) < 5;
+        
+        if (isQuickTap) {
+          isSwiping.current = false;
+          return;
+        }
+        
         if (gestureState.dy < -30 || Math.abs(gestureState.dx) > 100) {
           dismissCurrentAlert();
         } else {
@@ -173,8 +195,28 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
               toValue: 0,
               useNativeDriver: true,
             }),
-          ]).start();
+          ]).start(() => {
+            setTimeout(() => {
+              isSwiping.current = false;
+            }, 100);
+          });
         }
+      },
+      onPanResponderTerminate: () => {
+        Animated.parallel([
+          Animated.spring(slideAnimation, {
+            toValue: 0,
+            useNativeDriver: true,
+          }),
+          Animated.spring(swipeAnimation, {
+            toValue: 0,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setTimeout(() => {
+            isSwiping.current = false;
+          }, 100);
+        });
       },
     })
   ).current;
