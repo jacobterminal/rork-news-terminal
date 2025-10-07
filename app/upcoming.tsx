@@ -144,24 +144,20 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
   
   useEffect(() => {
     if (showMonthPicker && monthScrollRef.current) {
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth();
-      const currentYear = currentDate.getFullYear();
-      
-      const currentMonthIndex = monthOptions.findIndex(
-        option => option.value === currentMonth && option.year === currentYear
+      const selectedMonthIndex = monthOptions.findIndex(
+        option => option.value === selectedMonth && option.year === selectedYear
       );
       
-      if (currentMonthIndex !== -1) {
+      if (selectedMonthIndex !== -1) {
         setTimeout(() => {
           monthScrollRef.current?.scrollTo({
-            y: currentMonthIndex * 56,
+            y: selectedMonthIndex * 56,
             animated: true,
           });
         }, 100);
       }
     }
-  }, [showMonthPicker, monthOptions]);
+  }, [showMonthPicker, monthOptions, selectedMonth, selectedYear]);
   
   return (
     <View style={styles.calendarContainer}>
