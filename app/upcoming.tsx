@@ -150,16 +150,17 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
       );
       
       if (selectedMonthIndex !== -1) {
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           const itemHeight = 56;
-          const visibleHeight = 300;
+          const modalHeight = Dimensions.get('window').height * 0.6;
+          const visibleHeight = Math.min(300, modalHeight - 100);
           const scrollY = Math.max(0, (selectedMonthIndex * itemHeight) - (visibleHeight / 2) + (itemHeight / 2));
           
           monthScrollRef.current?.scrollTo({
             y: scrollY,
             animated: false,
           });
-        }, 100);
+        });
       }
     }
   }, [showMonthPicker, monthOptions, selectedMonth, selectedYear]);
