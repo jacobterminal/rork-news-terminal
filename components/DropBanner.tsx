@@ -25,7 +25,6 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
   const [isVisible, setIsVisible] = useState(false);
   const displayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const slideAnimation = useRef(new Animated.Value(-BANNER_HEIGHT - 50)).current;
-  const swipeAnimation = useRef(new Animated.Value(0)).current;
   const opacityAnimation = useRef(new Animated.Value(1)).current;
   const isSwiping = useRef(false);
   const swipeStartTime = useRef(0);
@@ -54,7 +53,6 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
     ]).start(() => {
       onDismiss(alertId);
       setCurrentAlert(null);
-      swipeAnimation.setValue(0);
       opacityAnimation.setValue(1);
       
       setAlertQueue(prev => {
@@ -70,7 +68,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         }
       });
     });
-  }, [currentAlert, insets.top, onDismiss, slideAnimation, opacityAnimation, swipeAnimation]);
+  }, [currentAlert, insets.top, onDismiss, slideAnimation, opacityAnimation]);
 
   // Auto-dismiss current alert after display duration
   useEffect(() => {
@@ -157,7 +155,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         return true;
       },
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        const shouldSet = Math.abs(gestureState.dy) > 8 || Math.abs(gestureState.dx) > 8;
+        const shouldSet = Math.abs(gestureState.dy) > 5;
         if (shouldSet) {
           isSwiping.current = true;
         }
@@ -171,14 +169,10 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
           slideAnimation.setValue(gestureState.dy / 2);
           isSwiping.current = true;
         }
-        if (Math.abs(gestureState.dx) > 10) {
-          swipeAnimation.setValue(gestureState.dx);
-          isSwiping.current = true;
-        }
       },
       onPanResponderRelease: (_, gestureState) => {
         const swipeDuration = Date.now() - swipeStartTime.current;
-        const isQuickTap = swipeDuration < 200 && Math.abs(gestureState.dy) < 10 && Math.abs(gestureState.dx) < 10;
+        const isQuickTap = swipeDuration < 200 && Math.abs(gestureState.dy) < 10;
         
         if (isQuickTap && !isSwiping.current) {
           isSwiping.current = false;
@@ -186,19 +180,15 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
           return;
         }
         
-        if (gestureState.dy < -40 || Math.abs(gestureState.dx) > 100) {
+        if (gestureState.dy < -20) {
           dismissCurrentAlert();
         } else {
-          Animated.parallel([
-            Animated.spring(slideAnimation, {
-              toValue: 0,
-              useNativeDriver: true,
-            }),
-            Animated.spring(swipeAnimation, {
-              toValue: 0,
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
+          Animated.spring(slideAnimation, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 8,
+          }).start(() => {
             setTimeout(() => {
               isSwiping.current = false;
             }, 100);
@@ -206,16 +196,12 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         }
       },
       onPanResponderTerminate: () => {
-        Animated.parallel([
-          Animated.spring(slideAnimation, {
-            toValue: 0,
-            useNativeDriver: true,
-          }),
-          Animated.spring(swipeAnimation, {
-            toValue: 0,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
+        Animated.spring(slideAnimation, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        }).start(() => {
           setTimeout(() => {
             isSwiping.current = false;
           }, 100);
@@ -310,14 +296,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
         style={styles.banner}
         {...panResponder.panHandlers}
       >
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              transform: [{ translateX: swipeAnimation }],
-            },
-          ]}
-        >
+        <View style={styles.content}>
           <View style={styles.leftContent}>
             {getSentimentIcon(currentAlert.sentiment)}
             <Text style={styles.tickerText} numberOfLines={2}>
@@ -330,7 +309,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
               <Text style={styles.impactText}>{currentAlert.impact}</Text>
             </View>
           </View>
-        </Animated.View>
+        </View>
         <View style={styles.grabIndicator} />
       </View>
     </Animated.View>
