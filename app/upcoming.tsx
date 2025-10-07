@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -140,6 +140,29 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
   showMonthPicker: boolean;
   setShowMonthPicker: (show: boolean) => void;
 }) {
+  const monthScrollRef = useRef<ScrollView>(null);
+  
+  useEffect(() => {
+    if (showMonthPicker && monthScrollRef.current) {
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      
+      const currentMonthIndex = monthOptions.findIndex(
+        option => option.value === currentMonth && option.year === currentYear
+      );
+      
+      if (currentMonthIndex !== -1) {
+        setTimeout(() => {
+          monthScrollRef.current?.scrollTo({
+            y: currentMonthIndex * 56,
+            animated: true,
+          });
+        }, 100);
+      }
+    }
+  }, [showMonthPicker, monthOptions]);
+  
   return (
     <View style={styles.calendarContainer}>
       <View style={styles.calendarHeader}>
@@ -197,7 +220,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
         >
           <View style={styles.monthPickerModal}>
             <Text style={styles.modalTitle}>Select Month</Text>
-            <ScrollView style={styles.monthList}>
+            <ScrollView ref={monthScrollRef} style={styles.monthList}>
               {monthOptions.map((month) => {
                 const currentDate = new Date();
                 const currentMonth = currentDate.getMonth();
