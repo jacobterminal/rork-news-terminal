@@ -152,13 +152,13 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
         setTimeout(() => {
           const itemHeight = 56;
           const visibleHeight = 300;
-          const scrollY = (selectedMonthIndex * itemHeight) - (visibleHeight / 2) + (itemHeight / 2);
+          const scrollY = Math.max(0, (selectedMonthIndex * itemHeight) - (visibleHeight / 2) + (itemHeight / 2));
           
           monthScrollRef.current?.scrollTo({
             y: scrollY,
             animated: false,
           });
-        }, 50);
+        }, 100);
       }
     }
   }, [showMonthPicker, monthOptions, selectedMonth, selectedYear]);
@@ -220,7 +220,11 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
         >
           <View style={styles.monthPickerModal}>
             <Text style={styles.modalTitle}>Select Month</Text>
-            <ScrollView ref={monthScrollRef} style={styles.monthList}>
+            <ScrollView 
+              ref={monthScrollRef} 
+              style={styles.monthList}
+              showsVerticalScrollIndicator={false}
+            >
               {monthOptions.map((month) => {
                 const currentDate = new Date();
                 const currentMonth = currentDate.getMonth();
