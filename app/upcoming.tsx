@@ -150,8 +150,12 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
       
       if (selectedMonthIndex !== -1) {
         setTimeout(() => {
+          const itemHeight = 56;
+          const modalHeight = 300;
+          const scrollY = (selectedMonthIndex * itemHeight) - (modalHeight / 2) + (itemHeight / 2);
+          
           monthScrollRef.current?.scrollTo({
-            y: selectedMonthIndex * 56,
+            y: Math.max(0, scrollY),
             animated: true,
           });
         }, 100);
