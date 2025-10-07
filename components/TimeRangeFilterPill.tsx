@@ -267,7 +267,8 @@ export default function TimeRangeFilterPill({
           ]}
           onPress={handlePillPress}
         >
-          <Text style={styles.pillText}>{getPillText()} ⌄</Text>
+          <Text style={styles.pillText}>{getPillText()}</Text>
+          <ChevronDown size={12} color="#FFFFFF" style={styles.pillChevron} />
         </TouchableOpacity>
       </View>
 
@@ -786,6 +787,7 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#000000',
     borderWidth: 1,
     borderColor: '#FFD33D',
@@ -797,6 +799,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 4,
+  },
+  pillChevron: {
+    marginLeft: 4,
   },
   pillActive: {
     backgroundColor: 'rgba(255, 211, 61, 0.8)',
