@@ -9,7 +9,7 @@ import {
   Linking,
 
 } from 'react-native';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { useLocalSearchParams, Stack, router, useNavigation } from 'expo-router';
 
 import {
   ExternalLink,
@@ -87,6 +87,7 @@ const mockArticleData: ArticleData = {
 export default function ArticleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   console.log('Article ID:', id);
+  const navigation = useNavigation();
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [commentSort, setCommentSort] = useState<CommentSortType>('Hot');
@@ -212,7 +213,13 @@ export default function ArticleScreen() {
           headerLeft: () => (
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/');
+                }
+              }}
             >
               <ArrowLeft size={24} color={theme.colors.text} />
             </TouchableOpacity>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { ArrowLeft, Check } from 'lucide-react-native';
 
 interface ToggleItemProps {
@@ -54,6 +54,7 @@ function SelectItem({ label, selected, onPress }: SelectItemProps) {
 export default function InterfaceSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
 
   const [feedPreset, setFeedPreset] = useState<'watchlist' | 'overall'>('watchlist');
   const [darkMode, setDarkMode] = useState(true);
@@ -64,7 +65,13 @@ export default function InterfaceSettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          if (navigation.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/settings');
+          }
+        }} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Interface & Layout</Text>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 
 type PlanTier = 'free' | 'standard' | 'pro' | 'elite';
@@ -58,6 +58,7 @@ function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor,
 export default function BillingSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
   const [currentPlan, setCurrentPlan] = useState<PlanTier>('free');
   const [showModal, setShowModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{ tier: PlanTier; name: string; price: string } | null>(null);
@@ -81,7 +82,13 @@ export default function BillingSettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          if (navigation.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/settings');
+          }
+        }} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Subscription Plans</Text>

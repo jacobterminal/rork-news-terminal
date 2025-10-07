@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { ArrowLeft, Lightbulb, Bug, Sparkles } from 'lucide-react-native';
 
 interface FeedbackTypeProps {
@@ -28,6 +28,7 @@ function FeedbackType({ icon, title, description, onPress }: FeedbackTypeProps) 
 export default function FeedbackSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
 
   const handleFeatureRequest = () => {
     Alert.alert('Feature Request', 'Feature request form coming soon');
@@ -44,7 +45,13 @@ export default function FeedbackSettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          if (navigation.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/settings');
+          }
+        }} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Requests & Feedback</Text>

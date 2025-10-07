@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 
 interface ToggleItemProps {
@@ -33,6 +33,7 @@ function ToggleItem({ label, description, value, onValueChange }: ToggleItemProp
 export default function AlertsSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
 
   const [criticalAlerts, setCriticalAlerts] = useState(true);
   const [earningsAlerts, setEarningsAlerts] = useState(true);
@@ -46,7 +47,13 @@ export default function AlertsSettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          if (navigation.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/settings');
+          }
+        }} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Alerts & Notifications</Text>

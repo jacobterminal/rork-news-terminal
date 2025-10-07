@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { ChevronRight, User, Layout, Bell, CreditCard, MessageSquare, Mail, Shield, X } from 'lucide-react-native';
 
 interface SettingRowProps {
@@ -39,6 +39,7 @@ function SettingRow({ icon, title, onPress, rightElement }: SettingRowProps) {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
   const [criticalAlerts, setCriticalAlerts] = React.useState(true);
   const [earningsAlerts, setEarningsAlerts] = React.useState(true);
   const [cpiAlerts, setCpiAlerts] = React.useState(true);
@@ -51,7 +52,13 @@ export default function SettingsScreen() {
         <Text style={styles.headerTitle}>Account Settings</Text>
         <TouchableOpacity 
           style={styles.closeButton}
-          onPress={() => router.back()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/');
+            }
+          }}
           activeOpacity={0.7}
         >
           <X size={24} color="#FFFFFF" />

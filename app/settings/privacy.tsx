@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { ArrowLeft, Download, Trash2, ExternalLink } from 'lucide-react-native';
 
 interface ActionItemProps {
@@ -47,6 +47,7 @@ function LinkItem({ title, onPress }: LinkItemProps) {
 export default function PrivacySettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
 
   const handleExportData = () => {
     Alert.alert('Export Data', 'Your data export will be ready in 24 hours. We\'ll send you an email when it\'s ready.');
@@ -85,7 +86,13 @@ export default function PrivacySettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          if (navigation.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/settings');
+          }
+        }} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Data & Privacy</Text>

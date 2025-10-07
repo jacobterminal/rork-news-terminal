@@ -11,7 +11,7 @@ import {
   Dimensions,
   PanResponder,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { X, TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
 import { theme } from '../../constants/theme';
 import { EarningsItem, EconItem } from '../../types/news';
@@ -37,7 +37,8 @@ interface EventDetails {
 
 export default function EventDetailsScreen() {
   const router = useRouter();
-  const { id, type } = useLocalSearchParams<{ id: string; type: 'earnings' | 'econ' }>();
+  const navigation = useNavigation();
+  const { id, type } = useLocalSearchParams();
   
   const [eventDetails, setEventDetails] = useState<EventDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -59,7 +60,7 @@ export default function EventDetailsScreen() {
       const mockData = generateMockData();
       
       let eventData: EarningsItem | EconItem | undefined;
-      let eventType: 'earnings' | 'econ' = type || 'earnings';
+      let eventType: 'earnings' | 'econ' = (type as 'earnings' | 'econ') || 'earnings';
       
       if (eventType === 'earnings') {
         eventData = mockData.earnings.find(e => e.ticker === id);
@@ -241,7 +242,11 @@ export default function EventDetailsScreen() {
       duration: 250,
       useNativeDriver: true,
     }).start(() => {
-      router.back();
+      if (navigation.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/upcoming');
+      }
     });
   };
 
