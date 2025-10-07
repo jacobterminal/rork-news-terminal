@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Text, StyleSheet, Animated, Platform, Pressable, View } from 'react-native';
+import { Text, StyleSheet, Animated, Platform, View, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface CriticalAlertBannerProps {
@@ -15,6 +15,8 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
   const [isVisible, setIsVisible] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const bannerRef = useRef<View>(null);
+  const panStartY = useRef(0);
+  const isDismissing = useRef(false);
 
   useLayoutEffect(() => {
     if (Platform.OS === 'web' && isVisible) {
@@ -71,7 +73,10 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
     }
   }, [message, slideAnim, onDismiss, bannerHeight]);
 
-  const handlePress = () => {
+  const handleDismiss = () => {
+    if (isDismissing.current) return;
+    isDismissing.current = true;
+    
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
@@ -81,9 +86,41 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
       useNativeDriver: true,
     }).start(() => {
       setIsVisible(false);
+      isDismissing.current = false;
       onDismiss?.();
     });
   };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 3;
+      },
+      onPanResponderGrant: (_, gestureState) => {
+        panStartY.current = gestureState.y0;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy < 0) {
+          slideAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const swipeThreshold = 30;
+        
+        if (gestureState.dy < -swipeThreshold || gestureState.vy < -0.3) {
+          handleDismiss();
+        } else {
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 10,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   if (!isVisible && !message) return null;
 
@@ -101,15 +138,14 @@ export default function CriticalAlertBanner({ message, sentiment, onDismiss }: C
           transform: [{ translateY: slideAnim }],
         },
       ]}
+      {...panResponder.panHandlers}
     >
-      <Pressable 
-        onPress={handlePress}
-        style={styles.pressable}
-      >
+      <View style={styles.contentContainer}>
         <Text style={styles.bannerText} numberOfLines={2}>
           {message}
         </Text>
-      </Pressable>
+        <View style={styles.swipeIndicator} />
+      </View>
     </Animated.View>
   );
 }
@@ -137,11 +173,18 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  pressable: {
+  contentContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
+  },
+  swipeIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    marginTop: 12,
   },
   bannerText: {
     fontSize: 13,
