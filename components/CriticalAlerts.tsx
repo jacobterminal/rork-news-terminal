@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Modal } from 'react-native';
-import { ChevronDown } from 'lucide-react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { theme } from '../constants/theme';
 import { CriticalAlert } from '../types/news';
 
@@ -11,57 +10,9 @@ interface CriticalAlertsProps {
   onHighlightClear?: () => void;
 }
 
-interface MonthOption {
-  value: number;
-  label: string;
-  year: number;
-}
-
 export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertId, onHighlightClear }: CriticalAlertsProps) {
   const scrollViewRef = useRef<ScrollView>(null);
-  const monthScrollRef = useRef<ScrollView>(null);
   const glowAnimation = useRef(new Animated.Value(0)).current;
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [showMonthPicker, setShowMonthPicker] = useState<boolean>(false);
-  const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
-  
-  useEffect(() => {
-    const currentDate = new Date();
-    const options: MonthOption[] = [];
-    
-    for (let i = -12; i <= 12; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-      options.push({
-        value: date.getMonth(),
-        label: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-        year: date.getFullYear()
-      });
-    }
-    
-    setMonthOptions(options);
-  }, []);
-  
-  useEffect(() => {
-    if (showMonthPicker && monthScrollRef.current && monthOptions.length > 0) {
-      const selectedMonthIndex = monthOptions.findIndex(
-        option => option.value === selectedMonth && option.year === selectedYear
-      );
-      
-      if (selectedMonthIndex !== -1) {
-        setTimeout(() => {
-          const itemHeight = 56;
-          const visibleHeight = 300;
-          const scrollY = Math.max(0, (selectedMonthIndex * itemHeight) - (visibleHeight / 2) + (itemHeight / 2));
-          
-          monthScrollRef.current?.scrollTo({
-            y: scrollY,
-            animated: false,
-          });
-        }, 100);
-      }
-    }
-  }, [showMonthPicker, monthOptions, selectedMonth, selectedYear]);
   
   useEffect(() => {
     if (highlightedAlertId) {
@@ -95,11 +46,6 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
     }
   }, [highlightedAlertId, onHighlightClear, alerts, glowAnimation]);
   
-  const filteredAlerts = alerts.filter(alert => {
-    const alertDate = new Date(alert.published_at);
-    return alertDate.getMonth() === selectedMonth && alertDate.getFullYear() === selectedYear;
-  });
-  
   if (alerts.length === 0) return null;
 
   const formatTime = (dateString: string) => {
@@ -118,27 +64,10 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
     return { label, color };
   };
 
-  const handleMonthSelect = (month: number, year: number) => {
-    setSelectedMonth(month);
-    setSelectedYear(year);
-    setShowMonthPicker(false);
-  };
-  
   return (
     <View style={styles.container}>
       <View nativeID="banner-anchor-point" style={styles.sectionHeader}>
-        <View style={styles.headerRow}>
-          <Text style={styles.sectionTitle}>CRITICAL ALERTS</Text>
-          <TouchableOpacity 
-            style={styles.monthPill}
-            onPress={() => setShowMonthPicker(true)}
-          >
-            <Text style={styles.monthPillText}>
-              {new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-            </Text>
-            <ChevronDown size={12} color={theme.colors.textDim} />
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.sectionTitle}>CRITICAL ALERTS</Text>
       </View>
       <ScrollView 
         ref={scrollViewRef}
@@ -146,7 +75,7 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tableContainer}
       >
-        {filteredAlerts.map((alert) => {
+        {alerts.map((alert) => {
           const isHighlighted = highlightedAlertId === alert.id;
           const sentiment = getSentimentPill(alert.sentiment, alert.confidence);
           
@@ -257,58 +186,6 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
           );
         })}
       </ScrollView>
-      
-      <Modal
-        visible={showMonthPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowMonthPicker(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMonthPicker(false)}
-        >
-          <View style={styles.monthPickerModal}>
-            <Text style={styles.modalTitle}>Select Month</Text>
-            <ScrollView 
-              ref={monthScrollRef} 
-              style={styles.monthList}
-              showsVerticalScrollIndicator={false}
-            >
-              {monthOptions.map((month) => {
-                const currentDate = new Date();
-                const currentMonth = currentDate.getMonth();
-                const currentYear = currentDate.getFullYear();
-                const monthDate = new Date(month.year, month.value, 1);
-                const currentMonthDate = new Date(currentYear, currentMonth, 1);
-                
-                const isCurrentMonth = month.value === currentMonth && month.year === currentYear;
-                const isPastMonth = monthDate < currentMonthDate;
-                const isFutureMonth = monthDate > currentMonthDate;
-                const isSelected = selectedMonth === month.value && selectedYear === month.year;
-                
-                return (
-                  <TouchableOpacity
-                    key={`${month.year}-${month.value}`}
-                    style={[styles.monthOption, isSelected && styles.selectedMonthOption]}
-                    onPress={() => handleMonthSelect(month.value, month.year)}
-                  >
-                    <Text style={[
-                      styles.monthOptionText,
-                      isCurrentMonth && styles.currentMonthText,
-                      isPastMonth && styles.pastMonthText,
-                      isFutureMonth && styles.futureMonthText
-                    ]}>
-                      {month.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 }
@@ -326,26 +203,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  monthPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    gap: 4,
-  },
-  monthPillText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: theme.colors.text,
-    textTransform: 'uppercase' as const,
   },
   sectionTitle: {
     fontSize: 11,
@@ -463,52 +320,5 @@ const styles = StyleSheet.create({
   },
   missText: {
     color: theme.colors.bearish,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  monthPickerModal: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
-    maxHeight: '60%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  monthList: {
-    maxHeight: 300,
-  },
-  monthOption: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginBottom: 4,
-  },
-  selectedMonthOption: {
-    backgroundColor: theme.colors.border,
-  },
-  monthOptionText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    textAlign: 'center',
-  },
-  currentMonthText: {
-    color: theme.colors.bullish,
-  },
-  pastMonthText: {
-    color: theme.colors.textSecondary,
-  },
-  futureMonthText: {
-    color: theme.colors.text,
   },
 });
