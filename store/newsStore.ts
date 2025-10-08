@@ -394,7 +394,7 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
           classification: {
             rumor_level: 'Confirmed' as const,
             sentiment: 'Bullish' as const,
-            confidence: 92,
+            confidence: 100,
             impact: 'High' as const,
             summary_15: 'Major policy shift as administration announces reversal of tariffs on China and EU, signaling improved trade relations',
           },
@@ -438,7 +438,7 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
               tickers: trumpTariffsItem.tickers || [],
               impact: trumpTariffsItem.classification.impact,
               sentiment: trumpTariffsItem.classification.sentiment,
-              confidence: trumpTariffsItem.classification.confidence,
+              confidence: 100,
               published_at: trumpTariffsItem.published_at,
               is_released: true,
               verdict: 'Positive for Markets',
