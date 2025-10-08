@@ -483,125 +483,31 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
     };
   }, [wsConnected, isHydrated]);
 
-  // High impact news rush - inject high impact news rapidly for mock
+  // WebSocket simulation - only start after hydration with delay
   useEffect(() => {
     if (!isHydrated) return;
     
     let initialDelay: ReturnType<typeof setTimeout>;
     let interval: ReturnType<typeof setInterval>;
     
-    const injectHighImpactNews = () => {
-      try {
-        const mockData = generateMockData();
-        if (!mockData || !mockData.feedItems || !Array.isArray(mockData.feedItems)) {
-          console.warn('Invalid mock data structure');
-          return;
-        }
-        
-        // Filter for high impact items only
-        const highImpactItems = mockData.feedItems.filter(item => 
-          item && item.classification?.impact === 'High'
-        );
-        
-        if (highImpactItems.length === 0) return;
-        
-        // Select a random high impact item
-        const itemIndex = Math.floor(Math.random() * highImpactItems.length);
-        const selectedItem = highImpactItems[itemIndex];
-        
-        if (!selectedItem || typeof selectedItem !== 'object') {
-          console.warn('Invalid selected item');
-          return;
-        }
-        
-        const newItem = {
-          ...selectedItem,
-          id: `rush_${Date.now()}`,
-          published_at: new Date().toISOString(),
-          title: selectedItem.title,
-        };
-
-        setState(prev => {
-          try {
-            const currentItems = Array.isArray(prev.feedItems) ? prev.feedItems : [];
-            const updatedItems = [newItem, ...currentItems];
-            const scoredItems = updatedItems
-              .filter(item => item && typeof item === 'object' && item.title)
-              .map(feedItem => {
-                try {
-                  return {
-                    ...feedItem,
-                    score: calculateScore(feedItem, Array.isArray(prev.watchlist) ? prev.watchlist : []),
-                  };
-                } catch (scoreError) {
-                  console.warn('Error calculating score for item:', scoreError);
-                  return { ...feedItem, score: 0 };
-                }
-              });
-            
-            const deduped = deduplicateItems(scoredItems);
-            const top200 = deduped.slice(0, 200);
-
-            console.log('🚨 HIGH IMPACT NEWS RUSH:', (newItem.title || 'Untitled').slice(0, 50) + '...');
-            
-            // Add to notifications
-            setNotifications(prevNotifications => {
-              const updated = [newItem, ...prevNotifications].slice(0, 5);
-              return updated;
-            });
-            
-            // Create critical alert for high impact items
-            const criticalAlert: CriticalAlert = {
-              id: `critical_${newItem.id}`,
-              type: newItem.tags?.fed ? 'fed' : newItem.tags?.earnings ? 'earnings' : 'cpi',
-              headline: newItem.title,
-              source: newItem.source.name,
-              tickers: newItem.tickers || [],
-              impact: newItem.classification.impact,
-              sentiment: newItem.classification.sentiment,
-              confidence: newItem.classification.confidence,
-              published_at: newItem.published_at,
-              is_released: true,
-            };
-            
-            setCriticalAlerts(prev => [criticalAlert, ...prev].slice(0, 10));
-            
-            return {
-              ...prev,
-              feedItems: top200,
-            };
-          } catch (stateError) {
-            console.error('Error updating state with new item:', stateError);
-            return prev;
-          }
-        });
-      } catch (error) {
-        console.error('Failed to inject high impact news:', error);
-      }
-    };
-    
-    // Add initial delay before starting high impact news rush
+    // Add initial delay before starting WebSocket simulation
     initialDelay = setTimeout(() => {
-      // Inject immediately on first load
-      injectHighImpactNews();
-      
-      // Then inject every 3 seconds for rapid news rush effect
       interval = setInterval(() => {
-        if (wsConnected) {
+        if (wsConnected && typeof injectRandomNewsItem === 'function') {
           try {
-            injectHighImpactNews();
+            injectRandomNewsItem();
           } catch (error) {
-            console.error('Error injecting high impact news:', error);
+            console.error('Error injecting news item:', error);
           }
         }
-      }, 3000); // 3 seconds for rapid rush effect
-    }, 2000); // Wait 2 seconds after hydration
+      }, 15000); // Increased to 15s interval to reduce load
+    }, 10000); // Wait 10 seconds after hydration
 
     return () => {
       if (initialDelay) clearTimeout(initialDelay);
       if (interval) clearInterval(interval);
     };
-  }, [wsConnected, isHydrated]);
+  }, [wsConnected, isHydrated, injectRandomNewsItem]);
 
   const setFilters = useCallback(async (newFilters: Partial<AppFilters>) => {
     const updatedFilters = { ...state.filters, ...newFilters };

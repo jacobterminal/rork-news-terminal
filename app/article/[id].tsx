@@ -21,7 +21,7 @@ import {
   ArrowDown,
   ArrowLeft,
 } from 'lucide-react-native';
-import { theme, impactColors, sentimentConfig } from '@/constants/theme';
+import { theme, impactColors } from '@/constants/theme';
 import { ArticleData, Comment, CommentSortType, FeedItem } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
 
@@ -88,36 +88,14 @@ export default function ArticleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   console.log('Article ID:', id);
   const navigation = useNavigation();
-  const { saveArticle, unsaveArticle, isArticleSaved, state } = useNewsStore();
+  const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [commentSort, setCommentSort] = useState<CommentSortType>('Hot');
   const [newComment, setNewComment] = useState('');
   const [postPublicly, setPostPublicly] = useState(true);
 
-  // Try to find the article in the feed first, fallback to mock data
-  const feedArticle = state.feedItems.find(item => item.id === id);
-  const article = feedArticle ? {
-    id: feedArticle.id,
-    title: feedArticle.title,
-    source: feedArticle.source,
-    published_at: new Date(feedArticle.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    original_url: feedArticle.url,
-    ai: {
-      summary: feedArticle.classification.summary_15,
-      overview: feedArticle.classification.summary_15,
-      opinion: 'Market analysis suggests this development will impact trading activity.',
-      sentiment: feedArticle.classification.sentiment,
-      confidence: feedArticle.classification.confidence,
-      impact: feedArticle.classification.impact,
-      explainer: 'This news item has been classified based on AI analysis of market impact and sentiment.',
-    },
-    comments: [],
-    community_sentiment: {
-      bullish: 33,
-      neutral: 34,
-      bearish: 33,
-    },
-  } : mockArticleData;
+  // In real app, fetch article data based on id
+  const article = mockArticleData;
 
   const sortedComments = useMemo(() => {
     const comments = [...article.comments];
@@ -258,18 +236,6 @@ export default function ArticleScreen() {
               Source: {article.source.name} • Published: {article.published_at}
             </Text>
           </View>
-          
-          {/* Sentiment, Confidence, and Impact Pills */}
-          <View style={styles.metaRow}>
-            <View style={[styles.sentimentPill, { borderColor: sentimentConfig[article.ai.sentiment].color }]}>
-              <Text style={[styles.sentimentText, { color: sentimentConfig[article.ai.sentiment].color }]}>
-                {article.ai.sentiment === 'Bullish' ? 'BULL' : article.ai.sentiment === 'Bearish' ? 'BEAR' : 'NEUT'} {article.ai.confidence}%
-              </Text>
-            </View>
-            <View style={[styles.impactBadge, { backgroundColor: impactColors[article.ai.impact] }]}>
-              <Text style={styles.impactBadgeText}>{article.ai.impact.toUpperCase()}</Text>
-            </View>
-          </View>
           <View style={styles.actions}>
             <TouchableOpacity style={styles.actionButton} onPress={handleOpenOriginal}>
               <ExternalLink size={16} color={theme.colors.text} />
@@ -329,7 +295,7 @@ export default function ArticleScreen() {
         <View style={styles.sentimentSection}>
           <Text style={styles.sectionTitle}>COMMUNITY SENTIMENT</Text>
           <View style={styles.sentimentRow}>
-            <Text style={styles.communitySentimentText}>
+            <Text style={styles.sentimentText}>
               Bullish {article.community_sentiment.bullish}% | 
               Neutral {article.community_sentiment.neutral}% | 
               Bearish {article.community_sentiment.bearish}%
@@ -459,36 +425,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   sourceRow: {
-    marginBottom: theme.spacing.sm,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
     marginBottom: theme.spacing.md,
-  },
-  sentimentPill: {
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  sentimentText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    fontFamily: 'monospace',
-    letterSpacing: 0.5,
-  },
-  impactBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  impactBadgeText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    fontFamily: 'monospace',
   },
   sourceText: {
     fontSize: theme.fontSize.tight,
@@ -580,7 +517,7 @@ const styles = StyleSheet.create({
   sentimentRow: {
     marginBottom: theme.spacing.xs,
   },
-  communitySentimentText: {
+  sentimentText: {
     fontSize: theme.fontSize.base,
     color: theme.colors.text,
   },
