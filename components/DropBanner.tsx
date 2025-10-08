@@ -115,7 +115,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
       slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
       opacityAnimation.setValue(0);
       
-      const timer = setTimeout(() => {
+      requestAnimationFrame(() => {
         Animated.parallel([
           Animated.timing(slideAnimation, {
             toValue: 0,
@@ -128,9 +128,7 @@ export default function DropBanner({ alerts, onDismiss, onNavigate }: DropBanner
             useNativeDriver: true,
           }),
         ]).start();
-      }, 0);
-      
-      return () => clearTimeout(timer);
+      });
     } else if (!isVisible) {
       slideAnimation.setValue(-BANNER_HEIGHT - insets.top - 20);
     }

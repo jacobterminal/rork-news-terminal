@@ -4,7 +4,7 @@ import { Tabs } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
 import { theme } from "../constants/theme";
@@ -187,35 +187,21 @@ export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    
     const prepare = async () => {
       try {
-        // Immediate hydration for web, small delay for native
-        const delay = typeof window !== 'undefined' ? 0 : 100;
-        
-        timeoutId = setTimeout(() => {
-          setIsReady(true);
-          SplashScreen.hideAsync().catch(console.warn);
-        }, delay);
+        await SplashScreen.hideAsync();
       } catch (e) {
-        console.warn('RootLayout preparation error:', e);
+        console.warn('SplashScreen hide error:', e);
+      } finally {
         setIsReady(true);
-        SplashScreen.hideAsync().catch(console.warn);
       }
     };
 
     prepare();
-    
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
   }, []);
 
   if (!isReady) {
-    return <View style={styles.loading} />;
+    return null;
   }
 
   return (
@@ -232,10 +218,6 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
   container: {
     flex: 1,
   },
