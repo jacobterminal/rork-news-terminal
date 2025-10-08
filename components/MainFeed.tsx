@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View, Animated } from 'react-native';
 import { theme, sentimentConfig, impactColors } from '../constants/theme';
 import { FeedItem } from '../types/news';
 import { formatTime } from '../utils/newsUtils';
@@ -16,6 +16,44 @@ interface FeedCardProps {
 
 function FeedCard({ item, onTickerPress }: FeedCardProps) {
   const [summaryLoading] = useState(false);
+  const flashAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  
+  const isHighImpact = item?.classification?.impact === 'High';
+  const isNewItem = item?.id?.startsWith('rush_') || item?.id?.startsWith('trump_tariffs_');
+  
+  useEffect(() => {
+    if (isNewItem && isHighImpact) {
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(flashAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1.02,
+            friction: 3,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(flashAnim, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 3,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    }
+  }, [item?.id, isNewItem, isHighImpact, flashAnim, scaleAnim]);
   
   // Safe access to configurations
   const sentimentKey = item?.classification?.sentiment || 'Neutral';
@@ -52,8 +90,22 @@ function FeedCard({ item, onTickerPress }: FeedCardProps) {
   const pills = getPills();
   const primaryTicker = item?.tickers?.[0];
   
+  const flashOpacity = flashAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.3],
+  });
+  
   return (
-    <Pressable style={styles.card}>
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      {isNewItem && isHighImpact && (
+        <Animated.View 
+          style={[
+            styles.flashOverlay,
+            { opacity: flashOpacity }
+          ]} 
+        />
+      )}
+      <Pressable style={[styles.card, isNewItem && isHighImpact && styles.cardHighlight]}>
       <View style={styles.cardHeader}>
         <View style={styles.titleRow}>
           <Text style={styles.headline} numberOfLines={1}>
@@ -113,7 +165,8 @@ function FeedCard({ item, onTickerPress }: FeedCardProps) {
         
         <Text style={styles.timestamp}>{formatTime(item?.published_at || '')}</Text>
       </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -288,5 +341,19 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.base,
     color: theme.colors.textDim,
     textAlign: 'center',
+  },
+  flashOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: theme.colors.red,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  cardHighlight: {
+    borderColor: theme.colors.red,
+    borderWidth: 2,
   },
 });
