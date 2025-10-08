@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, ScrollView, Text, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
@@ -31,8 +31,35 @@ export default function InstantScreen() {
     return state.feedItems.filter(item => 
       item.classification.impact === 'High' || 
       item.classification.rumor_level === 'Confirmed'
-    );
+    ).sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
   }, [state.feedItems]);
+  
+  const [animatedItems, setAnimatedItems] = useState<Set<string>>(new Set());
+  const animationRefs = useRef<Map<string, Animated.Value>>(new Map());
+  
+  useEffect(() => {
+    instantNews.forEach((item, index) => {
+      if (!animatedItems.has(item.id)) {
+        if (!animationRefs.current.has(item.id)) {
+          animationRefs.current.set(item.id, new Animated.Value(0));
+        }
+        
+        const animValue = animationRefs.current.get(item.id);
+        if (animValue) {
+          setTimeout(() => {
+            Animated.spring(animValue, {
+              toValue: 1,
+              useNativeDriver: true,
+              tension: 50,
+              friction: 7,
+            }).start();
+          }, index * 50);
+        }
+        
+        setAnimatedItems(prev => new Set([...prev, item.id]));
+      }
+    });
+  }, [instantNews, animatedItems]);
   
   // Filter for recent critical alerts (within last 6 hours)
   const recentAlerts = useMemo(() => {
@@ -99,14 +126,38 @@ export default function InstantScreen() {
         </View>
 
         {/* News feed */}
-        {instantNews.map((item) => (
-          <NewsCard
-            key={item.id}
-            item={item}
-            onTickerPress={handleTickerPress}
-            onPress={() => handleNewsCardPress(item)}
-          />
-        ))}
+        {instantNews.map((item) => {
+          const animValue = animationRefs.current.get(item.id) || new Animated.Value(1);
+          
+          return (
+            <Animated.View
+              key={item.id}
+              style={{
+                opacity: animValue,
+                transform: [
+                  {
+                    translateY: animValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }),
+                  },
+                  {
+                    scale: animValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.95, 1],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <NewsCard
+                item={item}
+                onTickerPress={handleTickerPress}
+                onPress={() => handleNewsCardPress(item)}
+              />
+            </Animated.View>
+          );
+        })}
       </ScrollView>
       
       <TickerDrawer
