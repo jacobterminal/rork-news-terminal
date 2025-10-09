@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text } from 'react-native';
 import { Search, X, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { theme } from '../constants/theme';
@@ -92,13 +92,6 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   return (
     <>
       <View style={styles.container}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/xexfdohljxylu7btnazes' }}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
         <View style={styles.actionsRow}>
           <TouchableOpacity
             testID="search-button"
@@ -198,18 +191,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.bg,
   },
-  logoContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    pointerEvents: 'none',
-  },
-  logo: {
-    width: 120,
-    height: 40,
-  },
+
   actionsRow: {
     flexDirection: 'row',
     gap: 8,
