@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     pointerEvents: 'none' as const,
   },
   logo: {
-    height: '100%',
+    height: Platform.select({ web: '88%', default: '86%' }),
     width: '100%',
     objectFit: 'contain' as const,
     alignSelf: 'flex-start',
