@@ -92,16 +92,15 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
-  const contentGutter = 16;
-  const leftInset = Math.max(contentGutter, insets.left + contentGutter);
-  const rightReserved = 88;
+  const contentGutter = Platform.select({ web: 32, default: 16 });
+  const leftOffset = insets.left + contentGutter;
 
   return (
     <>
       <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
-        <View style={[styles.logoContainer, { left: leftInset, right: rightReserved }]}>
+        <View style={[styles.logoContainer, { left: leftOffset }]}>
           <Image
-            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/d7axf3kzc3xyf59e2x2p0' }}
+            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/6z7thiie5ylbe4jq88288' }}
             style={styles.logo}
             resizeMode="contain"
             alt="Insider Vega logo"
@@ -211,14 +210,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    overflow: 'hidden',
     zIndex: 10,
     pointerEvents: 'none' as const,
   },
   logo: {
     height: '100%',
-    width: 'auto',
-    objectFit: 'contain' as const,
+    width: undefined,
+    aspectRatio: undefined,
   },
   actionsRow: {
     position: 'absolute' as const,
