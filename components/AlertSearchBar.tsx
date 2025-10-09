@@ -95,7 +95,10 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 
   return (
     <>
-      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]} />
+      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
+        <View style={styles.innerWrapper}>
+        </View>
+      </View>
 
       <Modal
         visible={showSearch}
@@ -271,5 +274,10 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 14,
     color: theme.colors.textDim,
+  },
+  innerWrapper: {
+    position: 'relative' as const,
+    height: '100%',
+    paddingHorizontal: 16,
   },
 });
