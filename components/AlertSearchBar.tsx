@@ -92,7 +92,8 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
-  const leftInset = Math.max(8, insets.left);
+  const contentGutter = 16;
+  const leftInset = Math.max(contentGutter, insets.left + contentGutter);
   const rightReserved = 88;
 
   return (
@@ -215,10 +216,9 @@ const styles = StyleSheet.create({
     pointerEvents: 'none' as const,
   },
   logo: {
-    height: Platform.select({ web: '88%', default: '86%' }),
-    width: '100%',
+    height: '100%',
+    width: 'auto',
     objectFit: 'contain' as const,
-    alignSelf: 'flex-start',
   },
   actionsRow: {
     position: 'absolute' as const,
