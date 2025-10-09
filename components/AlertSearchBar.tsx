@@ -95,16 +95,7 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 
   return (
     <>
-      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
-        <View style={styles.innerWrapper}>
-          <Image
-            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/ac60yw3gxemy1tyzexh8y' }}
-            alt="Insider Vega logo"
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-      </View>
+      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]} />
 
       <Modal
         visible={showSearch}
@@ -280,20 +271,5 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 14,
     color: theme.colors.textDim,
-  },
-  innerWrapper: {
-    position: 'relative' as const,
-    height: '100%',
-    paddingHorizontal: 16,
-  },
-  logo: {
-    position: 'absolute' as const,
-    top: 0,
-    bottom: 0,
-    left: 0,
-    height: '100%',
-    width: undefined,
-    aspectRatio: undefined,
-    zIndex: 20,
   },
 });
