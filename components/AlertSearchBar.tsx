@@ -95,7 +95,35 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 
   return (
     <>
-      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]} />
+      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
+        <View style={styles.contentWrapper}>
+          <Image
+            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/677b25aosljz1vo3y90tx' }}
+            style={styles.logo}
+            resizeMode="contain"
+            alt="Insider Vega logo"
+          />
+        </View>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            testID="search-button"
+            style={[styles.iconButton, showSearch && styles.iconButtonActive]}
+            onPress={handleSearchPress}
+          >
+            <Search size={18} color={showSearch ? theme.colors.green : theme.colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="account-button"
+            style={styles.iconButton}
+            onPress={() => {
+              console.log('[AlertSearchBar] Navigate to settings');
+              router.push('/settings');
+            }}
+          >
+            <User size={18} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <Modal
         visible={showSearch}
@@ -168,14 +196,40 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 
 const styles = StyleSheet.create({
   container: {
+    position: 'relative' as const,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+  },
+  contentWrapper: {
+    position: 'relative' as const,
+    height: '100%',
+    paddingHorizontal: 16,
+    ...Platform.select({
+      web: {
+        paddingHorizontal: 24,
+      },
+    }),
+  },
+  logo: {
     position: 'absolute' as const,
     top: 0,
+    bottom: 0,
     left: 0,
-    width: '100%',
-    backgroundColor: '#000000',
-    borderBottomWidth: 1,
-    borderBottomColor: '#C9A227',
-    zIndex: 9999,
+    height: '100%',
+    width: 'auto' as any,
+    zIndex: 10,
+  },
+  actionsRow: {
+    position: 'absolute' as const,
+    top: 0,
+    bottom: 0,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 20,
   },
   iconButton: {
     padding: theme.spacing.sm,

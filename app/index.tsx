@@ -254,7 +254,6 @@ export default function NewsScreen() {
           feedItems={watchlistFeedItems}
         />
       </View>
-      <View style={[styles.mainContentPadding, { height: headerHeight }]} />
       
       <ScrollView 
         ref={scrollViewRef}
@@ -379,9 +378,6 @@ export default function NewsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.bg,
-  },
-  mainContentPadding: {
     backgroundColor: theme.colors.bg,
   },
   reservedSpace: {
