@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Text, Pressable, Modal } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Pressable, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
@@ -244,9 +244,11 @@ export default function NewsScreen() {
     });
   }, [criticalAlerts]);
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.reservedSpace}>
+      <View style={[styles.reservedSpace, { height: headerHeight }]}>
         <AlertSearchBar 
           onTickerPress={handleTickerPress}
           feedItems={watchlistFeedItems}
@@ -379,10 +381,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bg,
   },
   reservedSpace: {
-    height: 50,
     backgroundColor: theme.colors.bg,
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
   },
   scrollView: {
     flex: 1,

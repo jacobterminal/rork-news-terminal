@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image, Platform } from 'react-native';
 import { Search, X, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { FeedItem } from '../types/news';
 
@@ -20,6 +21,7 @@ interface AlertSearchBarProps {
 
 export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertSearchBarProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -89,9 +91,18 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
     }
   };
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+  const leftInset = Math.max(8, insets.left);
+
   return (
     <>
-      <View style={styles.container}>
+      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
+        <Image
+          source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/xxazxbyhraltudvl58yut' }}
+          style={[styles.logo, { left: leftInset, height: headerHeight }]}
+          resizeMode="contain"
+          alt="Insider Vega logo"
+        />
         <View style={styles.actionsRow}>
           <TouchableOpacity
             testID="search-button"
@@ -184,19 +195,29 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 
 const styles = StyleSheet.create({
   container: {
-    height: 50,
+    position: 'relative' as const,
+    width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.bg,
+    backgroundColor: '#000000',
   },
-
+  logo: {
+    position: 'absolute' as const,
+    top: 0,
+    bottom: 0,
+    width: 'auto' as const,
+    aspectRatio: 1,
+    zIndex: 10,
+  },
   actionsRow: {
+    position: 'absolute' as const,
+    top: 0,
+    bottom: 0,
+    right: 16,
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    marginLeft: 'auto',
-    zIndex: 1,
+    zIndex: 20,
   },
   iconButton: {
     padding: theme.spacing.sm,
