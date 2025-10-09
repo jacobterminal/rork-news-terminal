@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Platform, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image, Platform } from 'react-native';
 import { Search, X, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -92,10 +92,40 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
+  const contentGutter = Platform.select({ web: 32, default: 16 });
+  const leftOffset = insets.left + contentGutter;
 
   return (
     <>
-      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]} />
+      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
+        <View style={[styles.logoContainer, { left: leftOffset }]}>
+          <Image
+            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/yjeg6bs0qo6qyzo574d4d' }}
+            style={styles.logo}
+            resizeMode="contain"
+            alt="Insider Vega logo"
+          />
+        </View>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            testID="search-button"
+            style={[styles.iconButton, showSearch && styles.iconButtonActive]}
+            onPress={handleSearchPress}
+          >
+            <Search size={18} color={showSearch ? theme.colors.green : theme.colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="account-button"
+            style={styles.iconButton}
+            onPress={() => {
+              console.log('[AlertSearchBar] Navigate to settings');
+              router.push('/settings');
+            }}
+          >
+            <User size={18} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <Modal
         visible={showSearch}
@@ -168,14 +198,35 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 
 const styles = StyleSheet.create({
   container: {
+    position: 'relative' as const,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+  },
+  logoContainer: {
     position: 'absolute' as const,
     top: 0,
-    left: 0,
-    width: '100%',
-    backgroundColor: '#000000',
-    borderBottomWidth: 1,
-    borderBottomColor: '#C9A227',
-    zIndex: 9999,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+    pointerEvents: 'none' as const,
+  },
+  logo: {
+    height: '100%',
+    width: undefined,
+    aspectRatio: undefined,
+  },
+  actionsRow: {
+    position: 'absolute' as const,
+    top: 0,
+    bottom: 0,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 20,
   },
   iconButton: {
     padding: theme.spacing.sm,
