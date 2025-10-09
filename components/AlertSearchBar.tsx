@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Platform } from 'react-native';
 import { Search, X, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -92,20 +92,10 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
-  const contentGutter = Platform.select({ web: 32, default: 16 });
-  const leftOffset = insets.left + contentGutter;
 
   return (
     <>
       <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
-        <View style={[styles.logoContainer, { left: leftOffset }]}>
-          <Image
-            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/yjeg6bs0qo6qyzo574d4d' }}
-            style={styles.logo}
-            resizeMode="contain"
-            alt="Insider Vega logo"
-          />
-        </View>
         <View style={styles.actionsRow}>
           <TouchableOpacity
             testID="search-button"
@@ -203,20 +193,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#000000',
-  },
-  logoContainer: {
-    position: 'absolute' as const,
-    top: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 10,
-    pointerEvents: 'none' as const,
-  },
-  logo: {
-    height: '100%',
-    width: undefined,
-    aspectRatio: undefined,
   },
   actionsRow: {
     position: 'absolute' as const,
