@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Platform, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image, Platform } from 'react-native';
 import { Search, X, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -92,13 +92,15 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
+  const leftInset = Math.max(8, insets.left);
+  const rightReserved = 88;
 
   return (
     <>
       <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
-        <View style={styles.contentWrapper}>
+        <View style={[styles.logoContainer, { left: leftInset, right: rightReserved }]}>
           <Image
-            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/677b25aosljz1vo3y90tx' }}
+            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/ba5vpoake89wl4udq0jlm' }}
             style={styles.logo}
             resizeMode="contain"
             alt="Insider Vega logo"
@@ -202,24 +204,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000000',
   },
-  contentWrapper: {
-    position: 'relative' as const,
-    height: '100%',
-    paddingHorizontal: 16,
-    ...Platform.select({
-      web: {
-        paddingHorizontal: 24,
-      },
-    }),
-  },
-  logo: {
+  logoContainer: {
     position: 'absolute' as const,
     top: 0,
     bottom: 0,
-    left: 0,
-    height: '100%',
-    width: 'auto' as any,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
     zIndex: 10,
+    pointerEvents: 'none' as const,
+  },
+  logo: {
+    height: Platform.select({ web: '88%', default: '86%' }),
+    width: '100%',
+    objectFit: 'contain' as const,
+    alignSelf: 'flex-start',
   },
   actionsRow: {
     position: 'absolute' as const,
