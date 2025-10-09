@@ -100,7 +100,7 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
       <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
         <View style={[styles.logoContainer, { left: leftInset, right: rightReserved }]}>
           <Image
-            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/ba5vpoake89wl4udq0jlm' }}
+            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/tv7ub8qmq1k22lgbg9lib' }}
             style={styles.logo}
             resizeMode="contain"
             alt="Insider Vega logo"
