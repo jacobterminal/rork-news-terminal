@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, Pressable, Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
 import { MoreVertical } from 'lucide-react-native';
@@ -11,9 +12,9 @@ import CriticalAlerts from '../components/CriticalAlerts';
 import AlertSearchBar from '../components/AlertSearchBar';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
-import FixedHeader from '../components/FixedHeader';
 
 export default function NewsScreen() {
+  const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
   const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines } = useNewsStore();
   const { watchlist, feedItems, ui } = state;
@@ -244,8 +245,7 @@ export default function NewsScreen() {
   }, [criticalAlerts]);
 
   return (
-    <View style={styles.container}>
-      <FixedHeader />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.reservedSpace}>
         <AlertSearchBar 
           onTickerPress={handleTickerPress}
