@@ -93,16 +93,19 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
   const leftInset = Math.max(8, insets.left);
+  const rightReserved = 88;
 
   return (
     <>
       <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
-        <Image
-          source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/xxazxbyhraltudvl58yut' }}
-          style={[styles.logo, { left: leftInset, height: headerHeight }]}
-          resizeMode="contain"
-          alt="Insider Vega logo"
-        />
+        <View style={[styles.logoContainer, { left: leftInset, right: rightReserved }]}>
+          <Image
+            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/xxazxbyhraltudvl58yut' }}
+            style={styles.logo}
+            resizeMode="contain"
+            alt="Insider Vega logo"
+          />
+        </View>
         <View style={styles.actionsRow}>
           <TouchableOpacity
             testID="search-button"
@@ -201,13 +204,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000000',
   },
-  logo: {
+  logoContainer: {
     position: 'absolute' as const,
     top: 0,
     bottom: 0,
-    width: 'auto' as const,
-    aspectRatio: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
     zIndex: 10,
+    pointerEvents: 'none' as const,
+  },
+  logo: {
+    height: '100%',
+    width: '100%',
+    objectFit: 'contain' as const,
+    alignSelf: 'flex-start',
   },
   actionsRow: {
     position: 'absolute' as const,
