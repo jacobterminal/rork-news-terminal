@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Text, TextInput, TouchableOpacity, Alert 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
+import { settingsNavigation } from '../../utils/navigationMemory';
 
 const AI_MODULES = ['AI Summary', 'AI Opinion', 'AI Forecast', 'Key Phrases'];
 
@@ -14,6 +15,16 @@ export default function RequestAIImprovementScreen() {
   const [example, setExample] = useState('');
   const [showModulePicker, setShowModulePicker] = useState(false);
 
+  const handleBack = () => {
+    const prevPage = settingsNavigation.goBack();
+    if (prevPage) {
+      router.replace(prevPage as any);
+    } else {
+      const destination = settingsNavigation.exitSettings();
+      router.replace(`/${destination === 'index' ? '' : destination}`);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!moduleName || !description.trim()) {
       Alert.alert('Missing Information', 'Please select a module and describe the improvement.');
@@ -24,7 +35,7 @@ export default function RequestAIImprovementScreen() {
     // SaveToSupabase(table: "feedback")
     
     Alert.alert('Success', 'AI improvement request submitted successfully.', [
-      { text: 'OK', onPress: () => router.back() }
+      { text: 'OK', onPress: handleBack }
     ]);
   };
 
@@ -33,7 +44,7 @@ export default function RequestAIImprovementScreen() {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
           activeOpacity={0.6}
         >
           <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />

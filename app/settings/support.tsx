@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
-import { Mail, HelpCircle, ExternalLink } from 'lucide-react-native';
-import SettingsBackHeader from '../../components/SettingsBackHeader';
+import { useRouter } from 'expo-router';
+import { Mail, HelpCircle, ExternalLink, ChevronLeft } from 'lucide-react-native';
+import { settingsNavigation } from '../../utils/navigationMemory';
 
 interface SupportItemProps {
   icon: React.ReactNode;
@@ -30,7 +30,16 @@ function SupportItem({ icon, title, description, onPress }: SupportItemProps) {
 export default function SupportSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
+
+  const handleBack = () => {
+    const prevPage = settingsNavigation.goBack();
+    if (prevPage) {
+      router.replace(prevPage as any);
+    } else {
+      const destination = settingsNavigation.exitSettings();
+      router.replace(`/${destination === 'index' ? '' : destination}`);
+    }
+  };
 
   const handleEmail = () => {
     Linking.openURL('mailto:support@example.com');
@@ -42,8 +51,14 @@ export default function SupportSettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <SettingsBackHeader />
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={handleBack}
+          activeOpacity={0.6}
+        >
+          <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Contact & Support</Text>
       </View>
 
@@ -93,17 +108,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: '#1A1A1A',
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#EAEAEA',
   },
   scrollView: {
     flex: 1,

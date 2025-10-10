@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Lightbulb, Bug, Sparkles, ChevronLeft } from 'lucide-react-native';
+import { settingsNavigation } from '../../utils/navigationMemory';
 
 interface FeedbackTypeProps {
   icon: React.ReactNode;
@@ -29,16 +30,31 @@ export default function FeedbackSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const handleBack = () => {
+    const prevPage = settingsNavigation.goBack();
+    if (prevPage) {
+      router.replace(prevPage as any);
+    } else {
+      const destination = settingsNavigation.exitSettings();
+      router.replace(`/${destination === 'index' ? '' : destination}`);
+    }
+  };
+
+  const handleNavigateToSubpage = (page: string) => {
+    settingsNavigation.pushPage(page);
+    router.push(page as any);
+  };
+
   const handleFeatureRequest = () => {
-    router.push('/settings/feedback-feature');
+    handleNavigateToSubpage('/settings/feedback-feature');
   };
 
   const handleBugReport = () => {
-    router.push('/settings/feedback-bug');
+    handleNavigateToSubpage('/settings/feedback-bug');
   };
 
   const handleAIImprovement = () => {
-    router.push('/settings/feedback-ai');
+    handleNavigateToSubpage('/settings/feedback-ai');
   };
 
   return (
@@ -46,7 +62,7 @@ export default function FeedbackSettingsScreen() {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
           activeOpacity={0.6}
         >
           <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />

@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Text, TextInput, TouchableOpacity, Alert,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Upload } from 'lucide-react-native';
+import { settingsNavigation } from '../../utils/navigationMemory';
 
 export default function ReportBugScreen() {
   const insets = useSafeAreaInsets();
@@ -11,6 +12,16 @@ export default function ReportBugScreen() {
   const [description, setDescription] = useState('');
   const [deviceInfo, setDeviceInfo] = useState('');
   const [screenshot, setScreenshot] = useState<string | null>(null);
+
+  const handleBack = () => {
+    const prevPage = settingsNavigation.goBack();
+    if (prevPage) {
+      router.replace(prevPage as any);
+    } else {
+      const destination = settingsNavigation.exitSettings();
+      router.replace(`/${destination === 'index' ? '' : destination}`);
+    }
+  };
 
   const handleAttachScreenshot = () => {
     setScreenshot('placeholder.jpg');
@@ -27,7 +38,7 @@ export default function ReportBugScreen() {
     // SaveToSupabase(table: "feedback")
     
     Alert.alert('Success', 'Bug report submitted successfully.', [
-      { text: 'OK', onPress: () => router.back() }
+      { text: 'OK', onPress: handleBack }
     ]);
   };
 
@@ -36,7 +47,7 @@ export default function ReportBugScreen() {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
           activeOpacity={0.6}
         >
           <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />

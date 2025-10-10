@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Text, TextInput, TouchableOpacity, Alert 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
+import { settingsNavigation } from '../../utils/navigationMemory';
 
 const CATEGORIES = ['AI', 'News Feed', 'Interface', 'Performance', 'Other'];
 
@@ -14,6 +15,16 @@ export default function RequestFeatureScreen() {
   const [category, setCategory] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
+  const handleBack = () => {
+    const prevPage = settingsNavigation.goBack();
+    if (prevPage) {
+      router.replace(prevPage as any);
+    } else {
+      const destination = settingsNavigation.exitSettings();
+      router.replace(`/${destination === 'index' ? '' : destination}`);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim()) {
       Alert.alert('Missing Information', 'Please fill in both title and description.');
@@ -24,7 +35,7 @@ export default function RequestFeatureScreen() {
     // SaveToSupabase(table: "feedback")
     
     Alert.alert('Success', 'Feature request submitted successfully.', [
-      { text: 'OK', onPress: () => router.back() }
+      { text: 'OK', onPress: handleBack }
     ]);
   };
 
@@ -33,7 +44,7 @@ export default function RequestFeatureScreen() {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
           activeOpacity={0.6}
         >
           <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />

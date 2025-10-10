@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
-import { Download, Trash2, ExternalLink } from 'lucide-react-native';
-import SettingsBackHeader from '../../components/SettingsBackHeader';
+import { useRouter } from 'expo-router';
+import { Download, Trash2, ExternalLink, ChevronLeft } from 'lucide-react-native';
+import { settingsNavigation } from '../../utils/navigationMemory';
 
 interface ActionItemProps {
   icon: React.ReactNode;
@@ -48,7 +48,16 @@ function LinkItem({ title, onPress }: LinkItemProps) {
 export default function PrivacySettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
+
+  const handleBack = () => {
+    const prevPage = settingsNavigation.goBack();
+    if (prevPage) {
+      router.replace(prevPage as any);
+    } else {
+      const destination = settingsNavigation.exitSettings();
+      router.replace(`/${destination === 'index' ? '' : destination}`);
+    }
+  };
 
   const handleExportData = () => {
     Alert.alert('Export Data', 'Your data export will be ready in 24 hours. We\'ll send you an email when it\'s ready.');
@@ -86,8 +95,14 @@ export default function PrivacySettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <SettingsBackHeader />
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={handleBack}
+          activeOpacity={0.6}
+        >
+          <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Data & Privacy</Text>
       </View>
 
@@ -147,17 +162,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: '#1A1A1A',
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#EAEAEA',
   },
   scrollView: {
     flex: 1,

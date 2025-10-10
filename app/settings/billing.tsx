@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
-import SettingsBackHeader from '../../components/SettingsBackHeader';
+import { useRouter } from 'expo-router';
+import { ChevronLeft } from 'lucide-react-native';
+import { settingsNavigation } from '../../utils/navigationMemory';
 
 type PlanTier = 'free' | 'core' | 'advanced' | 'premium';
 
@@ -80,7 +81,6 @@ function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor,
 export default function BillingSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
   const [currentPlan, setCurrentPlan] = useState<PlanTier>('core');
   const [showModal, setShowModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{ tier: PlanTier; name: string; price: string } | null>(null);
@@ -140,10 +140,26 @@ export default function BillingSettingsScreen() {
     }
   };
 
+  const handleBack = () => {
+    const prevPage = settingsNavigation.goBack();
+    if (prevPage) {
+      router.replace(prevPage as any);
+    } else {
+      const destination = settingsNavigation.exitSettings();
+      router.replace(`/${destination === 'index' ? '' : destination}`);
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <SettingsBackHeader />
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={handleBack}
+          activeOpacity={0.6}
+        >
+          <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Subscription Management</Text>
       </View>
 
@@ -285,16 +301,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(26, 26, 26, 0.6)',
     backgroundColor: '#000000',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '600' as const,
     color: '#EAEAEA',
     fontFamily: Platform.select({

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ChevronRight, User, Bell, CreditCard, MessageSquare, Mail, Shield, ChevronLeft } from 'lucide-react-native';
-import { navigationMemory } from '../utils/navigationMemory';
+import { navigationMemory, settingsNavigation } from '../utils/navigationMemory';
 
 interface SettingRowProps {
   icon: React.ReactNode;
@@ -40,24 +40,30 @@ function SettingRow({ icon, title, onPress, rightElement }: SettingRowProps) {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
   const [criticalAlerts, setCriticalAlerts] = React.useState(true);
   const [earningsAlerts, setEarningsAlerts] = React.useState(true);
   const [cpiAlerts, setCpiAlerts] = React.useState(true);
   const [fedAlerts, setFedAlerts] = React.useState(true);
   const [watchlistAlerts, setWatchlistAlerts] = React.useState(true);
 
-  const handleClose = async () => {
-    const lastRoute = await navigationMemory.getLastRoute();
-    console.log('[Settings] Closing, last route:', lastRoute);
-    
-    if (lastRoute) {
-      router.replace(`/${lastRoute === 'index' ? '' : lastRoute}`);
-    } else if (navigation.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/instant');
-    }
+  useEffect(() => {
+    const initializeStack = async () => {
+      const lastRoute = await navigationMemory.getLastRoute();
+      const fromPage = lastRoute || 'instant';
+      settingsNavigation.enterSettings(fromPage);
+    };
+    initializeStack();
+  }, []);
+
+  const handleClose = () => {
+    const destination = settingsNavigation.exitSettings();
+    console.log('[Settings] Exiting to:', destination);
+    router.replace(`/${destination === 'index' ? '' : destination}`);
+  };
+
+  const handleNavigateToSubpage = (page: string) => {
+    settingsNavigation.pushPage(page);
+    router.push(page as any);
   };
 
   return (
@@ -82,7 +88,7 @@ export default function SettingsScreen() {
 
         <TouchableOpacity 
           style={styles.profileCard}
-          onPress={() => router.push('/settings/account')}
+          onPress={() => handleNavigateToSubpage('/settings/account')}
           activeOpacity={0.7}
         >
           <View style={styles.profileImageContainer}>
@@ -113,7 +119,7 @@ export default function SettingsScreen() {
             </Text>
             <TouchableOpacity 
               style={styles.upgradeButton}
-              onPress={() => router.push('/settings/billing')}
+              onPress={() => handleNavigateToSubpage('/settings/billing')}
               activeOpacity={0.7}
             >
               <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
@@ -193,12 +199,12 @@ export default function SettingsScreen() {
           <SettingRow
             icon={<MessageSquare size={20} color="#FFD600" />}
             title="Requests & Feedback"
-            onPress={() => router.push('/settings/feedback')}
+            onPress={() => handleNavigateToSubpage('/settings/feedback')}
           />
           <SettingRow
             icon={<Mail size={20} color="#FFD600" />}
             title="Contact & Support"
-            onPress={() => router.push('/settings/support')}
+            onPress={() => handleNavigateToSubpage('/settings/support')}
           />
         </View>
 
@@ -208,7 +214,7 @@ export default function SettingsScreen() {
           <SettingRow
             icon={<Shield size={20} color="#FFD600" />}
             title="Data & Privacy"
-            onPress={() => router.push('/settings/privacy')}
+            onPress={() => handleNavigateToSubpage('/settings/privacy')}
           />
         </View>
 

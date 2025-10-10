@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert, Modal, Tex
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { User, Mail, Lock, Trash2, ChevronLeft } from 'lucide-react-native';
+import { settingsNavigation } from '../../utils/navigationMemory';
 
 interface SettingItemProps {
   icon: React.ReactNode;
@@ -36,6 +37,16 @@ function SettingItem({ icon, label, value, onPress, isDestructive }: SettingItem
 export default function AccountSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const handleBack = () => {
+    const prevPage = settingsNavigation.goBack();
+    if (prevPage) {
+      router.replace(prevPage as any);
+    } else {
+      const destination = settingsNavigation.exitSettings();
+      router.replace(`/${destination === 'index' ? '' : destination}`);
+    }
+  };
 
   const [username, setUsername] = useState<string>('johndoe');
   const [email, setEmail] = useState<string>('john.doe@example.com');
@@ -126,7 +137,7 @@ export default function AccountSettingsScreen() {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
           activeOpacity={0.6}
         >
           <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />

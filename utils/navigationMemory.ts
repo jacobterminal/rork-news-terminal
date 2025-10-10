@@ -34,3 +34,51 @@ export const navigationMemory = {
     }
   }
 };
+
+let settingsStack: string[] = [];
+let lastMainPage: string = 'instant';
+
+export const settingsNavigation = {
+  enterSettings(fromPage: string): void {
+    lastMainPage = fromPage;
+    settingsStack = ['settings'];
+    console.log('[SettingsNav] Entered Settings from:', fromPage);
+  },
+
+  pushPage(page: string): void {
+    settingsStack.push(page);
+    console.log('[SettingsNav] Pushed page:', page, '| Stack:', settingsStack);
+  },
+
+  goBack(): string | null {
+    if (settingsStack.length > 1) {
+      settingsStack.pop();
+      const prevPage = settingsStack[settingsStack.length - 1];
+      console.log('[SettingsNav] Going back to:', prevPage, '| Stack:', settingsStack);
+      return prevPage;
+    }
+    console.log('[SettingsNav] At root, exiting to:', lastMainPage);
+    return null;
+  },
+
+  exitSettings(): string {
+    const destination = lastMainPage;
+    settingsStack = [];
+    console.log('[SettingsNav] Exiting Settings to:', destination);
+    return destination;
+  },
+
+  isAtRoot(): boolean {
+    return settingsStack.length <= 1;
+  },
+
+  getCurrentStack(): string[] {
+    return [...settingsStack];
+  },
+
+  reset(): void {
+    settingsStack = [];
+    lastMainPage = 'instant';
+    console.log('[SettingsNav] Reset stack');
+  }
+};
