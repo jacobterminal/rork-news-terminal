@@ -528,7 +528,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'flex-end',
   },
   backdrop: {
@@ -536,10 +536,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#000000',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderTopWidth: 2,
     borderLeftWidth: 0,
     borderRightWidth: 0,
