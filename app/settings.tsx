@@ -48,6 +48,21 @@ function SettingRow({ icon, title, onPress }: SettingRowProps) {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  
+  const userPlan = "core" as "core" | "advanced" | "premium";
+  
+  const getPlanDisplayName = () => {
+    switch (userPlan) {
+      case "core":
+        return "Core";
+      case "advanced":
+        return "Advanced";
+      case "premium":
+        return "Premium";
+      default:
+        return "Core";
+    }
+  };
 
   useEffect(() => {
     const initializeStack = async () => {
@@ -117,15 +132,11 @@ export default function SettingsScreen() {
         <View style={styles.settingsSection}>
           <View style={styles.subscriptionCard}>
             <View style={styles.subscriptionHeader}>
-              <CreditCard size={20} color="#FFD600" />
-              <Text style={styles.subscriptionTitle}>Current Plan: Base Tier</Text>
+              <Text style={styles.subscriptionTitle}>Current Plan: {getPlanDisplayName()}</Text>
               <View style={styles.activeBadge}>
                 <Text style={styles.activeBadgeText}>ACTIVE</Text>
               </View>
             </View>
-            <Text style={styles.subscriptionSubtext}>
-              Includes: News Tracker, Instant News, Watchlist Tracking, Economic Calendar
-            </Text>
             <TouchableOpacity 
               style={styles.upgradeButton}
               onPress={() => handleNavigateToSubpage('/settings/billing')}
@@ -305,7 +316,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: '#FFD600',
+    color: '#FFD75A',
     letterSpacing: 1,
     paddingHorizontal: 16,
     marginBottom: 8,
@@ -366,7 +377,7 @@ const styles = StyleSheet.create({
   subscriptionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
     gap: 8,
   },
   subscriptionTitle: {
@@ -376,7 +387,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activeBadge: {
-    backgroundColor: '#00FF00',
+    backgroundColor: '#00FF66',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -387,14 +398,8 @@ const styles = StyleSheet.create({
     color: '#000',
     letterSpacing: 0.5,
   },
-  subscriptionSubtext: {
-    fontSize: 13,
-    color: '#888',
-    lineHeight: 18,
-    marginBottom: 12,
-  },
   upgradeButton: {
-    backgroundColor: '#FFD600',
+    backgroundColor: '#FFD75A',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
