@@ -528,7 +528,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
   backdrop: {
@@ -536,8 +536,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#000000',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     borderTopWidth: 2,
     borderLeftWidth: 0,
     borderRightWidth: 0,
@@ -571,14 +571,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: theme.colors.text,
     lineHeight: 24,
     marginBottom: 12,
   },
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
   },
   sourceText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: theme.colors.textSecondary,
   },
   actions: {
     flexDirection: 'row',
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: theme.colors.text,
     fontWeight: '500' as const,
   },
   divider: {
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: '#FFD75A',
+    color: theme.colors.neutral,
     marginBottom: 8,
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
 
   aiText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: theme.colors.text,
     lineHeight: 20,
   },
   metaRow: {
