@@ -40,6 +40,13 @@ export default function AlertsSettingsScreen() {
   const [cpiAlerts, setCpiAlerts] = useState(true);
   const [fedAlerts, setFedAlerts] = useState(true);
   const [watchlistAlerts, setWatchlistAlerts] = useState(true);
+  
+  const [offAppCriticalAlerts, setOffAppCriticalAlerts] = useState(true);
+  const [offAppEarningsAlerts, setOffAppEarningsAlerts] = useState(true);
+  const [offAppCpiAlerts, setOffAppCpiAlerts] = useState(true);
+  const [offAppFedAlerts, setOffAppFedAlerts] = useState(true);
+  const [offAppWatchlistAlerts, setOffAppWatchlistAlerts] = useState(true);
+  
   const [pushNotifications, setPushNotifications] = useState(true);
   const [alertSound, setAlertSound] = useState(true);
   const [vibration, setVibration] = useState(true);
@@ -65,7 +72,7 @@ export default function AlertsSettingsScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ALERT TYPES</Text>
+          <Text style={styles.sectionTitle}>INSTANT NEWS PRESETS</Text>
           <ToggleItem
             label="Critical Alerts"
             description="Breaking news and market-moving events"
@@ -95,6 +102,40 @@ export default function AlertsSettingsScreen() {
             description="News for tickers in your watchlist"
             value={watchlistAlerts}
             onValueChange={setWatchlistAlerts}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>OFF-APP NOTIFICATIONS</Text>
+          <ToggleItem
+            label="Critical Alerts"
+            description="Breaking news and market-moving events"
+            value={offAppCriticalAlerts}
+            onValueChange={setOffAppCriticalAlerts}
+          />
+          <ToggleItem
+            label="Earnings Reports"
+            description="Company earnings announcements"
+            value={offAppEarningsAlerts}
+            onValueChange={setOffAppEarningsAlerts}
+          />
+          <ToggleItem
+            label="CPI & Economic Data"
+            description="Consumer Price Index and economic indicators"
+            value={offAppCpiAlerts}
+            onValueChange={setOffAppCpiAlerts}
+          />
+          <ToggleItem
+            label="Federal Reserve"
+            description="Fed announcements and policy changes"
+            value={offAppFedAlerts}
+            onValueChange={setOffAppFedAlerts}
+          />
+          <ToggleItem
+            label="Watchlist Alerts"
+            description="News for tickers in your watchlist"
+            value={offAppWatchlistAlerts}
+            onValueChange={setOffAppWatchlistAlerts}
           />
         </View>
 
