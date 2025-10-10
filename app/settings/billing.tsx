@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Platform, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Platform, Alert, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
@@ -22,9 +22,10 @@ interface PlanCardProps {
   borderColor: string;
   currentPlan: PlanTier;
   onSelect: () => void;
+  isWaitlist?: boolean;
 }
 
-function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor, currentPlan, onSelect }: PlanCardProps) {
+function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor, currentPlan, onSelect, isWaitlist }: PlanCardProps) {
   const isActive = tier === currentPlan;
   
   const getCardBackground = () => {
@@ -71,7 +72,7 @@ function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor,
         disabled={isActive}
       >
         <Text style={[styles.selectButtonText, isActive && styles.selectButtonTextActive]}>
-          {isActive ? 'CURRENT PLAN' : 'SELECT PLAN'}
+          {isActive ? 'CURRENT PLAN' : isWaitlist ? 'JOIN WAITLIST' : 'SELECT PLAN'}
         </Text>
       </TouchableOpacity>
     </View>
@@ -85,11 +86,23 @@ export default function BillingSettingsScreen() {
   const [showModal, setShowModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{ tier: PlanTier; name: string; price: string } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [waitlistPlan, setWaitlistPlan] = useState<{ tier: PlanTier; name: string } | null>(null);
+  const [waitlistReason, setWaitlistReason] = useState('');
+  const [userName] = useState('John Doe');
+  const [userEmail] = useState('john.doe@example.com');
 
-  const handleSelectPlan = (tier: PlanTier, name: string, price: string) => {
+  const handleSelectPlan = (tier: PlanTier, name: string, price: string, isWaitlist?: boolean) => {
     if (tier === currentPlan) return;
-    setSelectedPlan({ tier, name, price });
-    setShowModal(true);
+    
+    if (isWaitlist) {
+      setWaitlistPlan({ tier, name });
+      setWaitlistReason('');
+      setShowWaitlistModal(true);
+    } else {
+      setSelectedPlan({ tier, name, price });
+      setShowModal(true);
+    }
   };
 
   const handleConfirmUpgrade = async () => {
@@ -138,6 +151,37 @@ export default function BillingSettingsScreen() {
         );
       }
     }
+  };
+
+  const handleWaitlistSubmit = async () => {
+    if (!waitlistPlan || !waitlistReason.trim()) return;
+    
+    console.log('Submitting waitlist request:', {
+      plan: waitlistPlan.tier,
+      name: userName,
+      email: userEmail,
+      reason: waitlistReason,
+    });
+    
+    // TODO: submitWaitlistRequest()
+    // Placeholder for Supabase waitlist submission
+    // await submitWaitlistRequest(waitlistPlan.tier, userName, userEmail, waitlistReason);
+    
+    setShowWaitlistModal(false);
+    
+    setTimeout(() => {
+      if (Platform.OS === 'web') {
+        alert(`Thank you! Your request to join the ${waitlistPlan.name} Plan waitlist has been received.`);
+      } else {
+        Alert.alert(
+          'Success',
+          `Thank you! Your request to join the ${waitlistPlan.name} Plan waitlist has been received.`,
+          [{ text: 'OK' }]
+        );
+      }
+      setWaitlistPlan(null);
+      setWaitlistReason('');
+    }, 300);
   };
 
   const handleBack = () => {
@@ -204,6 +248,7 @@ export default function BillingSettingsScreen() {
           badgeColor="#4AA8FF"
           borderColor="#4AA8FF"
           currentPlan={currentPlan}
+          isWaitlist
           features={[
             { name: 'Instant News Feed', included: true },
             { name: 'Watchlist News Tracking', included: true },
@@ -216,7 +261,7 @@ export default function BillingSettingsScreen() {
             { name: 'Crypto Wallet Tracker', included: false },
             { name: 'Contact Support', included: true },
           ]}
-          onSelect={() => handleSelectPlan('advanced', 'ADVANCED', '$75 / month')}
+          onSelect={() => handleSelectPlan('advanced', 'ADVANCED', '$75 / month', true)}
         />
 
         <PlanCard
@@ -227,6 +272,7 @@ export default function BillingSettingsScreen() {
           badgeColor="#FF3B3B"
           borderColor="#FF3B3B"
           currentPlan={currentPlan}
+          isWaitlist
           features={[
             { name: 'Instant News Feed', included: true },
             { name: 'Watchlist News Tracking', included: true },
@@ -239,7 +285,7 @@ export default function BillingSettingsScreen() {
             { name: 'Crypto Wallet Tracker', included: true },
             { name: 'Contact Support', included: true },
           ]}
-          onSelect={() => handleSelectPlan('premium', 'PREMIUM', '$95 / month')}
+          onSelect={() => handleSelectPlan('premium', 'PREMIUM', '$95 / month', true)}
         />
 
         <View style={styles.footer}>
@@ -285,6 +331,85 @@ export default function BillingSettingsScreen() {
               >
                 <Text style={[styles.modalButtonTextConfirm, isProcessing && styles.disabledText]}>
                   {isProcessing ? 'Processing...' : 'Confirm & Pay'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showWaitlistModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWaitlistModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.waitlistModalContent}>
+            <Text style={styles.modalTitle}>Join Waitlist – {waitlistPlan?.name} Plan</Text>
+            <Text style={styles.waitlistSubtitle}>
+              This plan is currently invite-only. Share a brief note on why you&apos;d like early access.
+            </Text>
+            
+            <View style={styles.waitlistForm}>
+              <View style={styles.waitlistField}>
+                <Text style={styles.waitlistLabel}>Name</Text>
+                <View style={styles.waitlistReadonlyInput}>
+                  <Text style={styles.waitlistReadonlyText}>{userName}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.waitlistField}>
+                <Text style={styles.waitlistLabel}>Email</Text>
+                <View style={styles.waitlistReadonlyInput}>
+                  <Text style={styles.waitlistReadonlyText}>{userEmail}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.waitlistField}>
+                <Text style={styles.waitlistLabel}>Why do you want to join?</Text>
+                <TextInput
+                  style={styles.waitlistTextArea}
+                  value={waitlistReason}
+                  onChangeText={setWaitlistReason}
+                  placeholder="Share your reason for joining..."
+                  placeholderTextColor="#777777"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonCancel]} 
+                onPress={() => {
+                  setShowWaitlistModal(false);
+                  setTimeout(() => {
+                    setWaitlistPlan(null);
+                    setWaitlistReason('');
+                  }, 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.modalButton, 
+                  styles.modalButtonConfirm,
+                  !waitlistReason.trim() && styles.disabledButton
+                ]} 
+                onPress={handleWaitlistSubmit}
+                activeOpacity={0.7}
+                disabled={!waitlistReason.trim()}
+              >
+                <Text style={[
+                  styles.modalButtonTextConfirm,
+                  !waitlistReason.trim() && styles.disabledText
+                ]}>
+                  Submit Request
                 </Text>
               </TouchableOpacity>
             </View>
@@ -574,5 +699,79 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#000000',
     letterSpacing: 0.5,
+  },
+  waitlistModalContent: {
+    backgroundColor: '#0A0A0A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 90, 0.3)',
+    padding: 24,
+    width: '100%',
+    maxWidth: 500,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 30px rgba(255, 215, 90, 0.2)',
+      } as any,
+    }),
+  },
+  waitlistSubtitle: {
+    fontSize: 14,
+    color: '#888888',
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  waitlistForm: {
+    marginBottom: 24,
+    gap: 16,
+  },
+  waitlistField: {
+    gap: 8,
+  },
+  waitlistLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#FFD75A',
+    letterSpacing: 0.3,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  waitlistReadonlyInput: {
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#222222',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  waitlistReadonlyText: {
+    fontSize: 15,
+    color: '#EAEAEA',
+    opacity: 0.7,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  waitlistTextArea: {
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#222222',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#EAEAEA',
+    minHeight: 100,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
   },
 });
