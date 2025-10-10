@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
-import { ChevronRight, User, Layout, Bell, CreditCard, MessageSquare, Mail, Shield, X } from 'lucide-react-native';
+import { ChevronRight, User, Bell, CreditCard, MessageSquare, Mail, Shield, X } from 'lucide-react-native';
 import { navigationMemory } from '../utils/navigationMemory';
 import SettingsBackHeader from '../components/SettingsBackHeader';
 
@@ -97,24 +97,6 @@ export default function SettingsScreen() {
           </View>
           <ChevronRight size={20} color="#666" />
         </TouchableOpacity>
-
-        <View style={styles.sectionDivider} />
-        <Text style={styles.sectionLabel}>INTERFACE PRESETS</Text>
-        <View style={styles.settingsSection}>
-          <SettingRow
-            icon={<Layout size={20} color="#FFD600" />}
-            title="Watchlist-Based News"
-            rightElement={
-              <View style={styles.presetBadge}>
-                <Text style={styles.presetBadgeText}>ACTIVE</Text>
-              </View>
-            }
-          />
-          <SettingRow
-            icon={<Layout size={20} color="#888" />}
-            title="Overall Incoming News"
-          />
-        </View>
 
         <View style={styles.sectionDivider} />
         <Text style={styles.sectionLabel}>SUBSCRIPTION MANAGEMENT</Text>
@@ -346,18 +328,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     paddingHorizontal: 16,
     marginBottom: 8,
-  },
-  presetBadge: {
-    backgroundColor: '#FFD600',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  presetBadgeText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    color: '#000',
-    letterSpacing: 0.5,
   },
   footer: {
     alignItems: 'center',
