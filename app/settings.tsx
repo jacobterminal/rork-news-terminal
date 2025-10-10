@@ -2,9 +2,8 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
-import { ChevronRight, User, Bell, CreditCard, MessageSquare, Mail, Shield, X } from 'lucide-react-native';
+import { ChevronRight, User, Bell, CreditCard, MessageSquare, Mail, Shield, ChevronLeft } from 'lucide-react-native';
 import { navigationMemory } from '../utils/navigationMemory';
-import SettingsBackHeader from '../components/SettingsBackHeader';
 
 interface SettingRowProps {
   icon: React.ReactNode;
@@ -63,16 +62,13 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <SettingsBackHeader onPress={handleClose} />
-      
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Account Settings</Text>
         <TouchableOpacity 
-          style={styles.closeButton}
+          style={styles.backButton}
           onPress={handleClose}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
         >
-          <X size={24} color="#FFFFFF" />
+          <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
@@ -81,6 +77,9 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        <Text style={styles.pageTitle}>Account Settings</Text>
+        <Text style={styles.pageSubtitle}>Manage your profile and preferences</Text>
+
         <TouchableOpacity 
           style={styles.profileCard}
           onPress={() => router.push('/settings/account')}
@@ -225,25 +224,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
-    paddingTop: 37,
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: '#1A1A1A',
   },
-  headerTitle: {
-    fontSize: 28,
+  backButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontSize: 24,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+    color: '#EAEAEA',
+    marginBottom: 8,
+    paddingHorizontal: 16,
   },
-  closeButton: {
-    padding: 8,
+  pageSubtitle: {
+    fontSize: 14,
+    color: '#888888',
+    marginBottom: 16,
+    paddingHorizontal: 16,
   },
   scrollView: {
     flex: 1,

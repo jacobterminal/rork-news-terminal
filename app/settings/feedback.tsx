@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
-import { Lightbulb, Bug, Sparkles } from 'lucide-react-native';
-import SettingsBackHeader from '../../components/SettingsBackHeader';
+import { useRouter } from 'expo-router';
+import { Lightbulb, Bug, Sparkles, ChevronLeft } from 'lucide-react-native';
 
 interface FeedbackTypeProps {
   icon: React.ReactNode;
@@ -29,25 +28,29 @@ function FeedbackType({ icon, title, description, onPress }: FeedbackTypeProps) 
 export default function FeedbackSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
 
   const handleFeatureRequest = () => {
-    Alert.alert('Feature Request', 'Feature request form coming soon');
+    router.push('/settings/feedback-feature');
   };
 
   const handleBugReport = () => {
-    Alert.alert('Bug Report', 'Bug report form coming soon');
+    router.push('/settings/feedback-bug');
   };
 
   const handleAIImprovement = () => {
-    Alert.alert('AI Improvement', 'AI improvement request form coming soon');
+    router.push('/settings/feedback-ai');
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <SettingsBackHeader />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Requests & Feedback</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.6}
+        >
+          <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -55,6 +58,9 @@ export default function FeedbackSettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        <Text style={styles.pageTitle}>Requests & Feedback</Text>
+        <Text style={styles.pageSubtitle}>We&apos;re here to help</Text>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>HOW CAN WE HELP?</Text>
           <FeedbackType
@@ -66,7 +72,7 @@ export default function FeedbackSettingsScreen() {
           <FeedbackType
             icon={<Bug size={24} color="#FFD600" />}
             title="Report Bug / Issue"
-            description="Let us know about any problems you're experiencing"
+            description="Let us know about any problems you&apos;re experiencing"
             onPress={handleBugReport}
           />
           <FeedbackType
@@ -94,17 +100,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: '#1A1A1A',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+  backButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: '#EAEAEA',
+    marginBottom: 8,
+    paddingHorizontal: 16,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: '#888888',
+    marginBottom: 16,
+    paddingHorizontal: 16,
   },
   scrollView: {
     flex: 1,
@@ -113,7 +134,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   section: {
-    marginTop: 24,
+    marginTop: 8,
     paddingHorizontal: 16,
   },
   sectionTitle: {

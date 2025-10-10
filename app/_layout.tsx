@@ -181,6 +181,24 @@ function RootLayoutNav() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="settings/feedback-feature"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/feedback-bug"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/feedback-ai"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

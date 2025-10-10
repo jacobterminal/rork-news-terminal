@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
-import { User, Mail, Lock, Trash2, X } from 'lucide-react-native';
-import SettingsBackHeader from '../../components/SettingsBackHeader';
+import { useRouter } from 'expo-router';
+import { User, Mail, Lock, Trash2, ChevronLeft } from 'lucide-react-native';
 
 interface SettingItemProps {
   icon: React.ReactNode;
@@ -37,7 +36,6 @@ function SettingItem({ icon, label, value, onPress, isDestructive }: SettingItem
 export default function AccountSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
 
   const [username, setUsername] = useState<string>('johndoe');
   const [email, setEmail] = useState<string>('john.doe@example.com');
@@ -125,9 +123,14 @@ export default function AccountSettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <SettingsBackHeader />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Account Settings</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.6}
+        >
+          <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -135,6 +138,9 @@ export default function AccountSettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        <Text style={styles.pageTitle}>Account Settings</Text>
+        <Text style={styles.pageSubtitle}>Manage your account details</Text>
+
         <View style={styles.profileSection}>
           <View style={styles.profileImageLarge}>
             <User size={48} color="#FFD600" />
@@ -211,12 +217,18 @@ export default function AccountSettingsScreen() {
         onRequestClose={() => setEmailModalVisible(false)}
       >
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
-          <SettingsBackHeader onPress={() => setEmailModalVisible(false)} />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Change Email</Text>
-            <TouchableOpacity onPress={() => setEmailModalVisible(false)} style={styles.closeButton}>
-              <X size={24} color="#FFFFFF" />
+            <TouchableOpacity 
+              style={styles.modalBackButton}
+              onPress={() => setEmailModalVisible(false)}
+              activeOpacity={0.6}
+            >
+              <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />
             </TouchableOpacity>
+          </View>
+          <View style={styles.modalTitleContainer}>
+            <Text style={styles.modalTitle}>Change Email</Text>
+            <Text style={styles.modalSubtitle}>Update your email address</Text>
           </View>
           <View style={styles.modalContent}>
             <View style={styles.inputGroup}>
@@ -261,12 +273,18 @@ export default function AccountSettingsScreen() {
         onRequestClose={() => setPasswordModalVisible(false)}
       >
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
-          <SettingsBackHeader onPress={() => setPasswordModalVisible(false)} />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Change Password</Text>
-            <TouchableOpacity onPress={() => setPasswordModalVisible(false)} style={styles.closeButton}>
-              <X size={24} color="#FFFFFF" />
+            <TouchableOpacity 
+              style={styles.modalBackButton}
+              onPress={() => setPasswordModalVisible(false)}
+              activeOpacity={0.6}
+            >
+              <ChevronLeft size={22} color="#EAEAEA" strokeWidth={2.5} />
             </TouchableOpacity>
+          </View>
+          <View style={styles.modalTitleContainer}>
+            <Text style={styles.modalTitle}>Change Password</Text>
+            <Text style={styles.modalSubtitle}>Update your password</Text>
           </View>
           <View style={styles.modalContent}>
             <View style={styles.inputGroup}>
@@ -331,17 +349,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: '#1A1A1A',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+  backButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: '#EAEAEA',
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: '#888888',
+    marginBottom: 8,
+    paddingHorizontal: 16,
   },
   scrollView: {
     flex: 1,
@@ -456,26 +490,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   modalHeader: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: '#1A1A1A',
+  },
+  modalBackButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitleContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: '#EAEAEA',
+    marginBottom: 8,
   },
-  closeButton: {
-    padding: 4,
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#888888',
   },
   modalContent: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingTop: 8,
   },
   inputGroup: {
     marginBottom: 20,
