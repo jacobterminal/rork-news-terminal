@@ -512,12 +512,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
-    backgroundColor: theme.colors.bg,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: '#000000',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     borderTopWidth: 2,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
     height: SCREEN_HEIGHT * 0.9,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
@@ -548,14 +548,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 32,
   },
   title: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: theme.colors.text,
-    lineHeight: 24,
+    color: '#FFFFFF',
+    lineHeight: 26,
     marginBottom: 12,
   },
   sourceRow: {
@@ -563,28 +564,28 @@ const styles = StyleSheet.create({
   },
   sourceText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#BFBFBF',
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: 16,
+    backgroundColor: '#1A1A1A',
+    marginVertical: 20,
   },
   aiSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: theme.colors.neutral,
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    color: '#FFD75A',
+    marginBottom: 10,
+    letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
   },
   aiText: {
     fontSize: 14,
-    color: theme.colors.text,
-    lineHeight: 20,
+    color: '#FFFFFF',
+    lineHeight: 22,
   },
   opinionRow: {
     flexDirection: 'row',
@@ -593,12 +594,12 @@ const styles = StyleSheet.create({
   },
   opinionDash: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#BFBFBF',
     fontWeight: '400' as const,
   },
   opinionLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#BFBFBF',
     fontWeight: '600' as const,
   },
   opinionSentiment: {
@@ -613,18 +614,18 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: '#BFBFBF',
     marginBottom: 4,
     textTransform: 'uppercase' as const,
   },
   metricValue: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: theme.colors.text,
+    color: '#FFFFFF',
   },
   tickersSection: {
     marginTop: 0,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   tickersRow: {
     flexDirection: 'row',
@@ -632,15 +633,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tickerPill: {
-    backgroundColor: theme.colors.neutral,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: '#FFD75A',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
   },
   tickerText: {
     fontSize: 12,
-    fontWeight: '600' as const,
-    color: theme.colors.bg,
+    fontWeight: '700' as const,
+    color: '#000000',
   },
   disclaimer: {
     marginTop: 24,
@@ -650,7 +651,7 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: '#BFBFBF',
     textAlign: 'center',
     fontStyle: 'italic' as const,
   },
@@ -663,6 +664,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#BFBFBF',
   },
 });

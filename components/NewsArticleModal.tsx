@@ -536,8 +536,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#000000',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     borderTopWidth: 2,
     borderLeftWidth: 0,
     borderRightWidth: 0,
@@ -572,14 +572,14 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 8,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 18,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    lineHeight: 24,
+    lineHeight: 26,
     marginBottom: 12,
   },
   sourceRow: {
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
   },
   sourceText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: '#BFBFBF',
   },
   actions: {
     flexDirection: 'row',
@@ -602,22 +602,22 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 13,
     color: '#FFFFFF',
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: 16,
+    backgroundColor: '#1A1A1A',
+    marginVertical: 20,
   },
   aiSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
     color: '#FFD75A',
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    marginBottom: 10,
+    letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
   },
   loadingContainer: {
@@ -663,14 +663,14 @@ const styles = StyleSheet.create({
   },
   explainerText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
-    lineHeight: 18,
+    color: '#BFBFBF',
+    lineHeight: 20,
   },
 
   aiText: {
     fontSize: 14,
     color: '#FFFFFF',
-    lineHeight: 20,
+    lineHeight: 22,
   },
   metaRow: {
     flexDirection: 'row',
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   },
   tickersSection: {
     marginTop: 0,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   tickersRow: {
     flexDirection: 'row',
@@ -713,15 +713,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tickerPill: {
-    backgroundColor: theme.colors.neutral,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: '#FFD75A',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
   },
   tickerText: {
     fontSize: 12,
-    fontWeight: '600' as const,
-    color: theme.colors.bg,
+    fontWeight: '700' as const,
+    color: '#000000',
   },
   disclaimer: {
     marginTop: 24,
