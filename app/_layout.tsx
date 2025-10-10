@@ -205,9 +205,13 @@ function RootLayoutNav() {
 
 function AppWithBanners() {
   const insets = useSafeAreaInsets();
+  const segments = useSegments();
   const { getActiveBanners, dismissBanner, setHighlightedAlert, state } = useNewsStore();
   const activeBanners = getActiveBanners();
   const headerHeight = Platform.select({ web: 64, default: 56 });
+  
+  const currentPath = `/${segments.join('/')}`;
+  const isSettingsRoute = currentPath.startsWith('/settings');
   
   const handleBannerNavigate = (alertId: string) => {
     if (setHighlightedAlert) {
@@ -221,12 +225,14 @@ function AppWithBanners() {
   
   return (
     <>
-      <View style={[styles.fixedHeader, { paddingTop: insets.top, height: headerHeight + insets.top }]}>
-        <AlertSearchBar 
-          onTickerPress={handleTickerPress}
-          feedItems={state.feedItems}
-        />
-      </View>
+      {!isSettingsRoute && (
+        <View style={[styles.fixedHeader, { paddingTop: insets.top, height: headerHeight + insets.top }]}>
+          <AlertSearchBar 
+            onTickerPress={handleTickerPress}
+            feedItems={state.feedItems}
+          />
+        </View>
+      )}
       <RootLayoutNav />
       <DropBanner 
         alerts={activeBanners} 
