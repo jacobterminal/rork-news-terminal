@@ -93,21 +93,21 @@ export default function TwitterTrackerPage() {
             <Text style={styles.lockIcon}>🔒</Text>
           </View>
           
-          <Text style={styles.lockTitle}>Twitter Tracker is currently locked</Text>
+          <Text style={styles.lockTitle}>Twitter Tracker Access Restricted</Text>
           
           <Text style={styles.lockSubtext}>
-            This feature is part of the Nova Premium Analytics Suite.{'\n'}
-            Upgrade to unlock full access to real-time signal detection, feed sentiment, and social analytics.
+            This feature is part of the Premium Suite available through the Insider Algo platform.{'\n'}
+            Gain full access to Twitter Tracker, Crypto Wallet Tracker, Reddit Trackers, and Dark Pool institutional trading analytics.
           </Text>
 
           <View style={styles.featureList}>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>Twitter Tracker — live AI feed scanner</Text>
+              <Text style={styles.featureText}>Twitter Tracker — live AI sentiment feed scanner</Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>Crypto Wallet Tracker — on-chain alert system</Text>
+              <Text style={styles.featureText}>Crypto Wallet Tracker — on-chain monitoring and alert system</Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
@@ -115,13 +115,24 @@ export default function TwitterTrackerPage() {
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>Dark Pool Trading Activity — institutional volume detector</Text>
+              <Text style={styles.featureText}>Dark Pool Activity — institutional volume detection</Text>
             </View>
           </View>
 
           <View style={styles.divider} />
 
-          <Text style={styles.formTitle}>APPLY FOR ACCESS</Text>
+          <TouchableOpacity 
+            style={styles.waitlistButton} 
+            onPress={() => setShowConfirmation(false)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.waitlistButtonText}>Join Waitlist</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.formTitle}>Join the Insider Algo Waitlist</Text>
+          <Text style={styles.formSubtext}>
+            Early access members will be notified once Premium analytics tracking becomes available.
+          </Text>
 
           <View style={styles.formContainer}>
             <View style={styles.inputGroup}>
@@ -150,7 +161,7 @@ export default function TwitterTrackerPage() {
 
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Reason for Request</Text>
+                <Text style={styles.inputLabel}>Why do you want to join?</Text>
                 <Text style={styles.wordCount}>
                   {getWordCount(reason)} / 20 words minimum
                 </Text>
@@ -159,7 +170,7 @@ export default function TwitterTrackerPage() {
                 style={[styles.input, styles.textArea]}
                 value={reason}
                 onChangeText={setReason}
-                placeholder="Tell us why you need access (minimum 20 words)"
+                placeholder="Tell us why you want to join (minimum 20 words)"
                 placeholderTextColor="#444444"
                 multiline
                 numberOfLines={4}
@@ -177,7 +188,7 @@ export default function TwitterTrackerPage() {
               onPress={handleApply}
               activeOpacity={0.8}
             >
-              <Text style={styles.applyButtonText}>APPLY FOR ACCESS</Text>
+              <Text style={styles.applyButtonText}>Submit Request</Text>
             </TouchableOpacity>
           </View>
 
@@ -190,7 +201,7 @@ export default function TwitterTrackerPage() {
       {showConfirmation && (
         <View style={styles.confirmationBanner}>
           <Text style={styles.confirmationText}>
-            ✅ Application submitted. Our team will review your request shortly.
+            ✅ You&apos;ve been added to the Insider Algo waitlist.
           </Text>
         </View>
       )}
@@ -422,6 +433,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 32,
     fontStyle: 'italic' as const,
+  },
+  waitlistButton: {
+    backgroundColor: '#FFD43B',
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    marginBottom: 32,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 20px rgba(255, 212, 59, 0.4)',
+      } as any,
+    }),
+  },
+  waitlistButtonText: {
+    fontSize: 15,
+    color: '#0B0B0B',
+    fontWeight: '700' as const,
+    letterSpacing: 0.5,
+  },
+  formSubtext: {
+    fontSize: 13,
+    color: '#888888',
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+    maxWidth: 500,
   },
   confirmationBanner: {
     position: 'absolute',
