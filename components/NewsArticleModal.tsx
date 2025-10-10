@@ -8,10 +8,12 @@ import {
   Modal,
   Animated,
   Dimensions,
-  PanResponder,
   Linking,
   ActivityIndicator,
+  StatusBar,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   X,
   ExternalLink,
@@ -25,7 +27,7 @@ import { FeedItem, CriticalAlert } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
 
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface NewsArticleModalProps {
   visible: boolean;
@@ -50,44 +52,27 @@ interface AIContent {
 
 export default function NewsArticleModal({ visible, article, onClose }: NewsArticleModalProps) {
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
+  const insets = useSafeAreaInsets();
   const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
+  const [opacity] = useState(new Animated.Value(0));
   const [aiContent, setAiContent] = useState<AIContent | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-
-
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      return Math.abs(gestureState.dy) > 5;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dy > 0) {
-        translateY.setValue(gestureState.dy);
-      }
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dy > 150 || gestureState.vy > 0.5) {
-        handleClose();
-      } else {
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 50,
-          friction: 8,
-        }).start();
-      }
-    },
-  });
-
   useEffect(() => {
     if (visible) {
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
       
       if (article) {
         generateAIContent();
@@ -247,11 +232,18 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   };
 
   const handleClose = () => {
-    Animated.timing(translateY, {
-      toValue: SCREEN_HEIGHT,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: SCREEN_HEIGHT,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
       onClose();
     });
   };
@@ -354,41 +346,53 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   return (
     <Modal
       visible={visible}
-      transparent
+      transparent={false}
       animationType="none"
       onRequestClose={handleClose}
+      presentationStyle="fullScreen"
+      statusBarTranslucent={Platform.OS === 'android'}
     >
-      <View style={styles.modalOverlay}>
-        <TouchableOpacity 
-          style={styles.backdrop} 
-          activeOpacity={1} 
-          onPress={handleClose}
-        />
-        
-        <Animated.View
-          style={[
-            styles.modalContent,
-            {
-              transform: [{ translateY }],
-              borderColor: getSentimentBorderColor(),
-            },
-          ]}
-        >
-          <View {...panResponder.panHandlers} style={styles.dragHandle}>
-            <View style={styles.dragIndicator} />
-          </View>
-
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <X size={24} color={theme.colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView 
-            style={styles.scrollView} 
-            showsVerticalScrollIndicator={false}
-            bounces={false}
+      {Platform.OS === 'android' && <StatusBar backgroundColor="transparent" translucent />}
+      <Animated.View
+        style={[
+          styles.backdrop,
+          {
+            opacity: opacity.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 0.35],
+            }),
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.modalContent,
+          {
+            paddingTop: insets.top + 8,
+            paddingBottom: insets.bottom,
+            transform: [{ translateY }],
+            opacity,
+            borderTopColor: getSentimentBorderColor(),
+          },
+        ]}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.closeButton} 
+            onPress={handleClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
+            <X size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          scrollEventThrottle={16}
+        >
             <View style={styles.contentContainer}>
               <Text style={styles.title}>{title}</Text>
               
@@ -519,61 +523,54 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
               </View>
             </View>
           </ScrollView>
-        </Animated.View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+    zIndex: 1,
   },
   modalContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     backgroundColor: '#000000',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
     borderTopWidth: 2,
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    height: SCREEN_HEIGHT * 0.9,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  dragHandle: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  dragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: theme.colors.border,
-    borderRadius: 2,
+    zIndex: 2,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 8,
+    minHeight: 40,
   },
   closeButton: {
-    padding: 4,
+    padding: 8,
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   contentContainer: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 4,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 18,
