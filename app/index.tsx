@@ -9,7 +9,6 @@ import TickerDrawer from '../components/TickerDrawer';
 import { useNewsStore } from '../store/newsStore';
 import { useScrollReset } from '../utils/useScrollReset';
 import CriticalAlerts from '../components/CriticalAlerts';
-import AlertSearchBar from '../components/AlertSearchBar';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
 
@@ -247,13 +246,7 @@ export default function NewsScreen() {
   const headerHeight = Platform.select({ web: 64, default: 56 });
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={[styles.reservedSpace, { height: headerHeight }]}>
-        <AlertSearchBar 
-          onTickerPress={handleTickerPress}
-          feedItems={watchlistFeedItems}
-        />
-      </View>
+    <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
       
       <ScrollView 
         ref={scrollViewRef}
@@ -379,10 +372,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
-  },
-  reservedSpace: {
-    backgroundColor: theme.colors.bg,
-    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,

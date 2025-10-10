@@ -57,9 +57,10 @@ export default function TwitterTrackerPage() {
     }, 3000);
   };
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+
   return (
-    <View style={[styles.page, { paddingTop: insets.top }]}>
-      <View style={styles.reservedSpace} />
+    <View style={[styles.page, { paddingTop: insets.top + headerHeight }]}>
       <View nativeID="banner-anchor-point" style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Twitter Tracker</Text>
@@ -197,10 +198,6 @@ export default function TwitterTrackerPage() {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: '#0B0B0B',
-  },
-  reservedSpace: {
-    height: 50,
     backgroundColor: '#0B0B0B',
   },
   header: {

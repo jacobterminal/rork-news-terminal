@@ -4,12 +4,13 @@ import { Tabs, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View, Platform } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
 import { theme } from "../constants/theme";
 import { NewsStoreProvider, useNewsStore } from "../store/newsStore";
 import DropBanner from "../components/DropBanner";
+import AlertSearchBar from "../components/AlertSearchBar";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -185,18 +186,29 @@ function RootLayoutNav() {
 }
 
 function AppWithBanners() {
-  const { getActiveBanners, dismissBanner, setHighlightedAlert } = useNewsStore();
+  const insets = useSafeAreaInsets();
+  const { getActiveBanners, dismissBanner, setHighlightedAlert, state } = useNewsStore();
   const activeBanners = getActiveBanners();
+  const headerHeight = Platform.select({ web: 64, default: 56 });
   
   const handleBannerNavigate = (alertId: string) => {
-    // Set the alert to be highlighted in the Instant tab
     if (setHighlightedAlert) {
       setHighlightedAlert(alertId);
     }
   };
   
+  const handleTickerPress = (ticker: string) => {
+    console.log('[AppWithBanners] Ticker pressed:', ticker);
+  };
+  
   return (
     <>
+      <View style={[styles.fixedHeader, { paddingTop: insets.top, height: headerHeight + insets.top }]}>
+        <AlertSearchBar 
+          onTickerPress={handleTickerPress}
+          feedItems={state.feedItems}
+        />
+      </View>
       <RootLayoutNav />
       <DropBanner 
         alerts={activeBanners} 
@@ -244,5 +256,13 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  fixedHeader: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: '#000000',
   },
 });

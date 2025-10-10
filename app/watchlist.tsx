@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
-import AlertSearchBar from '../components/AlertSearchBar';
 import CriticalAlerts from '../components/CriticalAlerts';
 import SavedArticleCard from '../components/SavedArticleCard';
 import TerminalTickerRow from '../components/TerminalTickerRow';
@@ -282,15 +281,10 @@ export default function WatchlistScreen() {
 
 
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Reserved space for drop banners and search */}
-      <View style={styles.reservedSpace}>
-        <AlertSearchBar 
-          onTickerPress={handleTickerPress}
-          feedItems={feedItems}
-        />
-      </View>
+    <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
       
       <ScrollView 
         ref={scrollViewRef}
@@ -426,12 +420,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  reservedSpace: {
-    height: 50,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
   },
   scrollView: {
     flex: 1,

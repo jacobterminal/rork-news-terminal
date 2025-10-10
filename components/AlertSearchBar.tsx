@@ -109,13 +109,12 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
     }
   };
 
-  const headerHeight = Platform.select({ web: 64, default: 56 });
   const leftInset = Math.max(8, insets.left);
   const rightReserved = 88;
 
   return (
     <>
-      <View style={[styles.container, { height: headerHeight, paddingTop: insets.top }]}>
+      <View style={styles.container}>
         <View style={[styles.logoContainer, { left: leftInset, right: rightReserved }]}>
           <Image
             source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/w9s5asvkde871kmv8qzky' }}
@@ -215,6 +214,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative' as const,
     width: '100%',
+    height: Platform.select({ web: 64, default: 56 }),
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#000000',

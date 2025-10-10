@@ -1,12 +1,11 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text, Animated } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
 import NewsCard from '../components/NewsCard';
 import TickerDrawer from '../components/TickerDrawer';
 import CriticalAlerts from '../components/CriticalAlerts';
-import AlertSearchBar from '../components/AlertSearchBar';
 import NewsArticleModal from '../components/NewsArticleModal';
 import { useNewsStore } from '../store/newsStore';
 import { useScrollReset } from '../utils/useScrollReset';
@@ -95,15 +94,10 @@ export default function InstantScreen() {
 
 
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Reserved space for drop banners and search */}
-      <View style={styles.reservedSpace}>
-        <AlertSearchBar 
-          onTickerPress={handleTickerPress}
-          feedItems={state.feedItems}
-        />
-      </View>
+    <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
       
       <ScrollView 
         ref={scrollViewRef}
@@ -183,12 +177,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
-  },
-  reservedSpace: {
-    height: 50,
-    backgroundColor: theme.colors.bg,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
   },
   scrollView: {
     flex: 1,

@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronDown } from 'lucide-react-native';
 import { theme } from '../constants/theme';
 import { EarningsItem, EconItem } from '../types/news';
-import AlertSearchBar from '../components/AlertSearchBar';
 import { generateMockData } from '../utils/mockData';
 import { useScrollReset } from '../utils/useScrollReset';
 
@@ -409,15 +408,10 @@ export default function UpcomingScreen() {
     });
   };
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Reserved space for drop banners and search */}
-      <View style={styles.reservedSpace}>
-        <AlertSearchBar 
-          onTickerPress={handleTickerPress}
-          feedItems={feedItems}
-        />
-      </View>
+    <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
       
       <View nativeID="banner-anchor-point">
         <CalendarStrip 
@@ -491,12 +485,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
-  },
-  reservedSpace: {
-    height: 50,
-    backgroundColor: theme.colors.bg,
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
   },
   calendarContainer: {
     backgroundColor: theme.colors.card,
