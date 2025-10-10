@@ -50,6 +50,17 @@ export const settingsNavigation = {
     console.log('[SettingsNav] Pushed page:', page, '| Stack:', settingsStack);
   },
 
+  popPage(): string | null {
+    if (settingsStack.length > 1) {
+      settingsStack.pop();
+      const prevPage = settingsStack[settingsStack.length - 1];
+      console.log('[SettingsNav] Popped page, now at:', prevPage, '| Stack:', settingsStack);
+      return prevPage;
+    }
+    console.log('[SettingsNav] At root');
+    return null;
+  },
+
   goBack(): string | null {
     if (settingsStack.length > 1) {
       settingsStack.pop();

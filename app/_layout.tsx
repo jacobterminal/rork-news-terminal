@@ -199,6 +199,36 @@ function RootLayoutNav() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="settings/delete-account"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/delete-account-confirm"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/delete-account-success"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="auth/login"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="auth/signup"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
@@ -212,6 +242,7 @@ function AppWithBanners() {
   
   const currentPath = `/${segments.join('/')}`;
   const isSettingsRoute = currentPath.startsWith('/settings');
+  const isAuthRoute = currentPath.startsWith('/auth');
   
   const handleBannerNavigate = (alertId: string) => {
     if (setHighlightedAlert) {
@@ -225,7 +256,7 @@ function AppWithBanners() {
   
   return (
     <>
-      {!isSettingsRoute && (
+      {!isSettingsRoute && !isAuthRoute && (
         <View style={[styles.fixedHeader, { paddingTop: insets.top, height: headerHeight + insets.top }]}>
           <AlertSearchBar 
             onTickerPress={handleTickerPress}

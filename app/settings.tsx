@@ -218,6 +218,18 @@ export default function SettingsScreen() {
           />
         </View>
 
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>DANGER ZONE</Text>
+        <View style={styles.settingsSection}>
+          <TouchableOpacity 
+            style={styles.dangerButton}
+            onPress={() => handleNavigateToSubpage('/settings/delete-account')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.dangerButtonText}>Delete Account</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.footer}>
           <Text style={styles.footerText}>AI summaries are generated for convenience. Not financial advice.</Text>
         </View>
@@ -412,5 +424,18 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#000',
     letterSpacing: 0.5,
+  },
+  dangerButton: {
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: '#FF3B3B',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  dangerButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FF3B3B',
   },
 });
