@@ -229,6 +229,24 @@ function RootLayoutNav() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="settings/in-app-notifications"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/push-notifications"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/manage-billing"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
