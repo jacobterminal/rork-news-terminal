@@ -259,11 +259,11 @@ export default function EventDetailsScreen() {
     
     switch (eventDetails.sentiment) {
       case 'Bullish':
-        return '#00FF66';
+        return theme.colors.bullish;
       case 'Bearish':
-        return '#FF4444';
+        return theme.colors.bearish;
       case 'Neutral':
-        return '#FFD75A';
+        return theme.colors.neutral;
       default:
         return theme.colors.border;
     }
@@ -505,19 +505,19 @@ export default function EventDetailsScreen() {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
-    backgroundColor: '#000000',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: theme.colors.bg,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderTopWidth: 2,
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
     height: SCREEN_HEIGHT * 0.9,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
@@ -549,7 +549,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 0,
     paddingBottom: 32,
   },
   title: {
