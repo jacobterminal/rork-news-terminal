@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronRight, User, Bell, CreditCard, MessageSquare, Mail, Shield, ChevronLeft } from 'lucide-react-native';
+import { ChevronRight, User, Bell, CreditCard, MessageSquare, Mail, Shield, ChevronLeft, Receipt, XCircle } from 'lucide-react-native';
 import { navigationMemory, settingsNavigation } from '../utils/navigationMemory';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface SettingRowProps {
   icon: React.ReactNode;
@@ -40,11 +41,17 @@ function SettingRow({ icon, title, onPress, rightElement }: SettingRowProps) {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [criticalAlerts, setCriticalAlerts] = React.useState(true);
-  const [earningsAlerts, setEarningsAlerts] = React.useState(true);
-  const [cpiAlerts, setCpiAlerts] = React.useState(true);
-  const [fedAlerts, setFedAlerts] = React.useState(true);
-  const [watchlistAlerts, setWatchlistAlerts] = React.useState(true);
+  const [criticalAlerts, setCriticalAlerts] = useState(true);
+  const [earningsAlerts, setEarningsAlerts] = useState(true);
+  const [cpiAlerts, setCpiAlerts] = useState(true);
+  const [fedAlerts, setFedAlerts] = useState(true);
+  const [watchlistAlerts, setWatchlistAlerts] = useState(true);
+
+  const [pushCriticalAlerts, setPushCriticalAlerts] = useState(true);
+  const [pushEconomicEvents, setPushEconomicEvents] = useState(true);
+  const [pushEarningsCoverage, setPushEarningsCoverage] = useState(true);
+  const [pushWatchlistAlerts, setPushWatchlistAlerts] = useState(true);
+  const [pushHighImpactOnly, setPushHighImpactOnly] = useState(false);
 
   useEffect(() => {
     const initializeStack = async () => {
@@ -53,7 +60,57 @@ export default function SettingsScreen() {
       settingsNavigation.enterSettings(fromPage);
     };
     initializeStack();
+
+    const loadPushPreferences = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('userSettings.pushPreferences');
+        if (stored) {
+          const prefs = JSON.parse(stored);
+          setPushCriticalAlerts(prefs.criticalAlerts ?? true);
+          setPushEconomicEvents(prefs.economicEvents ?? true);
+          setPushEarningsCoverage(prefs.earningsCoverage ?? true);
+          setPushWatchlistAlerts(prefs.watchlistAlerts ?? true);
+          setPushHighImpactOnly(prefs.highImpactOnly ?? false);
+        }
+      } catch (error) {
+        console.error('[Settings] Failed to load push preferences:', error);
+      }
+    };
+    loadPushPreferences();
   }, []);
+
+  const updatePushPreferences = async (key: string, value: boolean) => {
+    try {
+      const stored = await AsyncStorage.getItem('userSettings.pushPreferences');
+      const prefs = stored ? JSON.parse(stored) : {};
+      prefs[key] = value;
+      await AsyncStorage.setItem('userSettings.pushPreferences', JSON.stringify(prefs));
+      console.log('[Settings] Push preferences updated:', key, value);
+    } catch (error) {
+      console.error('[Settings] Failed to save push preferences:', error);
+    }
+  };
+
+  const handleCancelSubscription = () => {
+    Alert.alert(
+      'Cancel Subscription',
+      'Are you sure you want to cancel your subscription?\n\nYour plan will remain active until the end of the current billing cycle.',
+      [
+        {
+          text: 'Keep My Subscription',
+          style: 'cancel',
+        },
+        {
+          text: 'Confirm Cancellation',
+          style: 'destructive',
+          onPress: async () => {
+            console.log('[Settings] Subscription canceled (pending end of cycle)');
+            Alert.alert('Subscription Canceled', 'Your subscription will remain active until the end of the current billing cycle.');
+          },
+        },
+      ]
+    );
+  };
 
   const handleClose = () => {
     const destination = settingsNavigation.exitSettings();
@@ -190,6 +247,113 @@ export default function SettingsScreen() {
                 thumbColor={watchlistAlerts ? '#000' : '#666'}
               />
             }
+          />
+        </View>
+
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>PUSH NOTIFICATIONS (BACKGROUND ALERTS)</Text>
+        <Text style={styles.sectionDescription}>Receive important alerts even when the app is closed</Text>
+        <View style={styles.settingsSection}>
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="Critical Alerts"
+            rightElement={
+              <Switch
+                value={pushCriticalAlerts}
+                onValueChange={(val) => {
+                  setPushCriticalAlerts(val);
+                  updatePushPreferences('criticalAlerts', val);
+                }}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={pushCriticalAlerts ? '#000' : '#666'}
+              />
+            }
+          />
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="Economic Events (CPI / Jobs / FOMC)"
+            rightElement={
+              <Switch
+                value={pushEconomicEvents}
+                onValueChange={(val) => {
+                  setPushEconomicEvents(val);
+                  updatePushPreferences('economicEvents', val);
+                }}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={pushEconomicEvents ? '#000' : '#666'}
+              />
+            }
+          />
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="Earnings Coverage"
+            rightElement={
+              <Switch
+                value={pushEarningsCoverage}
+                onValueChange={(val) => {
+                  setPushEarningsCoverage(val);
+                  updatePushPreferences('earningsCoverage', val);
+                }}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={pushEarningsCoverage ? '#000' : '#666'}
+              />
+            }
+          />
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="Watchlist Alerts"
+            rightElement={
+              <Switch
+                value={pushWatchlistAlerts}
+                onValueChange={(val) => {
+                  setPushWatchlistAlerts(val);
+                  updatePushPreferences('watchlistAlerts', val);
+                }}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={pushWatchlistAlerts ? '#000' : '#666'}
+              />
+            }
+          />
+          <SettingRow
+            icon={<Bell size={20} color="#FFD600" />}
+            title="High Impact Only Mode"
+            rightElement={
+              <Switch
+                value={pushHighImpactOnly}
+                onValueChange={(val) => {
+                  setPushHighImpactOnly(val);
+                  updatePushPreferences('highImpactOnly', val);
+                }}
+                trackColor={{ false: '#333', true: '#FFD600' }}
+                thumbColor={pushHighImpactOnly ? '#000' : '#666'}
+              />
+            }
+          />
+        </View>
+
+        <View style={styles.sectionDivider} />
+        <Text style={styles.sectionLabel}>BILLING & SUBSCRIPTION</Text>
+        <View style={styles.settingsSection}>
+          <SettingRow
+            icon={<CreditCard size={20} color="#FFD600" />}
+            title="Manage Billing Method"
+            onPress={() => handleNavigateToSubpage('/settings/billing')}
+          />
+          <SettingRow
+            icon={<Receipt size={20} color="#FFD600" />}
+            title="View Billing History / Receipts"
+            onPress={() => {
+              Alert.alert(
+                'Billing History',
+                'This section will display your billing history and receipts once billing integration is live.',
+                [{ text: 'OK' }]
+              );
+            }}
+          />
+          <SettingRow
+            icon={<XCircle size={20} color="#FF0000" />}
+            title="Cancel Subscription"
+            onPress={handleCancelSubscription}
           />
         </View>
 
