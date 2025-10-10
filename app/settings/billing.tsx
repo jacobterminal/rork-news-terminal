@@ -21,8 +21,21 @@ interface PlanCardProps {
 function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor, currentPlan, onSelect }: PlanCardProps) {
   const isActive = tier === currentPlan;
   
+  const getCardBackground = () => {
+    switch (tier) {
+      case 'core':
+        return 'rgba(0, 46, 31, 0.9)';
+      case 'advanced':
+        return 'rgba(2, 12, 61, 0.88)';
+      case 'premium':
+        return 'rgba(42, 4, 4, 0.88)';
+      default:
+        return 'rgba(20, 20, 20, 0.6)';
+    }
+  };
+  
   return (
-    <View style={[styles.planCard, { borderColor }]}>
+    <View style={[styles.planCard, { borderColor, backgroundColor: getCardBackground() }]}>
       <View style={styles.planHeader}>
         <Text style={styles.planName}>{name}</Text>
         <View style={[styles.planBadge, { backgroundColor: badgeColor }]}>
@@ -42,7 +55,7 @@ function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor,
       </View>
       
       <TouchableOpacity 
-        style={[styles.selectButton, isActive && styles.selectButtonActive, { borderColor }]} 
+        style={[styles.selectButton, isActive && styles.selectButtonActive]} 
         onPress={onSelect}
         activeOpacity={0.7}
         disabled={isActive}
@@ -130,7 +143,7 @@ export default function BillingSettingsScreen() {
         }} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Subscription Plans</Text>
+        <Text style={styles.headerTitle}>Subscription Management</Text>
       </View>
 
       <ScrollView 
@@ -139,7 +152,7 @@ export default function BillingSettingsScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.introSection}>
-          <Text style={styles.introTitle}>Unlock advanced AI modules and real-time news intelligence.</Text>
+          <Text style={styles.sectionTitle}>Select Your Plan</Text>
           <Text style={styles.currentPlanText}>(Current Plan: {currentPlan === 'free' ? 'Free' : currentPlan === 'core' ? 'Core' : currentPlan === 'advanced' ? 'Advanced' : 'Premium'})</Text>
         </View>
 
@@ -148,8 +161,8 @@ export default function BillingSettingsScreen() {
           name="CORE"
           price="$35 / month"
           badge="CORE"
-          badgeColor="#22C55E"
-          borderColor="#22C55E"
+          badgeColor="#00FF88"
+          borderColor="#00FF88"
           currentPlan={currentPlan}
           features={[
             'Instant News Feed',
@@ -168,8 +181,8 @@ export default function BillingSettingsScreen() {
           name="ADVANCED"
           price="$75 / month"
           badge="ADVANCED"
-          badgeColor="#3B82F6"
-          borderColor="#3B82F6"
+          badgeColor="#4AA8FF"
+          borderColor="#4AA8FF"
           currentPlan={currentPlan}
           features={[
             'Everything in Core',
@@ -183,8 +196,8 @@ export default function BillingSettingsScreen() {
           name="PREMIUM"
           price="$95 / month"
           badge="PREMIUM"
-          badgeColor="#EF4444"
-          borderColor="#EF4444"
+          badgeColor="#FF3B3B"
+          borderColor="#FF3B3B"
           currentPlan={currentPlan}
           features={[
             'Everything in Advanced',
@@ -250,7 +263,7 @@ export default function BillingSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0B0B',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -258,7 +271,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 212, 59, 0.2)',
+    borderBottomColor: 'rgba(26, 26, 26, 0.6)',
+    backgroundColor: '#000000',
   },
   backButton: {
     marginRight: 12,
@@ -283,10 +297,11 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 8,
   },
-  introTitle: {
-    fontSize: 15,
-    color: '#EAEAEA',
-    lineHeight: 22,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600' as const,
+    color: '#FFD75A',
+    lineHeight: 28,
     marginBottom: 8,
     fontFamily: Platform.select({
       ios: 'SF Pro Display',
@@ -302,7 +317,6 @@ const styles = StyleSheet.create({
     }),
   },
   planCard: {
-    backgroundColor: 'rgba(20, 20, 20, 0.6)',
     borderWidth: 1,
     borderRadius: 12,
     padding: 20,
@@ -310,7 +324,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
     ...Platform.select({
       web: {
-        boxShadow: '0 0 20px rgba(255, 212, 59, 0.1)',
+        boxShadow: 'inset 0 0 20px rgba(255, 215, 90, 0.15)',
+        transition: 'transform 0.2s ease',
       } as any,
     }),
   },
@@ -342,7 +357,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   planPrice: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700' as const,
     marginBottom: 16,
     fontFamily: Platform.select({
@@ -367,30 +382,28 @@ const styles = StyleSheet.create({
   },
   featureText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 15,
     color: '#EAEAEA',
-    lineHeight: 20,
+    lineHeight: 22,
     fontFamily: Platform.select({
       ios: 'SF Pro Display',
       default: 'System',
     }),
   },
   selectButton: {
-    backgroundColor: '#FFD43B',
-    borderWidth: 2,
-    borderColor: '#FFD43B',
-    borderRadius: 8,
-    paddingVertical: 14,
+    backgroundColor: '#FFD75A',
+    borderRadius: 24,
+    paddingVertical: 10,
     alignItems: 'center',
     ...Platform.select({
       web: {
-        boxShadow: '0 0 15px rgba(255, 212, 59, 0.3)',
+        boxShadow: '0 0 20px rgba(255, 215, 90, 0.4)',
+        transition: 'all 0.2s ease',
       } as any,
     }),
   },
   selectButtonActive: {
-    backgroundColor: '#111',
-    borderColor: '#333',
+    backgroundColor: '#1A1A1A',
     ...Platform.select({
       web: {
         boxShadow: 'none',
@@ -401,7 +414,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700' as const,
     letterSpacing: 1,
-    color: '#0B0B0B',
+    color: '#000000',
   },
   selectButtonTextActive: {
     color: '#888',
@@ -422,22 +435,22 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(10, 10, 10, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#0B0B0B',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 212, 59, 0.3)',
+    borderColor: 'rgba(255, 215, 90, 0.3)',
     padding: 24,
     width: '100%',
     maxWidth: 400,
     ...Platform.select({
       web: {
-        boxShadow: '0 0 30px rgba(255, 212, 59, 0.2)',
+        boxShadow: '0 0 30px rgba(255, 215, 90, 0.2)',
       } as any,
     }),
   },
@@ -455,7 +468,7 @@ const styles = StyleSheet.create({
   modalPrice: {
     fontSize: 24,
     fontWeight: '700' as const,
-    color: '#FFD43B',
+    color: '#FFD75A',
     textAlign: 'center',
     marginBottom: 16,
     fontFamily: Platform.select({
@@ -491,14 +504,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalButtonCancel: {
-    backgroundColor: '#111',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: 'rgba(255, 215, 90, 0.6)',
   },
   modalButtonConfirm: {
-    backgroundColor: '#FFD43B',
-    borderWidth: 1,
-    borderColor: '#FFD43B',
+    backgroundColor: '#FFD75A',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 15px rgba(255, 215, 90, 0.4)',
+      } as any,
+    }),
   },
   modalButtonTextCancel: {
     fontSize: 15,
@@ -508,7 +524,7 @@ const styles = StyleSheet.create({
   modalButtonTextConfirm: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#0B0B0B',
+    color: '#000000',
     letterSpacing: 0.5,
   },
 });
