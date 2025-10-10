@@ -247,6 +247,12 @@ function RootLayoutNav() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="twitter-waitlist"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

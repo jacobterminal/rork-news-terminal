@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { useScrollReset } from '@/utils/useScrollReset';
 import UniversalBackButton from '../components/UniversalBackButton';
@@ -17,45 +18,11 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export default function TwitterTrackerPage() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   useScrollReset();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [reason, setReason] = useState('');
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
-  const getWordCount = (text: string): number => {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
-  };
-
-  const handleApply = () => {
-    setErrorMessage('');
-
-    if (!fullName.trim()) {
-      setErrorMessage('Full name is required');
-      return;
-    }
-
-    if (!email.trim()) {
-      setErrorMessage('Email address is required');
-      return;
-    }
-
-    if (!reason.trim()) {
-      setErrorMessage('Reason for request is required');
-      return;
-    }
-
-    const wordCount = getWordCount(reason);
-    if (wordCount < 20) {
-      setErrorMessage(`Reason must be at least 20 words (currently ${wordCount} words)`);
-      return;
-    }
-
-    setShowConfirmation(true);
-    setTimeout(() => {
-      setShowConfirmation(false);
-    }, 3000);
+  const handleJoinWaitlist = () => {
+    router.push('/twitter-waitlist');
   };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
@@ -97,21 +64,21 @@ export default function TwitterTrackerPage() {
           
           <Text style={styles.lockSubtext}>
             This feature is part of the Premium Suite available through the Insider Vega platform.{'\n'}
-            Gain full access to Twitter Tracker, Crypto Wallet Tracker, Reddit Trackers, and Dark Pool institutional trading analytics.
+            Gain exclusive access to advanced analytics including Twitter Trackers, Crypto Wallet Trackers, Reddit Trackers, and Dark Pool institutional trading insights.
           </Text>
 
           <View style={styles.featureList}>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>Twitter Tracker — live AI sentiment feed scanner</Text>
+              <Text style={styles.featureText}>Twitter Trackers — real-time AI sentiment scanners</Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>Crypto Wallet Tracker — on-chain monitoring and alert system</Text>
+              <Text style={styles.featureText}>Crypto Wallet Trackers — on-chain monitoring and alert system</Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>Reddit Tracker — sentiment mapping engine</Text>
+              <Text style={styles.featureText}>Reddit Trackers — sentiment mapping engines</Text>
             </View>
             <View style={styles.featureItem}>
               <Text style={styles.featureBullet}>•</Text>
@@ -123,74 +90,11 @@ export default function TwitterTrackerPage() {
 
           <TouchableOpacity 
             style={styles.waitlistButton} 
-            onPress={() => setShowConfirmation(false)}
+            onPress={handleJoinWaitlist}
             activeOpacity={0.8}
           >
             <Text style={styles.waitlistButtonText}>Join Waitlist</Text>
           </TouchableOpacity>
-
-          <Text style={styles.formTitle}>Join the Insider Vega Waitlist</Text>
-          <Text style={styles.formSubtext}>
-            Early access members will be notified once Premium analytics tracking becomes available.
-          </Text>
-
-          <View style={styles.formContainer}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Enter your full name"
-                placeholderTextColor="#444444"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                placeholderTextColor="#444444"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Why do you want to join?</Text>
-                <Text style={styles.wordCount}>
-                  {getWordCount(reason)} / 20 words minimum
-                </Text>
-              </View>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={reason}
-                onChangeText={setReason}
-                placeholder="Tell us why you want to join (minimum 20 words)"
-                placeholderTextColor="#444444"
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-
-            {errorMessage ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
-              </View>
-            ) : null}
-
-            <TouchableOpacity 
-              style={styles.applyButton} 
-              onPress={handleApply}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.applyButtonText}>Submit Request</Text>
-            </TouchableOpacity>
-          </View>
 
           <Text style={styles.footerNote}>
             Access restricted — upgrade required for advanced market tracking modules.
@@ -198,13 +102,7 @@ export default function TwitterTrackerPage() {
         </View>
       </ScrollView>
 
-      {showConfirmation && (
-        <View style={styles.confirmationBanner}>
-          <Text style={styles.confirmationText}>
-            ✅ You&apos;ve been added to the Insider Vega waitlist.
-          </Text>
-        </View>
-      )}
+
     </View>
   );
 }
@@ -345,88 +243,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 212, 59, 0.2)',
     marginVertical: 32,
   },
-  formTitle: {
-    fontSize: 13,
-    color: '#FFD43B',
-    fontWeight: '700' as const,
-    letterSpacing: 1,
-    marginBottom: 24,
-  },
-  formContainer: {
-    width: '100%',
-    maxWidth: 500,
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  inputLabel: {
-    fontSize: 12,
-    color: '#888888',
-    fontWeight: '500' as const,
-    letterSpacing: 0.3,
-  },
-  wordCount: {
-    fontSize: 11,
-    color: '#666666',
-    fontWeight: '400' as const,
-  },
-  input: {
-    backgroundColor: '#0B0B0B',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 212, 59, 0.3)',
-    borderRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: '#EAEAEA',
-    fontFamily: Platform.select({
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
-  },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  applyButton: {
-    backgroundColor: '#FFD43B',
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 0 20px rgba(255, 212, 59, 0.4)',
-      } as any,
-    }),
-  },
-  applyButtonText: {
-    fontSize: 14,
-    color: '#0B0B0B',
-    fontWeight: '700' as const,
-    letterSpacing: 1,
-  },
-  errorContainer: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 6,
-    padding: 12,
-    marginTop: 4,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#EF4444',
-    textAlign: 'center',
-    fontWeight: '500' as const,
-  },
+
   footerNote: {
     fontSize: 11,
     color: '#666666',
@@ -453,34 +270,5 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     letterSpacing: 0.5,
   },
-  formSubtext: {
-    fontSize: 13,
-    color: '#888888',
-    lineHeight: 20,
-    textAlign: 'center',
-    marginBottom: 24,
-    maxWidth: 500,
-  },
-  confirmationBanner: {
-    position: 'absolute',
-    bottom: 80,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(34, 197, 94, 0.95)',
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 1)',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 20px rgba(34, 197, 94, 0.3)',
-      } as any,
-    }),
-  },
-  confirmationText: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontWeight: '500' as const,
-  },
+
 });
