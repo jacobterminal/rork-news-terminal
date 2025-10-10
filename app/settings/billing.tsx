@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 
-type PlanTier = 'free' | 'standard' | 'pro' | 'elite';
+type PlanTier = 'free' | 'core' | 'advanced' | 'premium';
 
 interface PlanCardProps {
   tier: PlanTier;
@@ -47,7 +47,7 @@ function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor,
         activeOpacity={0.7}
         disabled={isActive}
       >
-        <Text style={[styles.selectButtonText, isActive && styles.selectButtonTextActive, { color: isActive ? '#888' : borderColor }]}>
+        <Text style={[styles.selectButtonText, isActive && styles.selectButtonTextActive]}>
           {isActive ? 'CURRENT PLAN' : 'SELECT PLAN'}
         </Text>
       </TouchableOpacity>
@@ -59,7 +59,7 @@ export default function BillingSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const navigation = useNavigation();
-  const [currentPlan, setCurrentPlan] = useState<PlanTier>('free');
+  const [currentPlan, setCurrentPlan] = useState<PlanTier>('core');
   const [showModal, setShowModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{ tier: PlanTier; name: string; price: string } | null>(null);
 
@@ -101,68 +101,65 @@ export default function BillingSettingsScreen() {
       >
         <View style={styles.introSection}>
           <Text style={styles.introTitle}>Unlock advanced AI modules and real-time news intelligence.</Text>
-          <Text style={styles.currentPlanText}>(Current Plan: {currentPlan === 'free' ? 'Free' : currentPlan === 'standard' ? 'Nova Standard' : currentPlan === 'pro' ? 'Nova Pro' : 'Nova Elite'})</Text>
+          <Text style={styles.currentPlanText}>(Current Plan: {currentPlan === 'free' ? 'Free' : currentPlan === 'core' ? 'Core' : currentPlan === 'advanced' ? 'Advanced' : 'Premium'})</Text>
         </View>
 
         <PlanCard
-          tier="standard"
-          name="NOVA STANDARD"
+          tier="core"
+          name="CORE"
           price="$35 / month"
-          badge="STANDARD"
+          badge="CORE"
           badgeColor="#22C55E"
           borderColor="#22C55E"
           currentPlan={currentPlan}
           features={[
-            'AI News Tracker (all major sources)',
-            'Instant Breaking News Feed',
-            'Watchlist-Based News Tracking',
-            'Upcoming Earnings & Economic Events Calendar',
-            'AI Summary, Overview, Opinion, Forecast, and Key Phrases integrated in all news',
-            'Smart Filtering by Ticker, Sentiment, and Impact',
+            'Instant News Feed',
+            'Watchlist News Tracking',
+            'AI Opinion & Summary',
+            'Overview & Forecast',
+            'Key Phrases Analysis',
+            'Upcoming Earnings & Economic Events',
+            'Contact Support',
           ]}
-          onSelect={() => handleSelectPlan('standard', 'NOVA STANDARD', '$35 / month')}
+          onSelect={() => handleSelectPlan('core', 'CORE', '$35 / month')}
         />
 
         <PlanCard
-          tier="pro"
-          name="NOVA PRO"
+          tier="advanced"
+          name="ADVANCED"
           price="$75 / month"
-          badge="PRO – Advanced"
-          badgeColor="#FFD43B"
-          borderColor="#FFD43B"
+          badge="ADVANCED"
+          badgeColor="#3B82F6"
+          borderColor="#3B82F6"
           currentPlan={currentPlan}
           features={[
-            'Everything in Tier 1 plus:',
-            'Twitter Tracker (BETA) — live signal & sentiment tracking from verified sources',
-            'Real-Time AI Signal Detection for trending tickers',
-            'Customizable filters (handles, keywords, watchlist-linked)',
+            'Everything in Core',
+            'Reddit Tracker',
           ]}
-          onSelect={() => handleSelectPlan('pro', 'NOVA PRO', '$75 / month')}
+          onSelect={() => handleSelectPlan('advanced', 'ADVANCED', '$75 / month')}
         />
 
         <PlanCard
-          tier="elite"
-          name="NOVA ELITE"
+          tier="premium"
+          name="PREMIUM"
           price="$95 / month"
-          badge="ELITE – Institutional"
+          badge="PREMIUM"
           badgeColor="#EF4444"
           borderColor="#EF4444"
           currentPlan={currentPlan}
           features={[
-            'Everything in Tier 2 plus:',
-            'Reddit Tracker — sentiment mapping & post activity analytics',
-            'Dark Pool Activity Monitor — institutional orderflow and hidden liquidity detection',
-            'AI-Powered Context Integration across all modules',
-            'Early Access to future AI features (whale alerts, cross-feed correlation)',
+            'Everything in Advanced',
+            'Twitter Tracker',
+            'Crypto Wallet Tracker',
           ]}
-          onSelect={() => handleSelectPlan('elite', 'NOVA ELITE', '$95 / month')}
+          onSelect={() => handleSelectPlan('premium', 'PREMIUM', '$95 / month')}
         />
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>• Each plan includes full AI integration (summary, overview, opinion, forecast, key phrases)</Text>
-          <Text style={styles.footerText}>• Cancel anytime from your account settings.</Text>
-          <Text style={styles.footerText}>• Prices billed monthly.</Text>
-          <Text style={styles.footerText}>• Upgrade instantly — no data loss between tiers.</Text>
+          <Text style={styles.footerText}>• All plans include full AI integration (summary, overview, opinion, forecast, key phrases)</Text>
+          <Text style={styles.footerText}>• Cancel anytime from your account settings</Text>
+          <Text style={styles.footerText}>• Prices billed monthly</Text>
+          <Text style={styles.footerText}>• Upgrade instantly — no data loss between tiers</Text>
         </View>
       </ScrollView>
 
@@ -330,8 +327,9 @@ const styles = StyleSheet.create({
     }),
   },
   selectButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFD43B',
     borderWidth: 2,
+    borderColor: '#FFD43B',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -354,6 +352,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700' as const,
     letterSpacing: 1,
+    color: '#0B0B0B',
   },
   selectButtonTextActive: {
     color: '#888',
