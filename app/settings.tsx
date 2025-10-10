@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Switch } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
 import { ChevronRight, User, Layout, Bell, CreditCard, MessageSquare, Mail, Shield, X } from 'lucide-react-native';
+import { navigationMemory } from '../utils/navigationMemory';
 
 interface SettingRowProps {
   icon: React.ReactNode;
@@ -46,19 +47,26 @@ export default function SettingsScreen() {
   const [fedAlerts, setFedAlerts] = React.useState(true);
   const [watchlistAlerts, setWatchlistAlerts] = React.useState(true);
 
+  const handleClose = async () => {
+    const lastRoute = await navigationMemory.getLastRoute();
+    console.log('[Settings] Closing, last route:', lastRoute);
+    
+    if (lastRoute) {
+      router.replace(`/${lastRoute === 'index' ? '' : lastRoute}`);
+    } else if (navigation.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/instant');
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Account Settings</Text>
         <TouchableOpacity 
           style={styles.closeButton}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/');
-            }
-          }}
+          onPress={handleClose}
           activeOpacity={0.7}
         >
           <X size={24} color="#FFFFFF" />

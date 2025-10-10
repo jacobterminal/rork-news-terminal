@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image, Platform } from 'react-native';
 import { Search, X, User } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { FeedItem } from '../types/news';
+import { navigationMemory, AppRoute } from '../utils/navigationMemory';
 
 interface SearchResult {
   type: 'ticker' | 'headline';
@@ -21,10 +22,27 @@ interface AlertSearchBarProps {
 
 export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertSearchBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+
+  const handleSettingsPress = async () => {
+    console.log('[AlertSearchBar] Navigate to settings, current path:', pathname);
+    
+    const routeMap: Record<string, AppRoute> = {
+      '/': 'index',
+      '/instant': 'instant',
+      '/upcoming': 'upcoming',
+      '/watchlist': 'watchlist',
+      '/twitter': 'twitter',
+    };
+    
+    const currentRoute = routeMap[pathname] || 'instant';
+    await navigationMemory.saveLastRoute(currentRoute);
+    router.push('/settings');
+  };
 
   const handleSearchPress = () => {
     console.log('[AlertSearchBar] Open search');
@@ -117,10 +135,7 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
           <TouchableOpacity
             testID="account-button"
             style={styles.iconButton}
-            onPress={() => {
-              console.log('[AlertSearchBar] Navigate to settings');
-              router.push('/settings');
-            }}
+            onPress={handleSettingsPress}
           >
             <User size={18} color={theme.colors.text} />
           </TouchableOpacity>

@@ -1,6 +1,6 @@
 // template
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -18,6 +18,30 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const segments = useSegments();
+  const [hasNavigated, setHasNavigated] = useState(false);
+
+  useEffect(() => {
+    const handleInitialNavigation = async () => {
+      if (hasNavigated) return;
+      
+      const currentPath = `/${segments.join('/')}`;
+      console.log('[RootLayoutNav] Current path:', currentPath);
+      
+      if (currentPath === '/' || currentPath === '') {
+        console.log('[RootLayoutNav] App relaunch detected, navigating to instant');
+        setHasNavigated(true);
+        setTimeout(() => {
+          router.replace('/instant');
+        }, 0);
+      } else {
+        setHasNavigated(true);
+      }
+    };
+
+    handleInitialNavigation();
+  }, [segments, hasNavigated, router]);
   
   return (
     <Tabs
