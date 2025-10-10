@@ -553,18 +553,18 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    lineHeight: 26,
+    lineHeight: 32,
     marginBottom: 12,
   },
   sourceRow: {
     marginBottom: 16,
   },
   sourceText: {
-    fontSize: 12,
-    color: '#BFBFBF',
+    fontSize: 13,
+    color: '#888888',
   },
   divider: {
     height: 1,
@@ -583,9 +583,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase' as const,
   },
   aiText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#FFFFFF',
-    lineHeight: 22,
+    lineHeight: 24,
   },
   opinionRow: {
     flexDirection: 'row',
@@ -598,12 +598,12 @@ const styles = StyleSheet.create({
     fontWeight: '400' as const,
   },
   opinionLabel: {
-    fontSize: 12,
-    color: '#BFBFBF',
+    fontSize: 13,
+    color: '#888888',
     fontWeight: '600' as const,
   },
   opinionSentiment: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700' as const,
   },
   metricsGrid: {
@@ -614,12 +614,12 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 11,
-    color: '#BFBFBF',
+    color: '#888888',
     marginBottom: 4,
     textTransform: 'uppercase' as const,
   },
   metricValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600' as const,
     color: '#FFFFFF',
   },
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontSize: 11,
-    color: '#BFBFBF',
+    color: '#888888',
     textAlign: 'center',
     fontStyle: 'italic' as const,
   },
@@ -664,6 +664,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 13,
-    color: '#BFBFBF',
+    color: '#888888',
   },
 });

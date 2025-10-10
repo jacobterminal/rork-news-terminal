@@ -576,18 +576,18 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    lineHeight: 26,
+    lineHeight: 32,
     marginBottom: 12,
   },
   sourceRow: {
     marginBottom: 16,
   },
   sourceText: {
-    fontSize: 12,
-    color: '#BFBFBF',
+    fontSize: 13,
+    color: '#888888',
   },
   actions: {
     flexDirection: 'row',
@@ -649,12 +649,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   opinionLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#888888',
     fontWeight: '600' as const,
   },
   opinionSentiment: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700' as const,
   },
   explainerSection: {
@@ -662,15 +662,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   explainerText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#BFBFBF',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 
   aiText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#FFFFFF',
-    lineHeight: 22,
+    lineHeight: 24,
   },
   metaRow: {
     flexDirection: 'row',
