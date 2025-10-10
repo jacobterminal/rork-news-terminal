@@ -86,7 +86,6 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
       Animated.timing(translateY, {
         toValue: 0,
         duration: 300,
-        easing: (t: number) => t * (2 - t),
         useNativeDriver: true,
       }).start();
       
@@ -251,7 +250,6 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
     Animated.timing(translateY, {
       toValue: SCREEN_HEIGHT,
       duration: 300,
-      easing: (t: number) => t * (2 - t),
       useNativeDriver: true,
     }).start(() => {
       onClose();
