@@ -86,6 +86,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
       Animated.timing(translateY, {
         toValue: 0,
         duration: 300,
+        easing: (t: number) => t * (2 - t),
         useNativeDriver: true,
       }).start();
       
@@ -250,6 +251,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
     Animated.timing(translateY, {
       toValue: SCREEN_HEIGHT,
       duration: 300,
+      easing: (t: number) => t * (2 - t),
       useNativeDriver: true,
     }).start(() => {
       onClose();
@@ -528,7 +530,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   backdrop: {
@@ -536,8 +538,10 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#000000',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     borderTopWidth: 2,
     borderLeftWidth: 0,
     borderRightWidth: 0,
