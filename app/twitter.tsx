@@ -96,7 +96,7 @@ export default function TwitterTrackerPage() {
           <Text style={styles.lockTitle}>Twitter Tracker Access Restricted</Text>
           
           <Text style={styles.lockSubtext}>
-            This feature is part of the Premium Suite available through the Insider Algo platform.{'\n'}
+            This feature is part of the Premium Suite available through the Insider Vega platform.{'\n'}
             Gain full access to Twitter Tracker, Crypto Wallet Tracker, Reddit Trackers, and Dark Pool institutional trading analytics.
           </Text>
 
@@ -129,7 +129,7 @@ export default function TwitterTrackerPage() {
             <Text style={styles.waitlistButtonText}>Join Waitlist</Text>
           </TouchableOpacity>
 
-          <Text style={styles.formTitle}>Join the Insider Algo Waitlist</Text>
+          <Text style={styles.formTitle}>Join the Insider Vega Waitlist</Text>
           <Text style={styles.formSubtext}>
             Early access members will be notified once Premium analytics tracking becomes available.
           </Text>
@@ -201,7 +201,7 @@ export default function TwitterTrackerPage() {
       {showConfirmation && (
         <View style={styles.confirmationBanner}>
           <Text style={styles.confirmationText}>
-            ✅ You&apos;ve been added to the Insider Algo waitlist.
+            ✅ You&apos;ve been added to the Insider Vega waitlist.
           </Text>
         </View>
       )}
