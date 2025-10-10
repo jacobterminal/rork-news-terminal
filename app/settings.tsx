@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
 import { ChevronRight, User, Layout, Bell, CreditCard, MessageSquare, Mail, Shield, X } from 'lucide-react-native';
 import { navigationMemory } from '../utils/navigationMemory';
-import UniversalBackButton from '../components/UniversalBackButton';
+import SettingsBackHeader from '../components/SettingsBackHeader';
 
 interface SettingRowProps {
   icon: React.ReactNode;
@@ -63,7 +63,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <UniversalBackButton onPress={handleClose} />
+      <SettingsBackHeader onPress={handleClose} />
       
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Account Settings</Text>

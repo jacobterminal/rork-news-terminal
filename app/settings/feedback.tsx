@@ -2,7 +2,8 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
-import { ArrowLeft, Lightbulb, Bug, Sparkles } from 'lucide-react-native';
+import { Lightbulb, Bug, Sparkles } from 'lucide-react-native';
+import SettingsBackHeader from '../../components/SettingsBackHeader';
 
 interface FeedbackTypeProps {
   icon: React.ReactNode;
@@ -44,16 +45,8 @@ export default function FeedbackSettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <SettingsBackHeader />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => {
-          if (navigation.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/settings');
-          }
-        }} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Requests & Feedback</Text>
       </View>
 
@@ -104,12 +97,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#222',
-  },
-  backButton: {
-    marginRight: 12,
   },
   headerTitle: {
     fontSize: 20,

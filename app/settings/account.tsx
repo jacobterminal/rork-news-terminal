@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
-import { ArrowLeft, User, Mail, Lock, Trash2, X } from 'lucide-react-native';
+import { User, Mail, Lock, Trash2, X } from 'lucide-react-native';
+import SettingsBackHeader from '../../components/SettingsBackHeader';
 
 interface SettingItemProps {
   icon: React.ReactNode;
@@ -124,16 +125,8 @@ export default function AccountSettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <SettingsBackHeader />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => {
-          if (navigation.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/settings');
-          }
-        }} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Account Settings</Text>
       </View>
 
@@ -218,6 +211,7 @@ export default function AccountSettingsScreen() {
         onRequestClose={() => setEmailModalVisible(false)}
       >
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
+          <SettingsBackHeader onPress={() => setEmailModalVisible(false)} />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Change Email</Text>
             <TouchableOpacity onPress={() => setEmailModalVisible(false)} style={styles.closeButton}>
@@ -267,6 +261,7 @@ export default function AccountSettingsScreen() {
         onRequestClose={() => setPasswordModalVisible(false)}
       >
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
+          <SettingsBackHeader onPress={() => setPasswordModalVisible(false)} />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Change Password</Text>
             <TouchableOpacity onPress={() => setPasswordModalVisible(false)} style={styles.closeButton}>
@@ -339,12 +334,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#222',
-  },
-  backButton: {
-    marginRight: 12,
   },
   headerTitle: {
     fontSize: 20,
