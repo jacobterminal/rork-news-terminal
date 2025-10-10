@@ -122,14 +122,8 @@ export default function AccountSettingsScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => console.log('Account deleted') }
-      ]
-    );
+    console.log('[Account] Navigating to delete account flow');
+    router.push('/settings/delete-account' as any);
   };
 
   return (
