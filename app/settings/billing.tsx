@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
@@ -62,6 +62,7 @@ export default function BillingSettingsScreen() {
   const [currentPlan, setCurrentPlan] = useState<PlanTier>('core');
   const [showModal, setShowModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{ tier: PlanTier; name: string; price: string } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSelectPlan = (tier: PlanTier, name: string, price: string) => {
     if (tier === currentPlan) return;
@@ -69,13 +70,51 @@ export default function BillingSettingsScreen() {
     setShowModal(true);
   };
 
-  const handleConfirmUpgrade = () => {
-    if (selectedPlan) {
+  const handleConfirmUpgrade = async () => {
+    if (!selectedPlan || isProcessing) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      // TODO: StripePayment()
+      // Placeholder for Stripe payment processing
+      // const paymentResult = await processStripePayment(selectedPlan.tier, selectedPlan.price);
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // TODO: SupabaseUpdate()
+      // Placeholder for Supabase subscription update
+      // await updateUserSubscription(userId, selectedPlan.tier);
+      
       setCurrentPlan(selectedPlan.tier);
       setShowModal(false);
+      
       setTimeout(() => {
+        if (Platform.OS === 'web') {
+          alert(`Plan activated successfully! Welcome to ${selectedPlan.name}.`);
+        } else {
+          Alert.alert(
+            'Success',
+            `Plan activated successfully! Welcome to ${selectedPlan.name}.`,
+            [{ text: 'OK' }]
+          );
+        }
         setSelectedPlan(null);
+        setIsProcessing(false);
       }, 300);
+    } catch (error) {
+      console.error('Payment error:', error);
+      setIsProcessing(false);
+      
+      if (Platform.OS === 'web') {
+        alert('Payment failed. Please try again.');
+      } else {
+        Alert.alert(
+          'Error',
+          'Payment failed. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 
@@ -171,24 +210,34 @@ export default function BillingSettingsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Confirm Upgrade</Text>
-            <Text style={styles.modalText}>
-              Upgrade to {selectedPlan?.name} for {selectedPlan?.price}?
+            <Text style={styles.modalTitle}>{selectedPlan?.name}</Text>
+            <Text style={styles.modalPrice}>{selectedPlan?.price}</Text>
+            <Text style={styles.modalDescription}>
+              Confirm your plan and continue to payment.
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity 
                 style={[styles.modalButton, styles.modalButtonCancel]} 
-                onPress={() => setShowModal(false)}
+                onPress={() => {
+                  if (!isProcessing) {
+                    setShowModal(false);
+                    setTimeout(() => setSelectedPlan(null), 300);
+                  }
+                }}
                 activeOpacity={0.7}
+                disabled={isProcessing}
               >
-                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+                <Text style={[styles.modalButtonTextCancel, isProcessing && styles.disabledText]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonConfirm]} 
+                style={[styles.modalButton, styles.modalButtonConfirm, isProcessing && styles.disabledButton]} 
                 onPress={handleConfirmUpgrade}
                 activeOpacity={0.7}
+                disabled={isProcessing}
               >
-                <Text style={styles.modalButtonTextConfirm}>Confirm</Text>
+                <Text style={[styles.modalButtonTextConfirm, isProcessing && styles.disabledText]}>
+                  {isProcessing ? 'Processing...' : 'Confirm & Pay'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -403,16 +452,33 @@ const styles = StyleSheet.create({
       default: 'System',
     }),
   },
-  modalText: {
-    fontSize: 15,
+  modalPrice: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: '#FFD43B',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontFamily: Platform.select({
+      ios: 'SF Pro Display',
+      default: 'System',
+    }),
+  },
+  modalDescription: {
+    fontSize: 14,
     color: '#888888',
-    lineHeight: 22,
+    lineHeight: 20,
     textAlign: 'center',
     marginBottom: 24,
     fontFamily: Platform.select({
       ios: 'SF Pro Display',
       default: 'System',
     }),
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledText: {
+    opacity: 0.5,
   },
   modalButtons: {
     flexDirection: 'row',
