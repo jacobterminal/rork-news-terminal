@@ -83,11 +83,10 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
 
   useEffect(() => {
     if (visible) {
-      Animated.spring(translateY, {
+      Animated.timing(translateY, {
         toValue: 0,
+        duration: 300,
         useNativeDriver: true,
-        tension: 50,
-        friction: 8,
       }).start();
       
       if (article) {
@@ -250,7 +249,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   const handleClose = () => {
     Animated.timing(translateY, {
       toValue: SCREEN_HEIGHT,
-      duration: 250,
+      duration: 300,
       useNativeDriver: true,
     }).start(() => {
       onClose();
@@ -282,11 +281,11 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
     
     switch (aiContent.sentiment) {
       case 'Bullish':
-        return theme.colors.bullish;
+        return '#00FF66';
       case 'Bearish':
-        return theme.colors.bearish;
+        return '#FF4444';
       case 'Neutral':
-        return theme.colors.neutral;
+        return '#FFD75A';
       default:
         return theme.colors.border;
     }
@@ -536,12 +535,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
-    backgroundColor: theme.colors.bg,
+    backgroundColor: '#000000',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     borderTopWidth: 2,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
     height: SCREEN_HEIGHT * 0.9,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
@@ -572,13 +571,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: theme.colors.text,
+    color: '#FFFFFF',
     lineHeight: 24,
     marginBottom: 12,
   },
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
   },
   sourceText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#FFFFFF',
   },
   actions: {
     flexDirection: 'row',
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: theme.colors.text,
+    color: '#FFFFFF',
     fontWeight: '500' as const,
   },
   divider: {
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: theme.colors.neutral,
+    color: '#FFD75A',
     marginBottom: 8,
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
 
   aiText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: '#FFFFFF',
     lineHeight: 20,
   },
   metaRow: {
