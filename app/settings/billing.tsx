@@ -6,13 +6,18 @@ import SettingsBackHeader from '../../components/SettingsBackHeader';
 
 type PlanTier = 'free' | 'core' | 'advanced' | 'premium';
 
+interface Feature {
+  name: string;
+  included: boolean;
+}
+
 interface PlanCardProps {
   tier: PlanTier;
   name: string;
   price: string;
   badge: string;
   badgeColor: string;
-  features: string[];
+  features: Feature[];
   borderColor: string;
   currentPlan: PlanTier;
   onSelect: () => void;
@@ -48,8 +53,12 @@ function PlanCard({ tier, name, price, badge, badgeColor, features, borderColor,
       <View style={styles.featuresContainer}>
         {features.map((feature, index) => (
           <View key={index} style={styles.featureRow}>
-            <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>{feature}</Text>
+            <Text style={[styles.featureIcon, feature.included ? styles.featureIncluded : styles.featureExcluded]}>
+              {feature.included ? '✓' : '✕'}
+            </Text>
+            <Text style={[styles.featureText, !feature.included && styles.featureTextExcluded]}>
+              {feature.name}
+            </Text>
           </View>
         ))}
       </View>
@@ -157,13 +166,16 @@ export default function BillingSettingsScreen() {
           borderColor="#00FF88"
           currentPlan={currentPlan}
           features={[
-            'Instant News Feed',
-            'Watchlist News Tracking',
-            'AI Opinion & Summary',
-            'Overview & Forecast',
-            'Key Phrases Analysis',
-            'Upcoming Earnings & Economic Events',
-            'Contact Support',
+            { name: 'Instant News Feed', included: true },
+            { name: 'Watchlist News Tracking', included: true },
+            { name: 'AI Opinion & Summary', included: true },
+            { name: 'Overview & Forecast', included: true },
+            { name: 'Key Phrases Analysis', included: true },
+            { name: 'Upcoming Earnings & Economic Events', included: true },
+            { name: 'Reddit Tracker', included: false },
+            { name: 'Twitter Tracker', included: false },
+            { name: 'Crypto Wallet Tracker', included: false },
+            { name: 'Contact Support', included: true },
           ]}
           onSelect={() => handleSelectPlan('core', 'CORE', '$35 / month')}
         />
@@ -177,8 +189,16 @@ export default function BillingSettingsScreen() {
           borderColor="#4AA8FF"
           currentPlan={currentPlan}
           features={[
-            'Everything in Core',
-            'Reddit Tracker',
+            { name: 'Instant News Feed', included: true },
+            { name: 'Watchlist News Tracking', included: true },
+            { name: 'AI Opinion & Summary', included: true },
+            { name: 'Overview & Forecast', included: true },
+            { name: 'Key Phrases Analysis', included: true },
+            { name: 'Upcoming Earnings & Economic Events', included: true },
+            { name: 'Reddit Tracker', included: true },
+            { name: 'Twitter Tracker', included: false },
+            { name: 'Crypto Wallet Tracker', included: false },
+            { name: 'Contact Support', included: true },
           ]}
           onSelect={() => handleSelectPlan('advanced', 'ADVANCED', '$75 / month')}
         />
@@ -192,9 +212,16 @@ export default function BillingSettingsScreen() {
           borderColor="#FF3B3B"
           currentPlan={currentPlan}
           features={[
-            'Everything in Advanced',
-            'Twitter Tracker',
-            'Crypto Wallet Tracker',
+            { name: 'Instant News Feed', included: true },
+            { name: 'Watchlist News Tracking', included: true },
+            { name: 'AI Opinion & Summary', included: true },
+            { name: 'Overview & Forecast', included: true },
+            { name: 'Key Phrases Analysis', included: true },
+            { name: 'Upcoming Earnings & Economic Events', included: true },
+            { name: 'Reddit Tracker', included: true },
+            { name: 'Twitter Tracker', included: true },
+            { name: 'Crypto Wallet Tracker', included: true },
+            { name: 'Contact Support', included: true },
           ]}
           onSelect={() => handleSelectPlan('premium', 'PREMIUM', '$95 / month')}
         />
@@ -363,11 +390,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
   },
-  featureBullet: {
-    fontSize: 14,
-    color: '#FFD43B',
+  featureIcon: {
+    fontSize: 16,
     fontWeight: '700' as const,
     marginTop: 2,
+    width: 20,
+  },
+  featureIncluded: {
+    color: '#FFD75A',
+  },
+  featureExcluded: {
+    color: '#5A5A5A',
   },
   featureText: {
     flex: 1,
@@ -378,6 +411,9 @@ const styles = StyleSheet.create({
       ios: 'SF Pro Display',
       default: 'System',
     }),
+  },
+  featureTextExcluded: {
+    opacity: 0.7,
   },
   selectButton: {
     backgroundColor: '#FFD75A',
