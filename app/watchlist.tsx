@@ -12,6 +12,7 @@ import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
 import { theme } from '../constants/theme';
 import { useScrollReset } from '../utils/useScrollReset';
+import UniversalBackButton from '../components/UniversalBackButton';
 
 interface TickerNewsItem {
   time: string;
@@ -285,6 +286,7 @@ export default function WatchlistScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
+      <UniversalBackButton />
       
       <ScrollView 
         ref={scrollViewRef}
@@ -420,6 +422,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+    paddingTop: 37,
   },
   scrollView: {
     flex: 1,

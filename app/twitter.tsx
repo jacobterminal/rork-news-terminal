@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInp
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useScrollReset } from '@/utils/useScrollReset';
+import UniversalBackButton from '../components/UniversalBackButton';
 
 
 type TabKey = 'dashboard' | 'ruleBuilder' | 'targets' | 'analytics';
@@ -61,6 +62,8 @@ export default function TwitterTrackerPage() {
 
   return (
     <View style={[styles.page, { paddingTop: insets.top + headerHeight }]}>
+      <UniversalBackButton />
+      
       <View nativeID="banner-anchor-point" style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Twitter Tracker</Text>
@@ -199,6 +202,7 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: '#0B0B0B',
+    paddingTop: 37,
   },
   header: {
     borderBottomWidth: 1,

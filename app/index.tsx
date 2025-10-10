@@ -11,6 +11,7 @@ import { useScrollReset } from '../utils/useScrollReset';
 import CriticalAlerts from '../components/CriticalAlerts';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
+import UniversalBackButton from '../components/UniversalBackButton';
 
 export default function NewsScreen() {
   const insets = useSafeAreaInsets();
@@ -247,6 +248,7 @@ export default function NewsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
+      <UniversalBackButton />
       
       <ScrollView 
         ref={scrollViewRef}
@@ -372,6 +374,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
+    paddingTop: 37,
   },
   scrollView: {
     flex: 1,

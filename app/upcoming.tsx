@@ -7,6 +7,7 @@ import { theme } from '../constants/theme';
 import { EarningsItem, EconItem } from '../types/news';
 import { generateMockData } from '../utils/mockData';
 import { useScrollReset } from '../utils/useScrollReset';
+import UniversalBackButton from '../components/UniversalBackButton';
 
 interface CalendarDay {
   date: Date;
@@ -412,6 +413,7 @@ export default function UpcomingScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
+      <UniversalBackButton />
       
       <View nativeID="banner-anchor-point">
         <CalendarStrip 
@@ -485,6 +487,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
+    paddingTop: 37,
   },
   calendarContainer: {
     backgroundColor: theme.colors.card,
