@@ -123,7 +123,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.sectionDivider} />
-        <Text style={styles.sectionLabel}>INSTANT NEWS</Text>
+        <Text style={styles.sectionLabel}>INSTANT NEWS PRESETS</Text>
         <Text style={styles.sectionDescription}>Configure what appears in the Instant News page</Text>
         <View style={styles.settingsSection}>
           <SettingRow
