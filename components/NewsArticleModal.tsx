@@ -125,13 +125,25 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
       
       const summary = title.length > 120 ? `${title.substring(0, 120)}...` : title;
       
-      const overview = `This ${typeof source === 'string' ? source : 'news'} article ${tickers.length > 0 ? `covers ${tickers.slice(0, 2).join(' and ')}` : 'discusses market developments'}, highlighting ${sentiment === 'Bullish' ? 'positive momentum and growth indicators' : sentiment === 'Bearish' ? 'challenges and downward pressure' : 'neutral market conditions'} with potential implications for investor positioning.`;
+      let overview = '';
       
-      const explainer = sentiment === 'Bullish' 
-        ? 'Driven by strong performance indicators and positive market reception, suggesting upward momentum.'
-        : sentiment === 'Bearish'
-        ? 'Negative sentiment driven by underperformance or adverse market conditions, indicating downward pressure.'
-        : 'Factual reporting without strong directional bias, reflecting balanced market conditions.';
+      if (titleLower.includes('tariff') && titleLower.includes('trump') && titleLower.includes('china')) {
+        overview = `Former President Trump's announcement of potential 100% tariffs on Chinese imports represents a significant escalation in trade policy rhetoric. This development could impact ${tickers.length > 0 ? tickers.slice(0, 3).join(', ') : 'major indices and China-exposed equities'}, with potential ripple effects across global supply chains, consumer prices, and international trade relations. Market participants should monitor for policy implementation timelines and retaliatory measures.`;
+      } else {
+        overview = `This ${typeof source === 'string' ? source : 'news'} article ${tickers.length > 0 ? `covers ${tickers.slice(0, 2).join(' and ')}` : 'discusses market developments'}, highlighting ${sentiment === 'Bullish' ? 'positive momentum and growth indicators' : sentiment === 'Bearish' ? 'challenges and downward pressure' : 'neutral market conditions'} with potential implications for investor positioning.`;
+      }
+      
+      let explainer = '';
+      
+      if (titleLower.includes('tariff') && titleLower.includes('trump') && titleLower.includes('china')) {
+        explainer = 'Tariff threats of this magnitude typically trigger risk-off sentiment in equity markets, particularly affecting multinational corporations with significant China exposure. Historical precedent suggests increased volatility in affected sectors including technology, consumer goods, and industrials. Investors may rotate toward domestic-focused equities and defensive sectors while monitoring diplomatic developments.';
+      } else {
+        explainer = sentiment === 'Bullish' 
+          ? 'Driven by strong performance indicators and positive market reception, suggesting upward momentum.'
+          : sentiment === 'Bearish'
+          ? 'Negative sentiment driven by underperformance or adverse market conditions, indicating downward pressure.'
+          : 'Factual reporting without strong directional bias, reflecting balanced market conditions.';
+      }
       
       const forecast = sentiment === 'Bullish'
         ? 'Likely bullish sentiment next 48 hours'
@@ -149,6 +161,17 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
         keyPhrases.push('Earnings Miss');
       } else if (titleLower.includes('earnings')) {
         keyPhrases.push('Earnings Report');
+      }
+      
+      if (titleLower.includes('tariff') || titleLower.includes('tariffs')) {
+        keyPhrases.push('Trade Policy Shift');
+        if (titleLower.includes('china')) {
+          keyPhrases.push('US-China Trade Tensions');
+        }
+      }
+      
+      if (titleLower.includes('trump')) {
+        keyPhrases.push('Political Impact');
       }
       
       if (titleLower.includes('china') && titleLower.includes('demand')) {

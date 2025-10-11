@@ -267,6 +267,22 @@ const MOCK_ECON: EconItem[] = [
 
 const MOCK_CRITICAL_ALERTS: CriticalAlert[] = [
   {
+    id: 'critical_trump_tariff_1',
+    type: 'fomc',
+    headline: 'Trump Threatens 100% Tariffs on China Amid Trade Tensions',
+    source: 'Bloomberg',
+    tickers: ['SPY', 'QQQ', 'BABA', 'JD', 'FXI'],
+    forecast: '25%',
+    previous: '25%',
+    actual: '100%',
+    verdict: 'Escalation in Trade War Rhetoric',
+    impact: 'High',
+    sentiment: 'Bearish',
+    confidence: 88,
+    published_at: new Date(BASE_TIME - 15 * 60 * 1000).toISOString(), // 15 minutes ago
+    is_released: true,
+  },
+  {
     id: 'critical_fed_1',
     type: 'fomc',
     headline: 'Fed Raises Rates by 25bps, Signals Pause in December',
