@@ -269,17 +269,17 @@ const MOCK_CRITICAL_ALERTS: CriticalAlert[] = [
   {
     id: 'critical_trump_tariff_1',
     type: 'fomc',
-    headline: 'Trump Threatens 100% Tariffs on China Amid Trade Tensions',
+    headline: 'Trump Threatens 100% Tariffs on China in Escalating Trade War',
     source: 'Bloomberg',
-    tickers: ['SPY', 'QQQ', 'BABA', 'JD', 'FXI'],
+    tickers: ['SPY', 'QQQ', 'BABA', 'JD', 'FXI', 'AAPL', 'TSLA', 'NKE'],
     forecast: '25%',
     previous: '25%',
     actual: '100%',
-    verdict: 'Escalation in Trade War Rhetoric',
+    verdict: 'Major Escalation in U.S.-China Trade Relations',
     impact: 'High',
     sentiment: 'Bearish',
-    confidence: 88,
-    published_at: new Date(BASE_TIME - 15 * 60 * 1000).toISOString(), // 15 minutes ago
+    confidence: 92,
+    published_at: new Date(BASE_TIME - 8 * 60 * 1000).toISOString(), // 8 minutes ago
     is_released: true,
   },
   {
