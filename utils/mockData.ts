@@ -279,7 +279,7 @@ const MOCK_CRITICAL_ALERTS: CriticalAlert[] = [
     impact: 'High',
     sentiment: 'Bearish',
     confidence: 92,
-    published_at: new Date('2025-10-11T10:47:00').toISOString(),
+    published_at: new Date(BASE_TIME - 10 * 60 * 1000).toISOString(),
     is_released: true,
   },
   {
