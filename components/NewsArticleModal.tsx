@@ -107,6 +107,29 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
     setAiError(null);
     
     try {
+      if ('headline' in article && article.ai_summary && article.ai_overview) {
+        const criticalAlert = article as CriticalAlert;
+        const aiOpinion = criticalAlert.ai_opinion || 'Neutral';
+        const aiConfidence = criticalAlert.ai_opinion_confidence || criticalAlert.confidence;
+        const sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 
+          aiOpinion === 'Bull' ? 'Bullish' : aiOpinion === 'Bear' ? 'Bearish' : 'Neutral';
+        
+        setAiContent({
+          summary: criticalAlert.ai_summary || criticalAlert.headline,
+          overview: criticalAlert.ai_overview || 'Analysis pending.',
+          opinion: `${aiOpinion} sentiment detected with ${aiConfidence}% confidence.`,
+          sentiment,
+          confidence: aiConfidence,
+          impact: criticalAlert.impact,
+          explainer: criticalAlert.ai_overview || 'Analysis pending.',
+          forecast: criticalAlert.ai_forecast || 'Likely stable sentiment next 48 hours',
+          impactConfidence: aiConfidence,
+          keyPhrases: criticalAlert.key_phrases || [],
+        });
+        setIsLoadingAI(false);
+        return;
+      }
+      
       const title = 'title' in article ? article.title : article.headline;
       const source = 'source' in article && typeof article.source === 'object' ? article.source.name : article.source;
       const tickers = article.tickers || [];

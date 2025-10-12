@@ -281,6 +281,12 @@ const MOCK_CRITICAL_ALERTS: CriticalAlert[] = [
     confidence: 92,
     published_at: new Date(BASE_TIME - 10 * 60 * 1000).toISOString(),
     is_released: true,
+    ai_summary: 'Trump Threatens 100% Tariffs on China in Escalating Trade War',
+    ai_overview: "Former President Trump's announcement of potential 100% tariffs on Chinese imports represents a significant escalation in trade policy rhetoric. This development could impact SPY, QQQ, BABA, with potential ripple effects across global supply chains, consumer prices, and international trade relations. Market participants should monitor for policy implementation timelines and retaliatory measures.",
+    ai_opinion: 'Bear',
+    ai_opinion_confidence: 92,
+    ai_forecast: 'Likely stable sentiment next 48 hours',
+    key_phrases: ['trump', 'tariff', 'china', 'Trade Policy Shift', 'US-China Trade Tensions'],
   },
   {
     id: 'critical_fed_1',
