@@ -94,12 +94,6 @@ export interface CriticalAlert {
   confidence: number;
   published_at: string;
   is_released: boolean;
-  ai_summary?: string;
-  ai_overview?: string;
-  ai_opinion?: 'Bull' | 'Bear' | 'Neutral';
-  ai_opinion_confidence?: number;
-  ai_forecast?: string;
-  key_phrases?: string[];
 }
 
 export interface WatchlistFolder {
