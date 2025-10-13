@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Dimensions } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
+import { useDropdown } from '../store/dropdownStore';
 
 export type TimeRange = 'last_hour' | 'today' | 'past_2_days' | 'past_5_days' | 'week_to_date' | 'custom';
 
@@ -26,6 +27,8 @@ export default function TimeRangeFilterPill({
   customRange,
   onRangeChange 
 }: TimeRangeFilterPillProps) {
+  const { registerDropdown, shouldCloseDropdown } = useDropdown();
+  const dropdownId = 'time-range-filter';
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [pillLayout, setPillLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const pillRef = useRef<View>(null);
@@ -44,6 +47,21 @@ export default function TimeRangeFilterPill({
   const [endDatePickerVisible, setEndDatePickerVisible] = useState(false);
   const [startTimePickerVisible, setStartTimePickerVisible] = useState(false);
   const [endTimePickerVisible, setEndTimePickerVisible] = useState(false);
+
+  useEffect(() => {
+    if (shouldCloseDropdown(dropdownId)) {
+      setDropdownVisible(false);
+      setModalVisible(false);
+      setStartDatePickerVisible(false);
+      setEndDatePickerVisible(false);
+      setStartTimePickerVisible(false);
+      setEndTimePickerVisible(false);
+    }
+  }, [shouldCloseDropdown, dropdownId]);
+
+  useEffect(() => {
+    registerDropdown(dropdownId, dropdownVisible || modalVisible || startDatePickerVisible || endDatePickerVisible || startTimePickerVisible || endTimePickerVisible);
+  }, [dropdownVisible, modalVisible, startDatePickerVisible, endDatePickerVisible, startTimePickerVisible, endTimePickerVisible, registerDropdown, dropdownId]);
   
   const startHourScrollRef = useRef<ScrollView>(null);
   const startMinuteScrollRef = useRef<ScrollView>(null);
@@ -106,6 +124,7 @@ export default function TimeRangeFilterPill({
   };
 
   const openStartTimePicker = () => {
+    setEndTimePickerVisible(false);
     setStartTimePickerVisible(!startTimePickerVisible);
     if (!startTimePickerVisible) {
       setTimeout(() => {
@@ -121,6 +140,7 @@ export default function TimeRangeFilterPill({
   };
   
   const openEndTimePicker = () => {
+    setStartTimePickerVisible(false);
     setEndTimePickerVisible(!endTimePickerVisible);
     if (!endTimePickerVisible) {
       setTimeout(() => {
@@ -434,6 +454,7 @@ export default function TimeRangeFilterPill({
                 style={styles.dateDropdownButton}
                 onPress={() => {
                   const willOpen = !startDatePickerVisible;
+                  setEndDatePickerVisible(false);
                   setStartDatePickerVisible(willOpen);
                   if (willOpen && tempStartDate) {
                     setTimeout(() => {
@@ -503,6 +524,7 @@ export default function TimeRangeFilterPill({
                 style={styles.dateDropdownButton}
                 onPress={() => {
                   const willOpen = !endDatePickerVisible;
+                  setStartDatePickerVisible(false);
                   setEndDatePickerVisible(willOpen);
                   if (willOpen && tempEndDate) {
                     setTimeout(() => {

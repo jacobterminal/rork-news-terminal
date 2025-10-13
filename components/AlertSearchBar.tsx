@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image, Platform } from 'react-native';
 import { Search, X, User } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { FeedItem } from '../types/news';
 import { navigationMemory, AppRoute } from '../utils/navigationMemory';
+import { useDropdown } from '../store/dropdownStore';
 
 interface SearchResult {
   type: 'ticker' | 'headline';
@@ -21,12 +22,26 @@ interface AlertSearchBarProps {
 }
 
 export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertSearchBarProps) {
+  const { registerDropdown, shouldCloseDropdown } = useDropdown();
+  const dropdownId = 'alert-search-bar';
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+
+  useEffect(() => {
+    if (shouldCloseDropdown(dropdownId)) {
+      setShowSearch(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    }
+  }, [shouldCloseDropdown, dropdownId]);
+
+  useEffect(() => {
+    registerDropdown(dropdownId, showSearch);
+  }, [showSearch, registerDropdown, dropdownId]);
 
   const handleSettingsPress = async () => {
     console.log('[AlertSearchBar] Navigate to settings, current path:', pathname);

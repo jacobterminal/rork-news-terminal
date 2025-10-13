@@ -9,6 +9,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
 import { theme } from "../constants/theme";
 import { NewsStoreProvider, useNewsStore } from "../store/newsStore";
+import { DropdownProvider } from "../store/dropdownStore";
 import DropBanner from "../components/DropBanner";
 import AlertSearchBar from "../components/AlertSearchBar";
 
@@ -323,9 +324,11 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <NewsStoreProvider>
-          <GestureHandlerRootView style={styles.container}>
-            <AppWithBanners />
-          </GestureHandlerRootView>
+          <DropdownProvider>
+            <GestureHandlerRootView style={styles.container}>
+              <AppWithBanners />
+            </GestureHandlerRootView>
+          </DropdownProvider>
         </NewsStoreProvider>
       </SafeAreaProvider>
     </QueryClientProvider>

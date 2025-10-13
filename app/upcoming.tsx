@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronDown } from 'lucide-react-native';
+import { useDropdown } from '../store/dropdownStore';
 import { theme } from '../constants/theme';
 import { EarningsItem, EconItem } from '../types/news';
 import { generateMockData } from '../utils/mockData';
@@ -140,8 +141,20 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
   showMonthPicker: boolean;
   setShowMonthPicker: (show: boolean) => void;
 }) {
+  const { registerDropdown, shouldCloseDropdown } = useDropdown();
+  const dropdownId = 'month-picker';
   const monthScrollRef = useRef<ScrollView>(null);
   const calendarScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (shouldCloseDropdown(dropdownId)) {
+      setShowMonthPicker(false);
+    }
+  }, [shouldCloseDropdown, dropdownId, setShowMonthPicker]);
+
+  useEffect(() => {
+    registerDropdown(dropdownId, showMonthPicker);
+  }, [showMonthPicker, registerDropdown, dropdownId]);
   
   useEffect(() => {
     if (showMonthPicker && monthScrollRef.current) {

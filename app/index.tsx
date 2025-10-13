@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, Pressable, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
@@ -7,6 +7,7 @@ import { MoreVertical } from 'lucide-react-native';
 import NewsCard from '../components/NewsCard';
 import TickerDrawer from '../components/TickerDrawer';
 import { useNewsStore } from '../store/newsStore';
+import { useDropdown } from '../store/dropdownStore';
 import { useScrollReset } from '../utils/useScrollReset';
 import CriticalAlerts from '../components/CriticalAlerts';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
@@ -14,6 +15,8 @@ import NewsArticleModal from '../components/NewsArticleModal';
 import UniversalBackButton from '../components/UniversalBackButton';
 
 export default function NewsScreen() {
+  const { registerDropdown, shouldCloseDropdown } = useDropdown();
+  const dropdownId = 'news-menu';
   const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
   const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines } = useNewsStore();
@@ -24,6 +27,16 @@ export default function NewsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [showWatchlistFilter, setShowWatchlistFilter] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+
+  useEffect(() => {
+    if (shouldCloseDropdown(dropdownId)) {
+      setMenuVisible(false);
+    }
+  }, [shouldCloseDropdown, dropdownId]);
+
+  useEffect(() => {
+    registerDropdown(dropdownId, menuVisible);
+  }, [menuVisible, registerDropdown, dropdownId]);
   
   // Filter feed items to only show news for tickers in watchlist
   const watchlistFeedItems = useMemo(() => {
