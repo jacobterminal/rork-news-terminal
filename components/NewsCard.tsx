@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Bookmark } from 'lucide-react-native';
 import { FeedItem } from '../types/news';
 import { theme, sentimentConfig } from '../constants/theme';
 import { useNewsStore } from '../store/newsStore';
+import CompanyInfoModal from './CompanyInfoModal';
 
 interface NewsCardProps {
   item: FeedItem;
@@ -15,6 +16,8 @@ interface NewsCardProps {
 
 export default function NewsCard({ item, onTickerPress, showTweet = false, onPress }: NewsCardProps) {
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
   
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -47,7 +50,8 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
   const sentimentColor = getSentimentColor();
 
   return (
-    <Pressable style={styles.tableRow} onPress={handleCardPress}>
+    <>
+      <Pressable style={styles.tableRow} onPress={handleCardPress}>
       <View style={styles.rowContent}>
         <View style={styles.topLine}>
           <Text style={styles.timeText}>{formatTime(item.published_at)}</Text>
@@ -77,7 +81,12 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
                 key={ticker}
                 onPress={() => {
                   if (!ticker?.trim() || ticker.length > 10) return;
-                  onTickerPress?.(ticker.trim());
+                  if (onTickerPress) {
+                    onTickerPress(ticker.trim());
+                  } else {
+                    setSelectedTicker(ticker.trim());
+                    setShowCompanyModal(true);
+                  }
                 }}
               >
                 <Text style={styles.tickerTag}>{ticker}</Text>
@@ -123,6 +132,16 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
         </View>
       </View>
     </Pressable>
+
+    <CompanyInfoModal
+      visible={showCompanyModal}
+      ticker={selectedTicker}
+      onClose={() => {
+        setShowCompanyModal(false);
+        setSelectedTicker(null);
+      }}
+    />
+    </>
   );
 }
 

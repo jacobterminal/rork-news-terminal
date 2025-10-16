@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
+import CompanyInfoModal from './CompanyInfoModal';
 
 interface WatchlistCardProps {
   ticker: string;
@@ -33,6 +34,7 @@ export default function WatchlistCard({
   onHeadlinePress 
 }: WatchlistCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
 
   const getSentimentIcon = (sent: 'Bullish' | 'Bearish' | 'Neutral') => {
     switch (sent) {
@@ -90,16 +92,24 @@ export default function WatchlistCard({
   };
 
   return (
-    <View style={styles.card}>
+    <>
+      <View style={styles.card}>
       <TouchableOpacity 
         style={styles.header}
         onPress={() => setIsExpanded(!isExpanded)}
         activeOpacity={0.7}
       >
         <View style={styles.headerLeft}>
-          <View style={styles.tickerChip}>
+          <TouchableOpacity
+            style={styles.tickerChip}
+            onPress={(e) => {
+              e.stopPropagation();
+              setShowCompanyModal(true);
+            }}
+            activeOpacity={0.7}
+          >
             <Text style={styles.tickerText}>{ticker}</Text>
-          </View>
+          </TouchableOpacity>
           <Text style={styles.companyName}>{company}</Text>
         </View>
         
@@ -180,6 +190,14 @@ export default function WatchlistCard({
         </View>
       )}
     </View>
+
+    <CompanyInfoModal
+      visible={showCompanyModal}
+      ticker={ticker}
+      companyName={company}
+      onClose={() => setShowCompanyModal(false)}
+    />
+    </>
   );
 }
 
