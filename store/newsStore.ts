@@ -84,6 +84,7 @@ const STORAGE_KEYS = {
   FILTERS: 'news_filters',
   WATCHLIST: 'news_watchlist',
   WATCHLIST_FOLDERS: 'news_watchlist_folders',
+  ACTIVE_FOLDER: 'news_active_folder',
   UI_STATE: 'news_ui_state',
   SAVED_ARTICLES: 'news_saved_articles',
 };
@@ -138,15 +139,17 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
   const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
   const [highlightedAlert, setHighlightedAlert] = useState<string | null>(null);
   const [savedArticles, setSavedArticles] = useState<FeedItem[]>([]);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
 
   const loadPersistedData = useCallback(async () => {
     if (!isHydrated) return;
     
     try {
-      const [filtersData, watchlistData, watchlistFoldersData, uiData, savedArticlesData] = await Promise.all([
+      const [filtersData, watchlistData, watchlistFoldersData, activeFolderData, uiData, savedArticlesData] = await Promise.all([
         storage.getItem(STORAGE_KEYS.FILTERS),
         storage.getItem(STORAGE_KEYS.WATCHLIST),
         storage.getItem(STORAGE_KEYS.WATCHLIST_FOLDERS),
+        storage.getItem(STORAGE_KEYS.ACTIVE_FOLDER),
         storage.getItem(STORAGE_KEYS.UI_STATE),
         storage.getItem(STORAGE_KEYS.SAVED_ARTICLES),
       ]);
@@ -228,6 +231,22 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
         }
         
         setSavedArticles(parsedSavedArticles);
+        
+        try {
+          if (activeFolderData && typeof activeFolderData === 'string' && activeFolderData.trim().length > 0) {
+            const parsed = JSON.parse(activeFolderData);
+            if (typeof parsed === 'string') {
+              setActiveFolderId(parsed);
+            }
+          } else if (parsedWatchlistFolders.length > 0) {
+            setActiveFolderId(parsedWatchlistFolders[0].id);
+          }
+        } catch (error) {
+          console.warn('Failed to parse active folder data:', error);
+          if (parsedWatchlistFolders.length > 0) {
+            setActiveFolderId(parsedWatchlistFolders[0].id);
+          }
+        }
         
         return {
           ...prev,
@@ -475,7 +494,19 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
   }, []);
 
   // Folder management functions
-  const createFolder = useCallback(async (name: string) => {
+  const setActiveFolder = useCallback(async (folderId: string) => {
+    setActiveFolderId(folderId);
+    
+    if (isHydrated) {
+      try {
+        await storage.setItem(STORAGE_KEYS.ACTIVE_FOLDER, JSON.stringify(folderId));
+      } catch (error) {
+        console.error('Failed to persist active folder:', error);
+      }
+    }
+  }, [isHydrated]);
+
+  const createFolder = useCallback(async (name: string, setAsActive: boolean = false): Promise<string> => {
     const newFolder: WatchlistFolder = {
       id: `folder_${Date.now()}`,
       name: name.trim(),
@@ -488,31 +519,55 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
       watchlistFolders: [...prev.watchlistFolders, newFolder],
     }));
     
+    if (setAsActive) {
+      setActiveFolderId(newFolder.id);
+    }
+    
     if (isHydrated) {
       try {
         const updatedFolders = [...state.watchlistFolders, newFolder];
         await storage.setItem(STORAGE_KEYS.WATCHLIST_FOLDERS, JSON.stringify(updatedFolders));
+        
+        if (setAsActive) {
+          await storage.setItem(STORAGE_KEYS.ACTIVE_FOLDER, JSON.stringify(newFolder.id));
+        }
       } catch (error) {
         console.error('Failed to persist new folder:', error);
       }
     }
+    
+    return newFolder.id;
   }, [state.watchlistFolders, isHydrated]);
 
   const deleteFolder = useCallback(async (folderId: string) => {
+    const updatedFolders = state.watchlistFolders.filter(folder => folder.id !== folderId);
+    
     setState(prev => ({
       ...prev,
-      watchlistFolders: prev.watchlistFolders.filter(folder => folder.id !== folderId),
+      watchlistFolders: updatedFolders,
     }));
+    
+    if (activeFolderId === folderId) {
+      const newActiveId = updatedFolders.length > 0 ? updatedFolders[0].id : null;
+      setActiveFolderId(newActiveId);
+      
+      if (isHydrated && newActiveId) {
+        try {
+          await storage.setItem(STORAGE_KEYS.ACTIVE_FOLDER, JSON.stringify(newActiveId));
+        } catch (error) {
+          console.error('Failed to persist new active folder:', error);
+        }
+      }
+    }
     
     if (isHydrated) {
       try {
-        const updatedFolders = state.watchlistFolders.filter(folder => folder.id !== folderId);
         await storage.setItem(STORAGE_KEYS.WATCHLIST_FOLDERS, JSON.stringify(updatedFolders));
       } catch (error) {
         console.error('Failed to persist folder deletion:', error);
       }
     }
-  }, [state.watchlistFolders, isHydrated]);
+  }, [state.watchlistFolders, activeFolderId, isHydrated]);
 
   const renameFolder = useCallback(async (folderId: string, newName: string) => {
     setState(prev => ({
@@ -554,11 +609,16 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
     }
   }, [state.watchlistFolders, isHydrated]);
 
-  const addTickerToFolder = useCallback(async (folderId: string, ticker: string) => {
+  const addTickerToFolder = useCallback(async (folderId: string, ticker: string): Promise<boolean> => {
+    const folder = state.watchlistFolders.find(f => f.id === folderId);
+    if (!folder || folder.tickers.includes(ticker)) {
+      return false;
+    }
+    
     setState(prev => ({
       ...prev,
       watchlistFolders: prev.watchlistFolders.map(folder => 
-        folder.id === folderId && !folder.tickers.includes(ticker)
+        folder.id === folderId
           ? { ...folder, tickers: [...folder.tickers, ticker] }
           : folder
       ),
@@ -567,7 +627,7 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
     if (isHydrated) {
       try {
         const updatedFolders = state.watchlistFolders.map(folder => 
-          folder.id === folderId && !folder.tickers.includes(ticker)
+          folder.id === folderId
             ? { ...folder, tickers: [...folder.tickers, ticker] }
             : folder
         );
@@ -576,6 +636,8 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
         console.error('Failed to persist ticker addition:', error);
       }
     }
+    
+    return true;
   }, [state.watchlistFolders, isHydrated]);
 
   const removeTickerFromFolder = useCallback(async (folderId: string, ticker: string) => {
@@ -598,6 +660,30 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
         await storage.setItem(STORAGE_KEYS.WATCHLIST_FOLDERS, JSON.stringify(updatedFolders));
       } catch (error) {
         console.error('Failed to persist ticker removal:', error);
+      }
+    }
+  }, [state.watchlistFolders, isHydrated]);
+
+  const reorderTickers = useCallback(async (folderId: string, newOrder: string[]) => {
+    setState(prev => ({
+      ...prev,
+      watchlistFolders: prev.watchlistFolders.map(folder => 
+        folder.id === folderId
+          ? { ...folder, tickers: newOrder }
+          : folder
+      ),
+    }));
+    
+    if (isHydrated) {
+      try {
+        const updatedFolders = state.watchlistFolders.map(folder => 
+          folder.id === folderId
+            ? { ...folder, tickers: newOrder }
+            : folder
+        );
+        await storage.setItem(STORAGE_KEYS.WATCHLIST_FOLDERS, JSON.stringify(updatedFolders));
+      } catch (error) {
+        console.error('Failed to persist ticker reorder:', error);
       }
     }
   }, [state.watchlistFolders, isHydrated]);
@@ -796,6 +882,7 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
     criticalAlerts,
     highlightedAlert,
     savedArticles,
+    activeFolderId,
     setFilters,
     openTicker,
     closeTicker,
@@ -809,14 +896,16 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
     getActiveBanners,
     setHighlightedAlert,
     clearHighlightedAlert,
+    setActiveFolder,
     createFolder,
     deleteFolder,
     renameFolder,
     toggleFolderExpansion,
     addTickerToFolder,
     removeTickerFromFolder,
+    reorderTickers,
     saveArticle,
     unsaveArticle,
     isArticleSaved,
-  }), [state, isHydrated, wsConnected, notifications, criticalAlerts, highlightedAlert, savedArticles, setFilters, openTicker, closeTicker, getTickerHeadlines, getFilteredItems, injectTestItem, getTickerSector, dismissNotification, handleNotificationPress, dismissBanner, getActiveBanners, setHighlightedAlert, clearHighlightedAlert, createFolder, deleteFolder, renameFolder, toggleFolderExpansion, addTickerToFolder, removeTickerFromFolder, saveArticle, unsaveArticle, isArticleSaved]);
+  }), [state, isHydrated, wsConnected, notifications, criticalAlerts, highlightedAlert, savedArticles, activeFolderId, setFilters, openTicker, closeTicker, getTickerHeadlines, getFilteredItems, injectTestItem, getTickerSector, dismissNotification, handleNotificationPress, dismissBanner, getActiveBanners, setHighlightedAlert, clearHighlightedAlert, setActiveFolder, createFolder, deleteFolder, renameFolder, toggleFolderExpansion, addTickerToFolder, removeTickerFromFolder, reorderTickers, saveArticle, unsaveArticle, isArticleSaved]);
 });

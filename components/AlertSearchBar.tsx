@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image, Platform } from 'react-native';
-import { Search, X, User } from 'lucide-react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Text, Image, Platform, Alert } from 'react-native';
+import { Search, X, User, Plus } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { FeedItem } from '../types/news';
 import { navigationMemory, AppRoute } from '../utils/navigationMemory';
 import { useDropdown } from '../store/dropdownStore';
+import { useNewsStore } from '../store/newsStore';
 
 interface SearchResult {
   type: 'ticker' | 'headline';
@@ -15,6 +16,19 @@ interface SearchResult {
   source?: string;
   time?: string;
 }
+
+const COMPANY_NAMES: Record<string, string> = {
+  'AAPL': 'Apple Inc.',
+  'NVDA': 'NVIDIA Corp.',
+  'TSLA': 'Tesla Inc.',
+  'MSFT': 'Microsoft Corp.',
+  'GOOGL': 'Alphabet Inc.',
+  'META': 'Meta Platforms',
+  'AMZN': 'Amazon.com Inc.',
+  'JPM': 'JPMorgan Chase',
+  'BAC': 'Bank of America',
+  'WMT': 'Walmart Inc.',
+};
 
 interface AlertSearchBarProps {
   onTickerPress?: (ticker: string) => void;
@@ -30,6 +44,12 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showCreateFolderPrompt, setShowCreateFolderPrompt] = useState(false);
+  const [pendingTicker, setPendingTicker] = useState<string | null>(null);
+  const [newFolderName, setNewFolderName] = useState('');
+  
+  const { state, activeFolderId, createFolder, addTickerToFolder } = useNewsStore();
+  const watchlistFolders = state.watchlistFolders || [];
 
   useEffect(() => {
     if (shouldCloseDropdown(dropdownId)) {
@@ -83,6 +103,14 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
     const queryLower = query.toLowerCase();
 
     const tickers = new Set<string>();
+    
+    Object.keys(COMPANY_NAMES).forEach(ticker => {
+      if (ticker.toLowerCase().includes(queryLower) || 
+          COMPANY_NAMES[ticker].toLowerCase().includes(queryLower)) {
+        tickers.add(ticker);
+      }
+    });
+    
     feedItems.forEach(item => {
       if (item.tickers && item.tickers.length > 0) {
         item.tickers.forEach(ticker => {
@@ -118,10 +146,54 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   };
 
   const handleResultPress = (result: SearchResult) => {
-    if (result.type === 'ticker' && result.ticker && onTickerPress) {
+    if (result.type === 'ticker' && result.ticker) {
+      handleAddTicker(result.ticker);
+    } else if (onTickerPress && result.ticker) {
       onTickerPress(result.ticker);
       handleCloseSearch();
     }
+  };
+
+  const handleAddTicker = async (ticker: string) => {
+    if (watchlistFolders.length === 0) {
+      setPendingTicker(ticker);
+      setShowCreateFolderPrompt(true);
+      return;
+    }
+
+    if (!activeFolderId) {
+      Alert.alert('Error', 'No active folder selected');
+      return;
+    }
+
+    const activeFolder = watchlistFolders.find(f => f.id === activeFolderId);
+    if (!activeFolder) {
+      Alert.alert('Error', 'Active folder not found');
+      return;
+    }
+
+    if (activeFolder.tickers.includes(ticker)) {
+      Alert.alert('Already in Watchlist', `${ticker} is already in "${activeFolder.name}"`);
+      return;
+    }
+
+    await addTickerToFolder(activeFolderId, ticker);
+    Alert.alert('Added to Watchlist', `${ticker} added to "${activeFolder.name}"`);
+    handleCloseSearch();
+  };
+
+  const handleCreateFolderAndAddTicker = async () => {
+    if (!newFolderName.trim() || !pendingTicker) return;
+
+    const folderId = await createFolder(newFolderName.trim(), true);
+    await addTickerToFolder(folderId, pendingTicker);
+    
+    Alert.alert('Success', `Folder "${newFolderName.trim()}" created with ${pendingTicker}`);
+    
+    setShowCreateFolderPrompt(false);
+    setNewFolderName('');
+    setPendingTicker(null);
+    handleCloseSearch();
   };
 
   const leftInset = Math.max(8, insets.left);
@@ -193,10 +265,15 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
                 >
                   {result.type === 'ticker' ? (
                     <View style={styles.tickerResult}>
-                      <View style={styles.tickerChip}>
-                        <Text style={styles.tickerText}>{result.ticker}</Text>
+                      <View style={styles.tickerLeft}>
+                        <View style={styles.tickerChip}>
+                          <Text style={styles.tickerText}>{result.ticker}</Text>
+                        </View>
+                        <Text style={styles.tickerCompany}>{result.ticker && COMPANY_NAMES[result.ticker] ? COMPANY_NAMES[result.ticker] : 'Unknown'}</Text>
                       </View>
-                      <Text style={styles.resultLabel}>Ticker</Text>
+                      <View style={styles.addButton}>
+                        <Plus size={18} color="#00FF66" />
+                      </View>
                     </View>
                   ) : (
                     <View style={styles.headlineResult}>
@@ -220,6 +297,55 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
             </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      <Modal
+        visible={showCreateFolderPrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCreateFolderPrompt(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowCreateFolderPrompt(false)}
+        >
+          <View style={styles.createFolderModal} onStartShouldSetResponder={() => true}>
+            <Text style={styles.createFolderTitle}>Create a Watchlist Folder</Text>
+            <Text style={styles.createFolderSubtitle}>
+              Add {pendingTicker} to a new folder
+            </Text>
+            
+            <TextInput
+              style={styles.createFolderInput}
+              placeholder="Enter folder name"
+              placeholderTextColor="#555A64"
+              value={newFolderName}
+              onChangeText={setNewFolderName}
+              autoFocus
+            />
+            
+            <View style={styles.createFolderButtons}>
+              <TouchableOpacity
+                style={styles.createFolderCancel}
+                onPress={() => {
+                  setShowCreateFolderPrompt(false);
+                  setNewFolderName('');
+                  setPendingTicker(null);
+                }}
+              >
+                <Text style={styles.createFolderCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.createFolderSubmit, !newFolderName.trim() && styles.createFolderSubmitDisabled]}
+                onPress={handleCreateFolderAndAddTicker}
+                disabled={!newFolderName.trim()}
+              >
+                <Text style={styles.createFolderSubmitText}>Create & Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </>
   );
@@ -309,21 +435,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flex: 1,
+  },
+  tickerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
   },
   tickerChip: {
-    backgroundColor: theme.colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    backgroundColor: '#FFD75A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   tickerText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+    fontWeight: '700',
+    color: '#000000',
   },
-  resultLabel: {
-    fontSize: 12,
-    color: theme.colors.textDim,
+  tickerCompany: {
+    fontSize: 13,
+    color: theme.colors.text,
+    flex: 1,
+  },
+  addButton: {
+    padding: 8,
+    backgroundColor: 'rgba(0, 255, 102, 0.1)',
+    borderRadius: 6,
   },
   headlineResult: {
     gap: theme.spacing.xs,
@@ -354,5 +493,76 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 14,
     color: theme.colors.textDim,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  createFolderModal: {
+    backgroundColor: '#000000',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFD75A',
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  createFolderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFD75A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  createFolderSubtitle: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  createFolderInput: {
+    backgroundColor: '#0C0C0E',
+    borderWidth: 1,
+    borderColor: '#1F1F23',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#FFFFFF',
+    marginBottom: 20,
+  },
+  createFolderButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  createFolderCancel: {
+    flex: 1,
+    backgroundColor: '#1F1F23',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  createFolderCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  createFolderSubmit: {
+    flex: 1,
+    backgroundColor: '#FFD75A',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  createFolderSubmitDisabled: {
+    opacity: 0.5,
+  },
+  createFolderSubmitText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000000',
   },
 });

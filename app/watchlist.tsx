@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react-native';
+import { ChevronDown, MoreVertical } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
 import CriticalAlerts from '../components/CriticalAlerts';
-import SavedArticleCard from '../components/SavedArticleCard';
 import TerminalTickerRow from '../components/TerminalTickerRow';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
+import WatchlistFolderPicker from '../components/WatchlistFolderPicker';
+import WatchlistOptionsSheet from '../components/WatchlistOptionsSheet';
+import CreateFolderModal from '../components/CreateFolderModal';
+import TickerOrderModal from '../components/TickerOrderModal';
+import ManageTickersModal from '../components/ManageTickersModal';
 import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
-import { theme } from '../constants/theme';
 import { useScrollReset } from '../utils/useScrollReset';
 import UniversalBackButton from '../components/UniversalBackButton';
 
@@ -21,12 +24,6 @@ interface TickerNewsItem {
   impact: 'Low' | 'Medium' | 'High';
   sentiment: 'Bullish' | 'Bearish' | 'Neutral';
   confidence: number;
-  isEarnings?: boolean;
-  expectedEps?: number;
-  actualEps?: number;
-  expectedRev?: number;
-  actualRev?: number;
-  verdict?: 'Beat' | 'Miss' | 'Inline';
 }
 
 interface TickerData {
@@ -50,40 +47,55 @@ const COMPANY_NAMES: Record<string, string> = {
   'WMT': 'Walmart Inc.',
 };
 
+const ALL_AVAILABLE_TICKERS = Object.keys(COMPANY_NAMES);
+
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
-  const [savedArticlesExpanded, setSavedArticlesExpanded] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
   const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  
+  const [folderPickerVisible, setFolderPickerVisible] = useState(false);
+  const [optionsSheetVisible, setOptionsSheetVisible] = useState(false);
+  const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
+  const [renameFolderModalVisible, setRenameFolderModalVisible] = useState(false);
+  const [tickerOrderModalVisible, setTickerOrderModalVisible] = useState(false);
+  const [manageTickersModalVisible, setManageTickersModalVisible] = useState(false);
+
   const { 
     state, 
     criticalAlerts,
-    savedArticles,
-    unsaveArticle,
+    activeFolderId,
+    setActiveFolder,
+    createFolder,
+    deleteFolder,
+    renameFolder,
+    addTickerToFolder,
+    removeTickerFromFolder,
+    reorderTickers,
   } = useNewsStore();
   
   const watchlistFolders = useMemo(() => state.watchlistFolders || [], [state.watchlistFolders]);
-  const allTickers = useMemo(() => {
-    const tickers = new Set<string>();
-    watchlistFolders.forEach(folder => {
-      folder.tickers.forEach(ticker => tickers.add(ticker));
-    });
-    return Array.from(tickers);
-  }, [watchlistFolders]);
+  
+  const activeFolder = useMemo(() => {
+    return watchlistFolders.find(f => f.id === activeFolderId) || null;
+  }, [watchlistFolders, activeFolderId]);
+  
+  const activeTickers = useMemo(() => {
+    return activeFolder?.tickers || [];
+  }, [activeFolder]);
 
   useEffect(() => {
     const mockData = generateMockData();
     setFeedItems(mockData.feedItems);
     
-    // Mock updates for watchlist stocks
     const interval = setInterval(() => {
-      if (allTickers.length === 0) return;
+      if (activeTickers.length === 0) return;
       
-      const randomTicker = allTickers[Math.floor(Math.random() * allTickers.length)];
+      const randomTicker = activeTickers[Math.floor(Math.random() * activeTickers.length)];
       const headlines = [
         `${randomTicker} announces major product update`,
         `${randomTicker} beats quarterly earnings expectations`,
@@ -113,7 +125,7 @@ export default function WatchlistScreen() {
     }, 18000);
 
     return () => clearInterval(interval);
-  }, [allTickers]);
+  }, [activeTickers]);
 
   const tickerDataMap = useMemo(() => {
     const getWeekStart = (date: Date): Date => {
@@ -179,7 +191,7 @@ export default function WatchlistScreen() {
 
     const map: Record<string, TickerData> = {};
     
-    allTickers.forEach(ticker => {
+    activeTickers.forEach(ticker => {
       const tickerNews = feedItems
         .filter(item => item.tickers?.includes(ticker))
         .filter(item => isNewsInTimeRange(item.published_at))
@@ -191,17 +203,8 @@ export default function WatchlistScreen() {
           impact: item.classification.impact,
           sentiment: item.classification.sentiment,
           confidence: item.classification.confidence,
-          isEarnings: item.tags?.earnings || false,
-          ...(item.tags?.earnings && {
-            expectedEps: 0.70 + Math.random() * 0.5,
-            actualEps: 0.75 + Math.random() * 0.5,
-            expectedRev: 30000000000 + Math.random() * 10000000000,
-            actualRev: 32000000000 + Math.random() * 10000000000,
-            verdict: ['Beat', 'Miss', 'Inline'][Math.floor(Math.random() * 3)] as 'Beat' | 'Miss' | 'Inline',
-          }),
         }));
       
-      // Calculate overall sentiment for the ticker
       const sentiments = tickerNews.map(news => news.sentiment);
       const bullishCount = sentiments.filter(s => s === 'Bullish').length;
       const bearishCount = sentiments.filter(s => s === 'Bearish').length;
@@ -224,20 +227,17 @@ export default function WatchlistScreen() {
     });
     
     return map;
-  }, [feedItems, allTickers, timeRange, customTimeRange]);
+  }, [feedItems, activeTickers, timeRange, customTimeRange]);
 
-  // Filter critical alerts for recent ones (within last 6 hours)
   const recentCriticalAlerts = useMemo(() => {
     return criticalAlerts.filter(alert => {
       const alertTime = new Date(alert.published_at).getTime();
       const sixHoursAgo = Date.now() - (6 * 60 * 60 * 1000);
-      return alertTime > sixHoursAgo || !alert.is_released; // Include upcoming alerts
+      return alertTime > sixHoursAgo || !alert.is_released;
     });
   }, [criticalAlerts]);
 
   const handleHeadlinePress = (headline: any) => {
-    console.log('Headline pressed:', headline.headline);
-    
     const article = feedItems.find(item => item.title === headline.headline);
     if (article) {
       setSelectedArticle(article);
@@ -247,29 +247,15 @@ export default function WatchlistScreen() {
 
   const handleTickerPress = (ticker: string) => {
     if (!ticker?.trim() || ticker.length > 20) return;
-    const sanitizedTicker = ticker.trim();
-    console.log('Ticker pressed:', sanitizedTicker);
+    console.log('Ticker pressed:', ticker);
   };
 
   const handleCriticalAlertPress = (alert: CriticalAlert) => {
-    console.log('Critical alert pressed:', alert.headline);
     setSelectedArticle(alert);
     setModalVisible(true);
   };
 
-  const handleSavedArticlePress = (article: FeedItem) => {
-    console.log('Saved article pressed:', article.title);
-    setSelectedArticle(article);
-    setModalVisible(true);
-  };
-
-  const handleClearAllSavedArticles = () => {
-    console.log('Clearing all saved articles');
-    savedArticles.forEach(article => unsaveArticle(article.id));
-  };
-
   const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {
-    console.log('Time range changed:', range, customRange);
     setTimeRange(range);
     if (range === 'custom' && customRange) {
       setCustomTimeRange(customRange);
@@ -278,15 +264,109 @@ export default function WatchlistScreen() {
     }
   };
 
+  const handleCreateFolder = async (name: string) => {
+    await createFolder(name, watchlistFolders.length === 0);
+  };
 
+  const handleRenameFolder = async (name: string) => {
+    if (activeFolderId) {
+      await renameFolder(activeFolderId, name);
+    }
+  };
 
+  const handleDeleteFolder = () => {
+    if (!activeFolderId || !activeFolder) return;
 
+    Alert.alert(
+      'Delete Folder',
+      `Delete folder "${activeFolder.name}" and remove its tickers from Watchlist?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteFolder(activeFolderId);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSaveTickerOrder = async (newOrder: string[]) => {
+    if (activeFolderId) {
+      await reorderTickers(activeFolderId, newOrder);
+    }
+  };
+
+  const handleManageTickers = async (tickers: string[]) => {
+    if (!activeFolderId || !activeFolder) return;
+
+    const toAdd = tickers.filter(t => !activeFolder.tickers.includes(t));
+    const toRemove = activeFolder.tickers.filter(t => !tickers.includes(t));
+
+    for (const ticker of toRemove) {
+      await removeTickerFromFolder(activeFolderId, ticker);
+    }
+
+    for (const ticker of toAdd) {
+      await addTickerToFolder(activeFolderId, ticker);
+    }
+  };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
+
+  if (watchlistFolders.length === 0) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
+        <UniversalBackButton />
+        
+        <View style={styles.emptyCreateState}>
+          <Text style={styles.emptyCreateTitle}>Create a Watchlist Folder</Text>
+          <Text style={styles.emptyCreateSubtitle}>
+            You need a folder to save and view tickers.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyCreateButton}
+            onPress={() => setCreateFolderModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.emptyCreateButtonText}>Create Folder</Text>
+          </TouchableOpacity>
+        </View>
+
+        <CreateFolderModal
+          visible={createFolderModalVisible}
+          mode="create"
+          onClose={() => setCreateFolderModalVisible(false)}
+          onSubmit={handleCreateFolder}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
       <UniversalBackButton />
+      
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.folderPill}
+          onPress={() => setFolderPickerVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.folderPillText}>{activeFolder?.name || 'Select Folder'}</Text>
+          <ChevronDown size={14} color="#000000" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.optionsButton}
+          onPress={() => setOptionsSheetVisible(true)}
+          activeOpacity={0.7}
+        >
+          <MoreVertical size={18} color="#FFD75A" />
+        </TouchableOpacity>
+      </View>
       
       <ScrollView 
         ref={scrollViewRef}
@@ -294,17 +374,15 @@ export default function WatchlistScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Critical Alerts at the top of the scrollable content */}
         <CriticalAlerts 
           alerts={recentCriticalAlerts}
           onAlertPress={handleCriticalAlertPress}
         />
         
-        {/* Watchlist Header */}
         <View style={styles.sectionHeader}>
           <View style={styles.divider} />
           <View style={styles.headerRow}>
-            <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>WATCHLIST</Text>
+            <Text style={styles.sectionTitle}>WATCHLIST</Text>
             <TimeRangeFilterPill
               selectedRange={timeRange}
               customRange={customTimeRange}
@@ -314,9 +392,8 @@ export default function WatchlistScreen() {
           <View style={styles.divider} />
         </View>
         
-        {/* Terminal-style Ticker Rows */}
-        {allTickers.length > 0 ? (
-          allTickers.map(ticker => {
+        {activeTickers.length > 0 ? (
+          activeTickers.map(ticker => {
             const tickerData = tickerDataMap[ticker];
             if (!tickerData) return null;
             
@@ -348,61 +425,9 @@ export default function WatchlistScreen() {
           })
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No tickers in watchlist</Text>
-            <Text style={styles.emptySubtext}>Add tickers to start tracking</Text>
+            <Text style={styles.emptyText}>No tickers yet</Text>
+            <Text style={styles.emptySubtext}>Add from Search or the Options menu</Text>
           </View>
-        )}
-        
-        {/* Saved Articles Section */}
-        {savedArticles.length > 0 && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.savedArticlesHeaderContainer}>
-              <TouchableOpacity 
-                style={styles.savedArticlesHeader}
-                onPress={() => setSavedArticlesExpanded(!savedArticlesExpanded)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.savedArticlesTitleRow}>
-                  <Text style={styles.sectionTitle}>SAVED ARTICLES</Text>
-                  <View style={styles.savedArticlesCounter}>
-                    <Text style={styles.savedArticlesCountText}>({savedArticles.length})</Text>
-                  </View>
-                </View>
-                {savedArticlesExpanded ? (
-                  <ChevronUp size={16} color={theme.colors.textSecondary} />
-                ) : (
-                  <ChevronDown size={16} color={theme.colors.textSecondary} />
-                )}
-              </TouchableOpacity>
-              {savedArticlesExpanded && (
-                <TouchableOpacity 
-                  style={styles.clearAllButton}
-                  onPress={handleClearAllSavedArticles}
-                  activeOpacity={0.7}
-                >
-                  <Trash2 size={14} color={theme.colors.textDim} />
-                  <Text style={styles.clearAllText}>Clear All</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <View style={styles.divider} />
-            
-            {savedArticlesExpanded && (
-              <View style={styles.savedArticlesContent}>
-                {savedArticles.map(article => (
-                  <TouchableOpacity 
-                    key={article.id} 
-                    style={styles.savedArticleContainer}
-                    onPress={() => handleSavedArticlePress(article)}
-                    activeOpacity={0.8}
-                  >
-                    <SavedArticleCard article={article} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </>
         )}
       </ScrollView>
 
@@ -414,6 +439,64 @@ export default function WatchlistScreen() {
           setSelectedArticle(null);
         }}
       />
+
+      <WatchlistFolderPicker
+        visible={folderPickerVisible}
+        folders={watchlistFolders.map(f => ({
+          id: f.id,
+          name: f.name,
+          tickerCount: f.tickers.length,
+        }))}
+        activeFolderId={activeFolderId}
+        onSelectFolder={setActiveFolder}
+        onCreateFolder={() => {
+          setFolderPickerVisible(false);
+          setTimeout(() => setCreateFolderModalVisible(true), 100);
+        }}
+        onClose={() => setFolderPickerVisible(false)}
+      />
+
+      <WatchlistOptionsSheet
+        visible={optionsSheetVisible}
+        folderName={activeFolder?.name || ''}
+        onClose={() => setOptionsSheetVisible(false)}
+        onCreateFolder={() => setCreateFolderModalVisible(true)}
+        onRenameFolder={() => setRenameFolderModalVisible(true)}
+        onConfigureOrder={() => setTickerOrderModalVisible(true)}
+        onManageTickers={() => setManageTickersModalVisible(true)}
+        onDeleteFolder={handleDeleteFolder}
+      />
+
+      <CreateFolderModal
+        visible={createFolderModalVisible}
+        mode="create"
+        onClose={() => setCreateFolderModalVisible(false)}
+        onSubmit={handleCreateFolder}
+      />
+
+      <CreateFolderModal
+        visible={renameFolderModalVisible}
+        mode="rename"
+        initialName={activeFolder?.name || ''}
+        onClose={() => setRenameFolderModalVisible(false)}
+        onSubmit={handleRenameFolder}
+      />
+
+      <TickerOrderModal
+        visible={tickerOrderModalVisible}
+        tickers={activeTickers}
+        onClose={() => setTickerOrderModalVisible(false)}
+        onSave={handleSaveTickerOrder}
+      />
+
+      <ManageTickersModal
+        visible={manageTickersModalVisible}
+        folderName={activeFolder?.name || ''}
+        currentTickers={activeTickers}
+        allAvailableTickers={ALL_AVAILABLE_TICKERS}
+        onClose={() => setManageTickersModalVisible(false)}
+        onSave={handleManageTickers}
+      />
     </View>
   );
 }
@@ -422,7 +505,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
-    paddingTop: 37,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5C518',
+  },
+  folderPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFD75A',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  folderPillText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#000000',
+    maxWidth: 200,
+  },
+  optionsButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 215, 90, 0.1)',
   },
   scrollView: {
     flex: 1,
@@ -443,7 +554,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 11,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: '#F5C518',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -469,51 +580,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
-  savedArticlesHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#000000',
-  },
-  savedArticlesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  emptyCreateState: {
     flex: 1,
-  },
-  savedArticlesTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  savedArticlesCounter: {
     justifyContent: 'center',
-  },
-  savedArticlesCountText: {
-    color: '#888888',
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  clearAllButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 40,
   },
-  clearAllText: {
-    color: '#888888',
-    fontSize: 11,
-    fontWeight: '500',
+  emptyCreateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFD75A',
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  savedArticlesContent: {
-    paddingTop: 8,
+  emptyCreateSubtitle: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 32,
   },
-  savedArticleContainer: {
-    marginHorizontal: 16,
-    marginBottom: 8,
+  emptyCreateButton: {
+    backgroundColor: '#FFD75A',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  emptyCreateButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
   },
 });
