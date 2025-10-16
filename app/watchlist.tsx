@@ -13,12 +13,6 @@ import { useNewsStore } from '../store/newsStore';
 import { theme } from '../constants/theme';
 import { useScrollReset } from '../utils/useScrollReset';
 import UniversalBackButton from '../components/UniversalBackButton';
-import WatchlistConfigMenu from '../components/WatchlistConfigMenu';
-import CreateWatchlistModal from '../components/CreateWatchlistModal';
-import EditWatchlistNameModal from '../components/EditWatchlistNameModal';
-import ConfigureTickerOrderModal from '../components/ConfigureTickerOrderModal';
-import ManageTickersModal from '../components/ManageTickersModal';
-import Toast from '../components/Toast';
 
 interface TickerNewsItem {
   time: string;
@@ -70,28 +64,16 @@ export default function WatchlistScreen() {
     criticalAlerts,
     savedArticles,
     unsaveArticle,
-    createFolder,
-    renameFolder,
-    addTickerToFolder,
-    removeTickerFromFolder,
   } = useNewsStore();
   
   const watchlistFolders = useMemo(() => state.watchlistFolders || [], [state.watchlistFolders]);
-  const [currentFolderId, setCurrentFolderId] = useState<string>('default');
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [orderModalVisible, setOrderModalVisible] = useState(false);
-  const [manageModalVisible, setManageModalVisible] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  
-  const currentFolder = useMemo(() => {
-    return watchlistFolders.find(f => f.id === currentFolderId) || watchlistFolders[0];
-  }, [watchlistFolders, currentFolderId]);
-  
   const allTickers = useMemo(() => {
-    return currentFolder?.tickers || [];
-  }, [currentFolder]);
+    const tickers = new Set<string>();
+    watchlistFolders.forEach(folder => {
+      folder.tickers.forEach(ticker => tickers.add(ticker));
+    });
+    return Array.from(tickers);
+  }, [watchlistFolders]);
 
   useEffect(() => {
     const mockData = generateMockData();
@@ -296,53 +278,6 @@ export default function WatchlistScreen() {
     }
   };
 
-  const handleCreateFolder = (name: string) => {
-    createFolder(name);
-    console.log('Created folder:', name);
-  };
-
-  const handleEditName = (newName: string) => {
-    if (currentFolder) {
-      renameFolder(currentFolder.id, newName);
-      console.log('Renamed folder to:', newName);
-    }
-  };
-
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    setToastVisible(true);
-  };
-
-  const handleSaveOrder = (newOrder: string[]) => {
-    if (currentFolder) {
-      newOrder.forEach((ticker, index) => {
-        removeTickerFromFolder(currentFolder.id, ticker);
-      });
-      newOrder.forEach(ticker => {
-        addTickerToFolder(currentFolder.id, ticker);
-      });
-      console.log('Saved new order:', newOrder);
-    }
-  };
-
-  const handleSaveTickers = (tickers: string[]) => {
-    if (!currentFolder) return;
-    
-    const currentTickers = currentFolder.tickers;
-    const tickersToRemove = currentTickers.filter(t => !tickers.includes(t));
-    const tickersToAdd = tickers.filter(t => !currentTickers.includes(t));
-    
-    tickersToRemove.forEach(ticker => {
-      removeTickerFromFolder(currentFolder.id, ticker);
-    });
-    
-    tickersToAdd.forEach(ticker => {
-      addTickerToFolder(currentFolder.id, ticker);
-    });
-    
-    console.log('Updated tickers:', tickers);
-  };
-
 
 
 
@@ -369,22 +304,12 @@ export default function WatchlistScreen() {
         <View style={styles.sectionHeader}>
           <View style={styles.divider} />
           <View style={styles.headerRow}>
-            <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>
-              {currentFolder?.name.toUpperCase() || 'WATCHLIST'}
-            </Text>
-            <View style={styles.headerControls}>
-              <TimeRangeFilterPill
-                selectedRange={timeRange}
-                customRange={customTimeRange}
-                onRangeChange={handleTimeRangeChange}
-              />
-              <WatchlistConfigMenu
-                onCreateFolder={() => setCreateModalVisible(true)}
-                onEditName={() => setEditModalVisible(true)}
-                onConfigureOrder={() => setOrderModalVisible(true)}
-                onManageTickers={() => setManageModalVisible(true)}
-              />
-            </View>
+            <Text nativeID="banner-anchor-point" style={styles.sectionTitle}>WATCHLIST</Text>
+            <TimeRangeFilterPill
+              selectedRange={timeRange}
+              customRange={customTimeRange}
+              onRangeChange={handleTimeRangeChange}
+            />
           </View>
           <View style={styles.divider} />
         </View>
@@ -489,42 +414,6 @@ export default function WatchlistScreen() {
           setSelectedArticle(null);
         }}
       />
-
-      <CreateWatchlistModal
-        visible={createModalVisible}
-        onClose={() => setCreateModalVisible(false)}
-        onSubmit={handleCreateFolder}
-      />
-
-      <EditWatchlistNameModal
-        visible={editModalVisible}
-        currentName={currentFolder?.name || ''}
-        onClose={() => setEditModalVisible(false)}
-        onSubmit={handleEditName}
-        onSuccess={() => showToast('Watchlist name updated successfully')}
-      />
-
-      <ConfigureTickerOrderModal
-        visible={orderModalVisible}
-        tickers={allTickers}
-        onClose={() => setOrderModalVisible(false)}
-        onSave={handleSaveOrder}
-        onSuccess={() => showToast('Order saved')}
-      />
-
-      <ManageTickersModal
-        visible={manageModalVisible}
-        currentTickers={allTickers}
-        onClose={() => setManageModalVisible(false)}
-        onSave={handleSaveTickers}
-        onSuccess={() => showToast('Watchlist updated')}
-      />
-
-      <Toast
-        visible={toastVisible}
-        message={toastMessage}
-        onHide={() => setToastVisible(false)}
-      />
     </View>
   );
 }
@@ -551,11 +440,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: '#000000',
-  },
-  headerControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   sectionTitle: {
     fontSize: 11,
