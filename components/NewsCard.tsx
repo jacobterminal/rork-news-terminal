@@ -75,9 +75,11 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
             {item.tickers.slice(0, 5).map((ticker) => (
               <Pressable
                 key={ticker}
-                onPress={() => {
+                onPress={(e) => {
+                  e.stopPropagation();
                   if (!ticker?.trim() || ticker.length > 10) return;
-                  onTickerPress?.(ticker.trim());
+                  const tickerUpper = ticker.trim().toUpperCase();
+                  router.push(`/company/${tickerUpper}`);
                 }}
               >
                 <Text style={styles.tickerTag}>{ticker}</Text>

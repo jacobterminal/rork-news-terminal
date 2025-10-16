@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, Pressable, Modal, Platform } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
@@ -216,7 +217,7 @@ export default function NewsScreen() {
   const handleTickerPress = (ticker: string) => {
     if (!ticker || !ticker.trim() || ticker.length > 10) return;
     const sanitizedTicker = ticker.trim().toUpperCase();
-    openTicker(sanitizedTicker);
+    router.push(`/company/${sanitizedTicker}` as any);
   };
 
   const handleCloseDrawer = () => {

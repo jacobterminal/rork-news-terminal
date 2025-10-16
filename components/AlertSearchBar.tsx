@@ -147,10 +147,11 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
 
   const handleResultPress = (result: SearchResult) => {
     if (result.type === 'ticker' && result.ticker) {
-      handleAddTicker(result.ticker);
-    } else if (onTickerPress && result.ticker) {
-      onTickerPress(result.ticker);
+      const tickerUpper = result.ticker.toUpperCase();
+      router.push(`/company/${tickerUpper}`);
       handleCloseSearch();
+    } else if (result.type === 'headline') {
+      // Do nothing for now, or you can open the article detail
     }
   };
 
@@ -271,9 +272,17 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
                         </View>
                         <Text style={styles.tickerCompany}>{result.ticker && COMPANY_NAMES[result.ticker] ? COMPANY_NAMES[result.ticker] : 'Unknown'}</Text>
                       </View>
-                      <View style={styles.addButton}>
+                      <TouchableOpacity 
+                        style={styles.addButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          if (result.ticker) {
+                            handleAddTicker(result.ticker);
+                          }
+                        }}
+                      >
                         <Plus size={18} color="#00FF66" />
-                      </View>
+                      </TouchableOpacity>
                     </View>
                   ) : (
                     <View style={styles.headlineResult}>

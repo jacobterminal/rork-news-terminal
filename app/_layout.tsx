@@ -141,6 +141,12 @@ function RootLayoutNav() {
         }}
       />
       <Tabs.Screen
+        name="company/[ticker]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="settings/account"
         options={{
           href: null,
@@ -259,6 +265,7 @@ function RootLayoutNav() {
 }
 
 function AppWithBanners() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const segments = useSegments();
   const { getActiveBanners, dismissBanner, setHighlightedAlert, state } = useNewsStore();
@@ -277,6 +284,8 @@ function AppWithBanners() {
   
   const handleTickerPress = (ticker: string) => {
     console.log('[AppWithBanners] Ticker pressed:', ticker);
+    const tickerUpper = ticker.toUpperCase();
+    router.push(`/company/${tickerUpper}` as any);
   };
   
   return (

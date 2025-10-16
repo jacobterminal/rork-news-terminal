@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, Animated, Platform } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
@@ -71,8 +72,8 @@ export default function InstantScreen() {
 
   const handleTickerPress = (ticker: string) => {
     if (!ticker?.trim() || ticker.length > 20) return;
-    const sanitizedTicker = ticker.trim();
-    openTicker(sanitizedTicker);
+    const sanitizedTicker = ticker.trim().toUpperCase();
+    router.push(`/company/${sanitizedTicker}` as any);
   };
 
   const handleCloseDrawer = () => {

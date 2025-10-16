@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { router } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 
 interface NewsHeadline {
@@ -89,6 +90,10 @@ export default function TerminalTickerRow({
     outputRange: ['0deg', '90deg'],
   });
 
+  const handleTickerPress = () => {
+    router.push(`/company/${ticker.toUpperCase()}`);
+  };
+
   return (
     <>
       <TouchableOpacity 
@@ -102,7 +107,9 @@ export default function TerminalTickerRow({
           <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
             <ChevronRight size={14} color="#777777" />
           </Animated.View>
-          <Text style={[styles.ticker, { color: tickerColor }]}>{ticker}</Text>
+          <TouchableOpacity onPress={handleTickerPress} activeOpacity={0.7}>
+            <Text style={[styles.ticker, { color: tickerColor }]}>{ticker}</Text>
+          </TouchableOpacity>
           <Text style={styles.company}>{company}</Text>
         </View>
       </TouchableOpacity>
@@ -152,8 +159,8 @@ export default function TerminalTickerRow({
             </TouchableOpacity>
           ))}
           
-          <TouchableOpacity style={styles.viewFullStory} onPress={onPress}>
-            <Text style={styles.viewFullStoryText}>View Full Story →</Text>
+          <TouchableOpacity style={styles.viewFullStory} onPress={handleTickerPress}>
+            <Text style={styles.viewFullStoryText}>View Company Profile →</Text>
           </TouchableOpacity>
         </View>
       )}
