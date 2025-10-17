@@ -505,7 +505,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#000000',
-    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 11,
@@ -513,6 +512,7 @@ const styles = StyleSheet.create({
     color: '#FFD75A',
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
+    marginBottom: 8,
   },
   divider: {
     height: 1,
