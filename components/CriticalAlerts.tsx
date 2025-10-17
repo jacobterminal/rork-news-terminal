@@ -68,12 +68,8 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
   
   return (
     <View style={styles.container}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.divider} />
-        <View nativeID="banner-anchor-point" style={styles.sectionHeaderContent}>
-          <Text style={styles.sectionTitle}>CRITICAL ALERTS</Text>
-        </View>
-        <View style={styles.divider} />
+      <View nativeID="banner-anchor-point" style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>CRITICAL ALERTS</Text>
       </View>
       <ScrollView 
         ref={scrollViewRef}
@@ -199,24 +195,23 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.bg,
+    marginTop: 8,
   },
   sectionHeader: {
-    backgroundColor: theme.colors.bg,
-  },
-  sectionHeaderContent: {
-    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.sectionTitle,
+    paddingTop: 8,
+    paddingBottom: 6,
     paddingHorizontal: 16,
-    backgroundColor: theme.colors.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.sectionTitle,
-  },
+
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
     color: theme.colors.sectionTitle,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     textTransform: 'uppercase' as const,
   },
   tableContainer: {
