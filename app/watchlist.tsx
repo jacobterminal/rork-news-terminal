@@ -495,14 +495,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   sectionHeader: {
+    paddingHorizontal: 16,
     marginTop: 8,
     marginBottom: 8,
+    backgroundColor: '#000000',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
     backgroundColor: '#000000',
     marginBottom: 8,
   },
