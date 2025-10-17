@@ -313,11 +313,9 @@ export default function WatchlistScreen() {
     }
   };
 
-  const headerHeight = Platform.select({ web: 64, default: 56 });
-
   if (watchlistFolders.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <UniversalBackButton />
         
         <View style={styles.emptyCreateState}>
@@ -345,20 +343,8 @@ export default function WatchlistScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <UniversalBackButton />
-      
-      <View style={styles.topBar}>
-        <View style={styles.leftSpace} />
-        <View style={styles.centerSpace} />
-        <TouchableOpacity
-          style={styles.managerButton}
-          onPress={() => setOptionsSheetVisible(true)}
-          activeOpacity={0.7}
-        >
-          <MoreVertical size={22} color="#FFD75A" />
-        </TouchableOpacity>
-      </View>
       
       <ScrollView 
         ref={scrollViewRef}
@@ -491,28 +477,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5C518',
-  },
-  leftSpace: {
-    width: 44,
-  },
-  centerSpace: {
-    flex: 1,
-  },
-  managerButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-  },
+
   headerRightControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -533,6 +498,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginBottom: 0,
+    marginTop: 10,
   },
   headerRow: {
     flexDirection: 'row',
