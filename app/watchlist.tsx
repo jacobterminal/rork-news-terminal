@@ -313,9 +313,11 @@ export default function WatchlistScreen() {
     }
   };
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+
   if (watchlistFolders.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 15 }]}>
+      <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
         <View style={styles.emptyCreateState}>
           <Text style={styles.emptyCreateTitle}>Create a Watchlist Folder</Text>
           <Text style={styles.emptyCreateSubtitle}>
@@ -341,7 +343,7 @@ export default function WatchlistScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 15 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
       <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -493,27 +495,28 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   sectionHeader: {
-    marginBottom: 0,
-    marginTop: 10,
+    marginTop: 8,
+    marginBottom: 8,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: '#000000',
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#F5C518',
+    fontWeight: '700' as const,
+    color: '#FFD75A',
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    textTransform: 'uppercase' as const,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F5C518',
+    backgroundColor: '#FFD75A',
+    width: '100%',
   },
   emptyState: {
     flex: 1,
