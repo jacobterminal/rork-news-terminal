@@ -12,13 +12,12 @@ import {
   PanResponder,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
-import { X, TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import { theme } from '../../constants/theme';
 import { EarningsItem, EconItem } from '../../types/news';
 import { generateMockData } from '../../utils/mockData';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
 
 interface EventDetails {
   type: 'earnings' | 'econ';
@@ -263,36 +262,6 @@ export default function EventDetailsScreen() {
     console.log('Ticker pressed:', ticker);
   };
 
-  const getSentimentBorderColor = () => {
-    if (!eventDetails) return theme.colors.border;
-    
-    switch (eventDetails.sentiment) {
-      case 'Bullish':
-        return theme.colors.bullish;
-      case 'Bearish':
-        return theme.colors.bearish;
-      case 'Neutral':
-        return theme.colors.neutral;
-      default:
-        return theme.colors.border;
-    }
-  };
-
-  const getSentimentIcon = (sentiment: string) => {
-    const iconSize = 18;
-    const color = sentiment === 'Bullish' ? theme.colors.bullish : 
-                  sentiment === 'Bearish' ? theme.colors.bearish : theme.colors.neutral;
-    
-    switch (sentiment) {
-      case 'Bullish':
-        return <TrendingUp size={iconSize} color={color} />;
-      case 'Bearish':
-        return <TrendingDown size={iconSize} color={color} />;
-      default:
-        return <Minus size={iconSize} color={color} />;
-    }
-  };
-
   const formatTime = (timeString: string) => {
     try {
       const date = new Date(timeString);
@@ -321,19 +290,11 @@ export default function EventDetailsScreen() {
           <Animated.View
             style={[
               styles.modalContent,
-              { transform: [{ translateY }], borderColor: theme.colors.border },
+              { transform: [{ translateY }] },
             ]}
           >
-            <View {...panResponder.panHandlers} style={styles.dragHandle}>
-              <View style={styles.dragIndicator} />
-            </View>
-            <View style={styles.header}>
-              <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-                <X size={24} color={theme.colors.text} />
-              </TouchableOpacity>
-            </View>
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.colors.neutral} />
+              <ActivityIndicator size="large" color="#FFD75A" />
               <Text style={styles.loadingText}>
                 {loading ? 'Loading event details...' : 'Event not found'}
               </Text>
@@ -361,31 +322,23 @@ export default function EventDetailsScreen() {
         <Animated.View
           style={[
             styles.modalContent,
-            {
-              transform: [{ translateY }],
-              borderColor: getSentimentBorderColor(),
-            },
+            { transform: [{ translateY }] },
           ]}
         >
-          <View {...panResponder.panHandlers} style={styles.dragHandle}>
-            <View style={styles.dragIndicator} />
-          </View>
-
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <X size={24} color={theme.colors.text} />
-            </TouchableOpacity>
-          </View>
-
           <ScrollView 
             style={styles.scrollView} 
             showsVerticalScrollIndicator={false}
             bounces={false}
+            {...panResponder.panHandlers}
           >
             <View style={styles.contentContainer}>
-              <Text style={styles.title}>{title}</Text>
-              
-              <View style={styles.sourceRow}>
+              <View style={styles.header}>
+                <View style={styles.headerContent}>
+                  <Text style={styles.title}>{title}</Text>
+                  <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+                    <X size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.sourceText}>
                   {eventDetails.source} • {formatTime(eventDetails.timestamp)}
                 </Text>
@@ -408,14 +361,15 @@ export default function EventDetailsScreen() {
                 <View style={styles.opinionRow}>
                   <Text style={styles.opinionDash}>—</Text>
                   <Text style={styles.opinionLabel}>({eventDetails.impact})</Text>
-                  <Text style={[
-                    styles.opinionSentiment,
-                    { color: eventDetails.sentiment === 'Bullish' ? theme.colors.bullish : 
-                             eventDetails.sentiment === 'Bearish' ? theme.colors.bearish : theme.colors.neutral }
-                  ]}>
+                  <Text style={styles.opinionSentiment}>
                     {eventDetails.sentiment} {eventDetails.confidence}%
                   </Text>
                 </View>
+                <Text style={styles.opinionDescription}>
+                  {eventDetails.sentiment === 'Bullish' ? 'Market likely to respond positively with increased buying pressure.' :
+                   eventDetails.sentiment === 'Bearish' ? 'Market likely to respond negatively with increased selling pressure.' :
+                   'Market expected to remain stable with balanced sentiment.'}
+                </Text>
               </View>
 
               <View style={styles.aiSection}>
@@ -423,63 +377,66 @@ export default function EventDetailsScreen() {
                 <Text style={styles.aiText}>{eventDetails.aiForecast}</Text>
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.aiSection}>
-                <Text style={styles.sectionTitle}>KEY METRICS</Text>
-                {isEarnings && earningsData ? (
-                  <View style={styles.metricsGrid}>
-                    {earningsData.actual_eps !== null && earningsData.actual_eps !== undefined ? (
-                      <>
-                        <View style={styles.metricItem}>
-                          <Text style={styles.metricLabel}>EPS</Text>
-                          <Text style={styles.metricValue}>
-                            ${earningsData.actual_eps.toFixed(2)} vs ${earningsData.cons_eps?.toFixed(2)}
-                          </Text>
-                        </View>
-                        <View style={styles.metricItem}>
-                          <Text style={styles.metricLabel}>Revenue</Text>
-                          <Text style={styles.metricValue}>
-                            ${earningsData.actual_rev?.toFixed(1)}B vs ${earningsData.cons_rev?.toFixed(1)}B
-                          </Text>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <View style={styles.metricItem}>
-                          <Text style={styles.metricLabel}>Expected EPS</Text>
-                          <Text style={styles.metricValue}>${earningsData.cons_eps?.toFixed(2)}</Text>
-                        </View>
-                        <View style={styles.metricItem}>
-                          <Text style={styles.metricLabel}>Expected Revenue</Text>
-                          <Text style={styles.metricValue}>${earningsData.cons_rev?.toFixed(1)}B</Text>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                ) : econData ? (
-                  <View style={styles.metricsGrid}>
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Currency</Text>
-                      <Text style={styles.metricValue}>USD</Text>
-                    </View>
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Forecast</Text>
-                      <Text style={styles.metricValue}>{econData.forecast?.toFixed(1)}%</Text>
-                    </View>
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Previous</Text>
-                      <Text style={styles.metricValue}>{econData.previous?.toFixed(1)}%</Text>
-                    </View>
-                    {econData.actual !== null && econData.actual !== undefined && (
-                      <View style={styles.metricItem}>
-                        <Text style={styles.metricLabel}>Actual</Text>
-                        <Text style={styles.metricValue}>{econData.actual.toFixed(1)}%</Text>
+              {((isEarnings && earningsData) || econData) && (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.aiSection}>
+                    <Text style={styles.sectionTitle}>KEY METRICS</Text>
+                    {isEarnings && earningsData ? (
+                      <View style={styles.metricsGrid}>
+                        {earningsData.actual_eps !== null && earningsData.actual_eps !== undefined ? (
+                          <>
+                            <View style={styles.metricItem}>
+                              <Text style={styles.metricLabel}>Actual EPS</Text>
+                              <Text style={styles.metricValue}>${earningsData.actual_eps.toFixed(2)}</Text>
+                            </View>
+                            <View style={styles.metricItem}>
+                              <Text style={styles.metricLabel}>Expected EPS</Text>
+                              <Text style={styles.metricValue}>${earningsData.cons_eps?.toFixed(2)}</Text>
+                            </View>
+                            <View style={styles.metricItem}>
+                              <Text style={styles.metricLabel}>Actual Revenue</Text>
+                              <Text style={styles.metricValue}>${earningsData.actual_rev?.toFixed(1)}B</Text>
+                            </View>
+                            <View style={styles.metricItem}>
+                              <Text style={styles.metricLabel}>Expected Revenue</Text>
+                              <Text style={styles.metricValue}>${earningsData.cons_rev?.toFixed(1)}B</Text>
+                            </View>
+                          </>
+                        ) : (
+                          <>
+                            <View style={styles.metricItem}>
+                              <Text style={styles.metricLabel}>Expected EPS</Text>
+                              <Text style={styles.metricValue}>${earningsData.cons_eps?.toFixed(2)}</Text>
+                            </View>
+                            <View style={styles.metricItem}>
+                              <Text style={styles.metricLabel}>Expected Revenue</Text>
+                              <Text style={styles.metricValue}>${earningsData.cons_rev?.toFixed(1)}B</Text>
+                            </View>
+                          </>
+                        )}
                       </View>
-                    )}
+                    ) : econData ? (
+                      <View style={styles.metricsGrid}>
+                        <View style={styles.metricItem}>
+                          <Text style={styles.metricLabel}>Forecast</Text>
+                          <Text style={styles.metricValue}>{econData.forecast?.toFixed(1)}%</Text>
+                        </View>
+                        <View style={styles.metricItem}>
+                          <Text style={styles.metricLabel}>Previous</Text>
+                          <Text style={styles.metricValue}>{econData.previous?.toFixed(1)}%</Text>
+                        </View>
+                        {econData.actual !== null && econData.actual !== undefined && (
+                          <View style={styles.metricItem}>
+                            <Text style={styles.metricLabel}>Actual</Text>
+                            <Text style={styles.metricValue}>{econData.actual.toFixed(1)}%</Text>
+                          </View>
+                        )}
+                      </View>
+                    ) : null}
                   </View>
-                ) : null}
-              </View>
+                </>
+              )}
 
               <View style={styles.divider} />
 
@@ -498,9 +455,9 @@ export default function EventDetailsScreen() {
                 </View>
               </View>
 
-              <View style={styles.disclaimer}>
-                <Text style={styles.disclaimerText}>
-                  AI summaries are generated for convenience. Not financial advice.
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>
+                  AI summaries are <Text style={styles.footerUnderline}>generated for convenience</Text>. Not financial advice.
                 </Text>
               </View>
             </View>
@@ -522,119 +479,119 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#000000',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderTopWidth: 2,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#FFD75A',
     borderLeftWidth: 0,
     borderRightWidth: 0,
-    height: SCREEN_HEIGHT * 0.9,
+    height: SCREEN_HEIGHT * 0.92,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
     elevation: 10,
   },
-  dragHandle: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  dragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: theme.colors.border,
-    borderRadius: 2,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  closeButton: {
-    padding: 4,
-  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 32,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  header: {
+    marginBottom: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    lineHeight: 32,
-    marginBottom: 12,
+    lineHeight: 30,
+    flex: 1,
+    paddingRight: 16,
   },
-  sourceRow: {
-    marginBottom: 16,
+  closeButton: {
+    padding: 4,
   },
   sourceText: {
     fontSize: 13,
     color: '#888888',
+    lineHeight: 18,
   },
   divider: {
     height: 1,
-    backgroundColor: '#1A1A1A',
-    marginVertical: 20,
+    backgroundColor: '#FFD75A',
+    marginVertical: 16,
   },
   aiSection: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700' as const,
     color: '#FFD75A',
-    marginBottom: 10,
+    marginBottom: 8,
     letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
   },
   aiText: {
     fontSize: 15,
     color: '#FFFFFF',
-    lineHeight: 24,
+    lineHeight: 22,
+    opacity: 0.9,
   },
   opinionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    marginBottom: 8,
   },
   opinionDash: {
     fontSize: 14,
-    color: '#BFBFBF',
+    color: '#FFFFFF',
     fontWeight: '400' as const,
   },
   opinionLabel: {
     fontSize: 13,
     color: '#888888',
-    fontWeight: '600' as const,
+    fontWeight: '400' as const,
   },
   opinionSentiment: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700' as const,
+    color: '#FFD75A',
+  },
+  opinionDescription: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    lineHeight: 22,
+    opacity: 0.9,
   },
   metricsGrid: {
     gap: 12,
   },
   metricItem: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   metricLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#888888',
     marginBottom: 4,
-    textTransform: 'uppercase' as const,
   },
   metricValue: {
     fontSize: 15,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
   },
   tickersSection: {
-    marginTop: 0,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   tickersRow: {
     flexDirection: 'row',
@@ -643,26 +600,30 @@ const styles = StyleSheet.create({
   },
   tickerPill: {
     backgroundColor: '#FFD75A',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   tickerText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700' as const,
     color: '#000000',
+    textTransform: 'uppercase' as const,
   },
-  disclaimer: {
+  footer: {
     marginTop: 24,
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    alignItems: 'center',
   },
-  disclaimerText: {
+  footerText: {
     fontSize: 11,
-    color: '#888888',
+    color: 'rgba(136, 136, 136, 0.8)',
     textAlign: 'center',
-    fontStyle: 'italic' as const,
+    lineHeight: 16,
+  },
+  footerUnderline: {
+    textDecorationLine: 'underline',
+    color: '#FFD75A',
   },
   loadingContainer: {
     flex: 1,
