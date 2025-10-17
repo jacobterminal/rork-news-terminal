@@ -359,13 +359,7 @@ export default function WatchlistScreen() {
           <ChevronDown size={14} color="#000000" />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.optionsButton}
-          onPress={() => setOptionsSheetVisible(true)}
-          activeOpacity={0.7}
-        >
-          <MoreVertical size={18} color="#FFD75A" />
-        </TouchableOpacity>
+
       </View>
       
       <ScrollView 
@@ -383,11 +377,20 @@ export default function WatchlistScreen() {
           <View style={styles.divider} />
           <View style={styles.headerRow}>
             <Text style={styles.sectionTitle}>WATCHLIST</Text>
-            <TimeRangeFilterPill
-              selectedRange={timeRange}
-              customRange={customTimeRange}
-              onRangeChange={handleTimeRangeChange}
-            />
+            <View style={styles.headerRightControls}>
+              <TimeRangeFilterPill
+                selectedRange={timeRange}
+                customRange={customTimeRange}
+                onRangeChange={handleTimeRangeChange}
+              />
+              <TouchableOpacity
+                style={styles.optionsButton}
+                onPress={() => setOptionsSheetVisible(true)}
+                activeOpacity={0.7}
+              >
+                <MoreVertical size={18} color="#FFD75A" />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.divider} />
         </View>
@@ -530,10 +533,17 @@ const styles = StyleSheet.create({
     color: '#000000',
     maxWidth: 200,
   },
+  headerRightControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   optionsButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 215, 90, 0.1)',
   },
   scrollView: {
     flex: 1,
