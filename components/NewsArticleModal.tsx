@@ -177,6 +177,19 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   const source = 'source' in article && typeof article.source === 'object' ? article.source.name : article.source;
   const publishedAt = article.published_at;
   const tickers = article.tickers || [];
+  
+  const getBorderColor = () => {
+    if (!aiContent) return '#FFD75A';
+    switch (aiContent.sentiment) {
+      case 'Bullish':
+        return '#00FF00';
+      case 'Bearish':
+        return '#FF0000';
+      case 'Neutral':
+      default:
+        return '#FFD75A';
+    }
+  };
 
   return (
     <Modal
@@ -195,7 +208,10 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
         <Animated.View
           style={[
             styles.modalContent,
-            { transform: [{ translateY }] },
+            { 
+              transform: [{ translateY }],
+              borderColor: getBorderColor(),
+            },
           ]}
         >
           <ScrollView 
@@ -305,10 +321,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#FFD75A',
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
+    borderWidth: 2,
     height: SCREEN_HEIGHT * 0.92,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
