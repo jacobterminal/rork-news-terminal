@@ -259,7 +259,10 @@ export default function EventDetailsScreen() {
   };
 
   const handleTickerPress = (ticker: string) => {
-    console.log('Ticker pressed:', ticker);
+    handleClose();
+    setTimeout(() => {
+      router.push(`/company/${ticker}`);
+    }, 350);
   };
 
   const formatTime = (timeString: string) => {
@@ -448,6 +451,7 @@ export default function EventDetailsScreen() {
                       key={index}
                       style={styles.tickerPill}
                       onPress={() => handleTickerPress(ticker)}
+                      activeOpacity={0.6}
                     >
                       <Text style={styles.tickerText}>{ticker}</Text>
                     </TouchableOpacity>

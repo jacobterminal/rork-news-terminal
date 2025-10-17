@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { X } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { FeedItem, CriticalAlert } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
@@ -155,7 +156,10 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   };
 
   const handleTickerPress = (ticker: string) => {
-    console.log('Ticker pressed:', ticker);
+    handleClose();
+    setTimeout(() => {
+      router.push(`/company/${ticker}`);
+    }, 350);
   };
 
   const formatTime = (timeString: string) => {
@@ -286,6 +290,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
                           key={index}
                           style={styles.tickerPill}
                           onPress={() => handleTickerPress(ticker)}
+                          activeOpacity={0.6}
                         >
                           <Text style={styles.tickerText}>{ticker}</Text>
                         </TouchableOpacity>
