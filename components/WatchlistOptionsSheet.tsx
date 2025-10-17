@@ -93,7 +93,7 @@ export default function WatchlistOptionsSheet({
       >
         <View style={styles.sheetContainer}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Watchlist Options</Text>
+            <Text style={styles.headerTitle}>Watchlist Manager</Text>
           </View>
 
           <ScrollView style={styles.optionsList} showsVerticalScrollIndicator={false}>
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1F1F23',
+    borderBottomColor: '#FFD75A',
   },
   iconContainer: {
     width: 40,

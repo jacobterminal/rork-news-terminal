@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronDown, MoreVertical } from 'lucide-react-native';
+import { MoreVertical } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
 import CriticalAlerts from '../components/CriticalAlerts';
 import TerminalTickerRow from '../components/TerminalTickerRow';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
-import WatchlistFolderPicker from '../components/WatchlistFolderPicker';
+
 import WatchlistOptionsSheet from '../components/WatchlistOptionsSheet';
 import CreateFolderModal from '../components/CreateFolderModal';
 import TickerOrderModal from '../components/TickerOrderModal';
@@ -58,7 +58,6 @@ export default function WatchlistScreen() {
   const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   
-  const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [optionsSheetVisible, setOptionsSheetVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [renameFolderModalVisible, setRenameFolderModalVisible] = useState(false);
@@ -350,16 +349,14 @@ export default function WatchlistScreen() {
       <UniversalBackButton />
       
       <View style={styles.topBar}>
+        <View style={styles.leftSpace} />
         <TouchableOpacity
-          style={styles.folderPill}
-          onPress={() => setFolderPickerVisible(true)}
+          style={styles.managerButton}
+          onPress={() => setOptionsSheetVisible(true)}
           activeOpacity={0.7}
         >
-          <Text style={styles.folderPillText}>{activeFolder?.name || 'Select Folder'}</Text>
-          <ChevronDown size={14} color="#000000" />
+          <MoreVertical size={22} color="#FFD75A" />
         </TouchableOpacity>
-
-
       </View>
       
       <ScrollView 
@@ -443,22 +440,6 @@ export default function WatchlistScreen() {
         }}
       />
 
-      <WatchlistFolderPicker
-        visible={folderPickerVisible}
-        folders={watchlistFolders.map(f => ({
-          id: f.id,
-          name: f.name,
-          tickerCount: f.tickers.length,
-        }))}
-        activeFolderId={activeFolderId}
-        onSelectFolder={setActiveFolder}
-        onCreateFolder={() => {
-          setFolderPickerVisible(false);
-          setTimeout(() => setCreateFolderModalVisible(true), 100);
-        }}
-        onClose={() => setFolderPickerVisible(false)}
-      />
-
       <WatchlistOptionsSheet
         visible={optionsSheetVisible}
         folderName={activeFolder?.name || ''}
@@ -518,20 +499,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F5C518',
   },
-  folderPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FFD75A',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+  leftSpace: {
+    flex: 1,
   },
-  folderPillText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#000000',
-    maxWidth: 200,
+  managerButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
   },
   headerRightControls: {
     flexDirection: 'row',
