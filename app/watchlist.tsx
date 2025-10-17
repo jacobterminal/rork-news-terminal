@@ -15,7 +15,7 @@ import ManageTickersModal from '../components/ManageTickersModal';
 import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
 import { useScrollReset } from '../utils/useScrollReset';
-import UniversalBackButton from '../components/UniversalBackButton';
+
 
 interface TickerNewsItem {
   time: string;
@@ -315,9 +315,7 @@ export default function WatchlistScreen() {
 
   if (watchlistFolders.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <UniversalBackButton />
-        
+      <View style={[styles.container, { paddingTop: insets.top + 15 }]}>
         <View style={styles.emptyCreateState}>
           <Text style={styles.emptyCreateTitle}>Create a Watchlist Folder</Text>
           <Text style={styles.emptyCreateSubtitle}>
@@ -343,9 +341,7 @@ export default function WatchlistScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <UniversalBackButton />
-      
+    <View style={[styles.container, { paddingTop: insets.top + 15 }]}>
       <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
