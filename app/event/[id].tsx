@@ -9,6 +9,7 @@ import {
   Modal,
   Animated,
   Dimensions,
+  PanResponder,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { X } from 'lucide-react-native';
@@ -33,18 +34,6 @@ interface EventDetails {
   timestamp: string;
 }
 
-const getSentimentColor = (sentiment: 'Bullish' | 'Bearish' | 'Neutral'): string => {
-  switch (sentiment) {
-    case 'Bullish':
-      return '#00FF00';
-    case 'Bearish':
-      return '#FF0000';
-    case 'Neutral':
-    default:
-      return '#FFD75A';
-  }
-};
-
 export default function EventDetailsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -53,24 +42,16 @@ export default function EventDetailsScreen() {
   const [eventDetails, setEventDetails] = useState<EventDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [visible, setVisible] = useState<boolean>(true);
-  const [scale] = useState(new Animated.Value(0.9));
-  const [opacity] = useState(new Animated.Value(0));
+  const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
 
   useEffect(() => {
     loadEventDetails();
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 7,
-      }),
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 8,
+    }).start();
   }, [id, type]);
 
   const loadEventDetails = async () => {
@@ -234,19 +215,36 @@ export default function EventDetailsScreen() {
     }
   };
 
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dy) > 5;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dy > 0) {
+        translateY.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+        handleClose();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 8,
+        }).start();
+      }
+    },
+  });
+
   const handleClose = () => {
-    Animated.parallel([
-      Animated.timing(scale, {
-        toValue: 0.9,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    Animated.timing(translateY, {
+      toValue: SCREEN_HEIGHT,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
       try {
         if (router.canGoBack?.()) {
           router.back();
@@ -282,8 +280,8 @@ export default function EventDetailsScreen() {
 
   if (loading || !eventDetails) {
     return (
-      <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose} statusBarTranslucent>
-        <Animated.View style={[styles.modalOverlay, { opacity }]}>
+      <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
+        <View style={styles.modalOverlay}>
           <TouchableOpacity 
             style={styles.backdrop} 
             activeOpacity={1} 
@@ -292,12 +290,7 @@ export default function EventDetailsScreen() {
           <Animated.View
             style={[
               styles.modalContent,
-              {
-                transform: [{ scale }],
-                borderWidth: 2,
-                borderColor: '#FFD75A',
-                shadowColor: '#FFD75A',
-              },
+              { transform: [{ translateY }] },
             ]}
           >
             <View style={styles.loadingContainer}>
@@ -307,7 +300,7 @@ export default function EventDetailsScreen() {
               </Text>
             </View>
           </Animated.View>
-        </Animated.View>
+        </View>
       </Modal>
     );
   }
@@ -316,11 +309,10 @@ export default function EventDetailsScreen() {
   const earningsData = isEarnings ? (eventDetails.data as EarningsItem) : null;
   const econData = !isEarnings ? (eventDetails.data as EconItem) : null;
   const title = isEarnings ? `${earningsData?.ticker} Earnings Report` : econData?.name || 'Event Details';
-  const sentimentColor = getSentimentColor(eventDetails.sentiment);
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose} statusBarTranslucent>
-      <Animated.View style={[styles.modalOverlay, { opacity }]}>
+      <View style={styles.modalOverlay}>
         <TouchableOpacity 
           style={styles.backdrop} 
           activeOpacity={1} 
@@ -330,18 +322,14 @@ export default function EventDetailsScreen() {
         <Animated.View
           style={[
             styles.modalContent,
-            {
-              transform: [{ scale }],
-              borderWidth: 2,
-              borderColor: sentimentColor,
-              shadowColor: sentimentColor,
-            },
+            { transform: [{ translateY }] },
           ]}
         >
           <ScrollView 
             style={styles.scrollView} 
             showsVerticalScrollIndicator={false}
-            bounces={true}
+            bounces={false}
+            {...panResponder.panHandlers}
           >
             <View style={styles.contentContainer}>
               <View style={styles.header}>
@@ -356,7 +344,7 @@ export default function EventDetailsScreen() {
                 </Text>
               </View>
 
-              <View style={[styles.divider, { backgroundColor: sentimentColor }]} />
+              <View style={styles.divider} />
 
               <View style={styles.aiSection}>
                 <Text style={styles.sectionTitle}>AI SUMMARY</Text>
@@ -373,7 +361,7 @@ export default function EventDetailsScreen() {
                 <View style={styles.opinionRow}>
                   <Text style={styles.opinionDash}>—</Text>
                   <Text style={styles.opinionLabel}>({eventDetails.impact})</Text>
-                  <Text style={[styles.opinionSentiment, { color: sentimentColor }]}>
+                  <Text style={styles.opinionSentiment}>
                     {eventDetails.sentiment} {eventDetails.confidence}%
                   </Text>
                 </View>
@@ -391,7 +379,7 @@ export default function EventDetailsScreen() {
 
               {((isEarnings && earningsData) || econData) && (
                 <>
-                  <View style={[styles.divider, { backgroundColor: sentimentColor }]} />
+                  <View style={styles.divider} />
                   <View style={styles.aiSection}>
                     <Text style={styles.sectionTitle}>KEY METRICS</Text>
                     {isEarnings && earningsData ? (
@@ -450,7 +438,7 @@ export default function EventDetailsScreen() {
                 </>
               )}
 
-              <View style={[styles.divider, { backgroundColor: sentimentColor }]} />
+              <View style={styles.divider} />
 
               <View style={styles.tickersSection}>
                 <Text style={styles.sectionTitle}>RELATED TICKERS</Text>
@@ -458,7 +446,7 @@ export default function EventDetailsScreen() {
                   {eventDetails.relatedTickers.map((ticker, index) => (
                     <TouchableOpacity
                       key={index}
-                      style={[styles.tickerPill, { backgroundColor: sentimentColor }]}
+                      style={styles.tickerPill}
                       onPress={() => handleTickerPress(ticker)}
                     >
                       <Text style={styles.tickerText}>{ticker}</Text>
@@ -475,7 +463,7 @@ export default function EventDetailsScreen() {
             </View>
           </ScrollView>
         </Animated.View>
-      </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -483,21 +471,26 @@ export default function EventDetailsScreen() {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
     backgroundColor: '#000000',
-    borderRadius: 14,
-    width: '92%',
-    maxHeight: '90%',
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#FFD75A',
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    height: SCREEN_HEIGHT * 0.92,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
   },
   scrollView: {
     flex: 1,
@@ -534,6 +527,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
+    backgroundColor: '#FFD75A',
     marginVertical: 16,
   },
   aiSection: {
@@ -572,6 +566,7 @@ const styles = StyleSheet.create({
   opinionSentiment: {
     fontSize: 14,
     fontWeight: '700' as const,
+    color: '#FFD75A',
   },
   opinionDescription: {
     fontSize: 15,
@@ -604,6 +599,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tickerPill: {
+    backgroundColor: '#FFD75A',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 12,

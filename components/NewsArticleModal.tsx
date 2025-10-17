@@ -8,6 +8,7 @@ import {
   Modal,
   Animated,
   Dimensions,
+  PanResponder,
   ActivityIndicator,
 } from 'react-native';
 import { X } from 'lucide-react-native';
@@ -33,40 +34,43 @@ interface AIContent {
   forecast: string;
 }
 
-const getSentimentColor = (sentiment: 'Bullish' | 'Bearish' | 'Neutral'): string => {
-  switch (sentiment) {
-    case 'Bullish':
-      return '#00FF00';
-    case 'Bearish':
-      return '#FF0000';
-    case 'Neutral':
-    default:
-      return '#FFD75A';
-  }
-};
-
 export default function NewsArticleModal({ visible, article, onClose }: NewsArticleModalProps) {
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
+  const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
   const [aiContent, setAiContent] = useState<AIContent | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
-  const [scale] = useState(new Animated.Value(0.9));
-  const [opacity] = useState(new Animated.Value(0));
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dy) > 5;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dy > 0) {
+        translateY.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+        handleClose();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 8,
+        }).start();
+      }
+    },
+  });
 
   useEffect(() => {
     if (visible) {
-      Animated.parallel([
-        Animated.spring(scale, {
-          toValue: 1,
-          useNativeDriver: true,
-          tension: 50,
-          friction: 7,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
       
       if (article) {
         generateAIContent();
@@ -141,18 +145,11 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   };
 
   const handleClose = () => {
-    Animated.parallel([
-      Animated.timing(scale, {
-        toValue: 0.9,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    Animated.timing(translateY, {
+      toValue: SCREEN_HEIGHT,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
       onClose();
     });
   };
@@ -180,7 +177,6 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   const source = 'source' in article && typeof article.source === 'object' ? article.source.name : article.source;
   const publishedAt = article.published_at;
   const tickers = article.tickers || [];
-  const sentimentColor = aiContent ? getSentimentColor(aiContent.sentiment) : '#FFD75A';
 
   return (
     <Modal
@@ -188,9 +184,8 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
       transparent
       animationType="none"
       onRequestClose={handleClose}
-      statusBarTranslucent
     >
-      <Animated.View style={[styles.modalOverlay, { opacity }]}>
+      <View style={styles.modalOverlay}>
         <TouchableOpacity 
           style={styles.backdrop} 
           activeOpacity={1} 
@@ -200,18 +195,14 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
         <Animated.View
           style={[
             styles.modalContent,
-            {
-              transform: [{ scale }],
-              borderWidth: 2,
-              borderColor: sentimentColor,
-              shadowColor: sentimentColor,
-            },
+            { transform: [{ translateY }] },
           ]}
         >
           <ScrollView 
             style={styles.scrollView} 
             showsVerticalScrollIndicator={false}
-            bounces={true}
+            bounces={false}
+            {...panResponder.panHandlers}
           >
             <View style={styles.contentContainer}>
               <View style={styles.header}>
@@ -226,7 +217,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
                 </Text>
               </View>
 
-              <View style={[styles.divider, { backgroundColor: sentimentColor }]} />
+              <View style={styles.divider} />
 
               {isLoadingAI && (
                 <View style={styles.loadingContainer}>
@@ -252,7 +243,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
                     <View style={styles.opinionRow}>
                       <Text style={styles.opinionDash}>—</Text>
                       <Text style={styles.opinionLabel}>({aiContent.impact})</Text>
-                      <Text style={[styles.opinionSentiment, { color: sentimentColor }]}>
+                      <Text style={styles.opinionSentiment}>
                         {aiContent.sentiment} {aiContent.confidence}%
                       </Text>
                     </View>
@@ -270,14 +261,14 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
 
               {tickers.length > 0 && (
                 <>
-                  <View style={[styles.divider, { backgroundColor: sentimentColor }]} />
+                  <View style={styles.divider} />
                   <View style={styles.tickersSection}>
                     <Text style={styles.sectionTitle}>RELATED TICKERS</Text>
                     <View style={styles.tickersRow}>
                       {tickers.map((ticker, index) => (
                         <TouchableOpacity
                           key={index}
-                          style={[styles.tickerPill, { backgroundColor: sentimentColor }]}
+                          style={styles.tickerPill}
                           onPress={() => handleTickerPress(ticker)}
                         >
                           <Text style={styles.tickerText}>{ticker}</Text>
@@ -296,7 +287,7 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
             </View>
           </ScrollView>
         </Animated.View>
-      </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -304,21 +295,26 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
     backgroundColor: '#000000',
-    borderRadius: 14,
-    width: '92%',
-    maxHeight: '90%',
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#FFD75A',
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    height: SCREEN_HEIGHT * 0.92,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
   },
   scrollView: {
     flex: 1,
@@ -355,6 +351,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
+    backgroundColor: '#FFD75A',
     marginVertical: 16,
   },
   aiSection: {
@@ -393,6 +390,7 @@ const styles = StyleSheet.create({
   opinionSentiment: {
     fontSize: 14,
     fontWeight: '700' as const,
+    color: '#FFD75A',
   },
   opinionDescription: {
     fontSize: 15,
@@ -409,6 +407,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tickerPill: {
+    backgroundColor: '#FFD75A',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 12,
