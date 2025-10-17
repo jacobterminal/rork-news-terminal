@@ -195,16 +195,17 @@ export default function CriticalAlerts({ alerts, onAlertPress, highlightedAlertI
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.bg,
-    marginTop: 16,
+    marginTop: 0,
   },
   sectionHeader: {
     borderTopWidth: 1,
     borderTopColor: theme.colors.sectionTitle,
-    paddingTop: 8,
+    paddingTop: 20,
     paddingBottom: 6,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+    marginTop: 16,
   },
 
   sectionTitle: {
