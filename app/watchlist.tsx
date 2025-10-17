@@ -341,39 +341,45 @@ export default function WatchlistScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 15 }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.headerSection}>
+        <Text style={styles.mainTitle}>Insider Vega</Text>
+        <View style={styles.topDivider} />
+      </View>
+      
+      <CriticalAlerts 
+        alerts={recentCriticalAlerts}
+        onAlertPress={handleCriticalAlertPress}
+      />
+      
+      <View style={styles.sectionHeader}>
+        <View style={styles.divider} />
+        <View style={styles.headerRow}>
+          <Text style={styles.sectionTitle}>WATCHLIST</Text>
+          <View style={styles.headerRightControls}>
+            <TimeRangeFilterPill
+              selectedRange={timeRange}
+              customRange={customTimeRange}
+              onRangeChange={handleTimeRangeChange}
+            />
+            <TouchableOpacity
+              style={styles.optionsButton}
+              onPress={() => setOptionsSheetVisible(true)}
+              activeOpacity={0.7}
+            >
+              <MoreVertical size={18} color="#FFD75A" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.divider} />
+      </View>
+      
       <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <CriticalAlerts 
-          alerts={recentCriticalAlerts}
-          onAlertPress={handleCriticalAlertPress}
-        />
-        
-        <View style={styles.sectionHeader}>
-          <View style={styles.divider} />
-          <View style={styles.headerRow}>
-            <Text style={styles.sectionTitle}>WATCHLIST</Text>
-            <View style={styles.headerRightControls}>
-              <TimeRangeFilterPill
-                selectedRange={timeRange}
-                customRange={customTimeRange}
-                onRangeChange={handleTimeRangeChange}
-              />
-              <TouchableOpacity
-                style={styles.optionsButton}
-                onPress={() => setOptionsSheetVisible(true)}
-                activeOpacity={0.7}
-              >
-                <MoreVertical size={18} color="#FFD75A" />
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={styles.divider} />
-        </View>
         
         {activeTickers.length > 0 ? (
           activeTickers.map(ticker => {
@@ -473,7 +479,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-
+  headerSection: {
+    paddingTop: 15,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: '#000000',
+  },
+  mainTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFD75A',
+    textAlign: 'center',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  topDivider: {
+    height: 1,
+    backgroundColor: '#FFD75A',
+    marginTop: 8,
+  },
   headerRightControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -494,7 +518,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginBottom: 0,
-    marginTop: 10,
+    marginTop: 0,
   },
   headerRow: {
     flexDirection: 'row',
