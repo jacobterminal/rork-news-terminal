@@ -42,6 +42,7 @@ export default function EventDetailsScreen() {
   
   const [eventDetails, setEventDetails] = useState<EventDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [visible, setVisible] = useState<boolean>(true);
   const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
 
   useEffect(() => {
@@ -69,8 +70,11 @@ export default function EventDetailsScreen() {
       }
       
       if (!eventData) {
-        console.error('Event not found:', id);
+        console.error('[EventDetails] Event not found:', id);
         setLoading(false);
+        setTimeout(() => {
+          router.replace('/upcoming');
+        }, 1500);
         return;
       }
 
@@ -239,12 +243,17 @@ export default function EventDetailsScreen() {
   const handleClose = () => {
     Animated.timing(translateY, {
       toValue: SCREEN_HEIGHT,
-      duration: 250,
+      duration: 150,
       useNativeDriver: true,
     }).start(() => {
-      if (navigation.canGoBack()) {
-        router.back();
-      } else {
+      try {
+        if (router.canGoBack?.()) {
+          router.back();
+        } else {
+          router.replace('/upcoming');
+        }
+      } catch (error) {
+        console.error('[EventDetails] Navigation error:', error);
         router.replace('/upcoming');
       }
     });
@@ -302,7 +311,7 @@ export default function EventDetailsScreen() {
 
   if (loading || !eventDetails) {
     return (
-      <Modal visible transparent animationType="none">
+      <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
         <View style={styles.modalOverlay}>
           <TouchableOpacity 
             style={styles.backdrop} 
@@ -341,7 +350,7 @@ export default function EventDetailsScreen() {
   const title = isEarnings ? `${earningsData?.ticker} Earnings Report` : econData?.name || 'Event Details';
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={handleClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose} statusBarTranslucent>
       <View style={styles.modalOverlay}>
         <TouchableOpacity 
           style={styles.backdrop} 
@@ -505,7 +514,7 @@ export default function EventDetailsScreen() {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'flex-end',
   },
   backdrop: {
