@@ -87,7 +87,7 @@ export default function ArticleScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <View style={[styles.cardContainer, { borderColor, shadowColor: borderColor }]}>
         <TouchableOpacity
           style={styles.closeButtonTop}
@@ -147,7 +147,7 @@ export default function ArticleScreen() {
 
           <View style={styles.contentSection}>
             <Text style={styles.sectionHeader}>AI OVERVIEW</Text>
-            <Text style={styles.bodyText}>
+            <Text style={[styles.bodyText, { opacity: 0.9 }]}>
               This article covers {article.source.name} reporting on {article.tickers.length > 0 ? article.tickers.join(', ') : 'market developments'}. 
               The analysis indicates a {sentiment?.toLowerCase()} sentiment with {article.classification.impact.toLowerCase()} market impact. 
               Key indicators suggest this development may influence trading decisions across related sectors.
@@ -238,29 +238,27 @@ export default function ArticleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)' as const,
+    backgroundColor: BLACK,
   },
   cardContainer: {
     flex: 1,
     backgroundColor: BLACK,
-    borderRadius: 12,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     borderWidth: 2,
-    marginTop: 40,
     ...Platform.select({
       ios: {
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
+        shadowOpacity: 0.5,
+        shadowRadius: 16,
       },
       android: {
-        elevation: 8,
+        elevation: 12,
       },
       web: {
-        boxShadow: '0 0 20px rgba(255, 215, 90, 0.3)' as any,
+        boxShadow: '0 0 24px' as any,
       },
     }),
   },
@@ -283,11 +281,11 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold' as const,
     color: WHITE,
-    lineHeight: 24,
-    marginBottom: 8,
+    lineHeight: 26,
+    marginBottom: 10,
     textAlign: 'center' as const,
   },
   metaRow: {
@@ -296,7 +294,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#999999' as const,
+    color: '#888888' as const,
   },
   actionsRow: {
     flexDirection: 'row' as const,
@@ -330,10 +328,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   bodyText: {
-    fontSize: 13,
+    fontSize: 14,
     color: WHITE,
-    lineHeight: 20,
-    opacity: 0.9,
+    lineHeight: 21,
+    fontWeight: '500' as const,
   },
   bodyTextSmall: {
     fontSize: 12,
@@ -342,8 +340,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   opinionHeader: {
-    fontSize: 13,
-    color: '#999999' as const,
+    fontSize: 14,
+    color: '#888888' as const,
     marginBottom: 6,
   },
   sentimentText: {
@@ -409,9 +407,8 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontSize: 11,
-    color: '#808080' as const,
+    color: 'rgba(255, 255, 255, 0.5)' as const,
     textAlign: 'center' as const,
-    fontStyle: 'italic' as const,
   },
   errorContainer: {
     flex: 1,
