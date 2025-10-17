@@ -350,6 +350,7 @@ export default function WatchlistScreen() {
       
       <View style={styles.topBar}>
         <View style={styles.leftSpace} />
+        <View style={styles.centerSpace} />
         <TouchableOpacity
           style={styles.managerButton}
           onPress={() => setOptionsSheetVisible(true)}
@@ -500,6 +501,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F5C518',
   },
   leftSpace: {
+    width: 44,
+  },
+  centerSpace: {
     flex: 1,
   },
   managerButton: {
