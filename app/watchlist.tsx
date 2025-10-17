@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MoreVertical } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
-import CriticalAlerts from '../components/CriticalAlerts';
 import TerminalTickerRow from '../components/TerminalTickerRow';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
@@ -68,7 +67,6 @@ export default function WatchlistScreen() {
     state, 
     criticalAlerts,
     activeFolderId,
-    setActiveFolder,
     createFolder,
     deleteFolder,
     renameFolder,
@@ -342,16 +340,96 @@ export default function WatchlistScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 15 }]}>
+      <View style={styles.stickyHeaderContainer}>
+        <View style={styles.stickyHeaderDivider} />
+        <View style={styles.stickyHeaderInner}>
+          <Text style={styles.stickyHeaderTitle}>CRITICAL ALERTS</Text>
+        </View>
+        <View style={styles.stickyHeaderDivider} />
+      </View>
+      
       <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <CriticalAlerts 
-          alerts={recentCriticalAlerts}
-          onAlertPress={handleCriticalAlertPress}
-        />
+        <View style={styles.alertsScrollContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.alertsContentContainer}
+          >
+            {recentCriticalAlerts.map((alert) => {
+              const formatTime = (dateString: string) => {
+                const date = new Date(dateString);
+                return date.toLocaleTimeString('en-US', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: false 
+                });
+              };
+
+              const getSentimentPill = (sentiment: string, confidence: number) => {
+                const label = sentiment === 'Bullish' ? 'BULL' : sentiment === 'Bearish' ? 'BEAR' : 'NEUT';
+                const color = sentiment === 'Bullish' ? '#00FF00' : 
+                              sentiment === 'Bearish' ? '#FF0000' : '#888888';
+                return { label, color };
+              };
+
+              const sentiment = getSentimentPill(alert.sentiment, alert.confidence);
+              
+              return (
+                <TouchableOpacity
+                  key={alert.id}
+                  style={styles.alertCard}
+                  onPress={() => handleCriticalAlertPress(alert)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.alertContent}>
+                    <View style={styles.alertTopLine}>
+                      <Text style={styles.alertTime}>{formatTime(alert.published_at)}</Text>
+                      <Text style={styles.alertSource}>{alert.source}</Text>
+                      <View style={[styles.alertPill, { borderColor: sentiment.color }]}>
+                        <Text style={[styles.alertPillText, { color: sentiment.color }]}>
+                          {sentiment.label} {alert.confidence}%
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <Text style={styles.alertHeadline} numberOfLines={2}>
+                      {alert.headline}
+                    </Text>
+                    
+                    {alert.tickers && alert.tickers.length > 0 && (
+                      <View style={styles.alertTickersRow}>
+                        {alert.tickers.slice(0, 4).map((ticker) => (
+                          <Text key={ticker} style={styles.alertTickerTag}>{ticker}</Text>
+                        ))}
+                        {alert.tickers.length > 4 && (
+                          <Text style={styles.alertMoreText}>+{alert.tickers.length - 4}</Text>
+                        )}
+                      </View>
+                    )}
+                    
+                    <View style={styles.alertDataGrid}>
+                      <View style={styles.alertDataCol}>
+                        <Text style={styles.alertDataLabel}>IMPACT</Text>
+                        <Text style={[
+                          styles.alertDataValue,
+                          alert.impact === 'High' && styles.alertHighImpact,
+                          alert.impact === 'Medium' && styles.alertMediumImpact,
+                        ]}>
+                          {alert.impact.toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
         
         <View style={styles.sectionHeader}>
           <View style={styles.divider} />
@@ -473,7 +551,128 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-
+  stickyHeaderContainer: {
+    backgroundColor: '#000000',
+    zIndex: 10,
+    elevation: 10,
+    shadowColor: 'rgba(255, 215, 90, 0.15)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+  },
+  stickyHeaderDivider: {
+    height: 1,
+    backgroundColor: '#FFD75A',
+  },
+  stickyHeaderInner: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#000000',
+  },
+  stickyHeaderTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFD75A',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  alertsScrollContainer: {
+    backgroundColor: '#000000',
+    paddingVertical: 8,
+  },
+  alertsContentContainer: {
+    paddingHorizontal: 12,
+    gap: 0,
+  },
+  alertCard: {
+    width: 300,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFD75A',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: '#000000',
+  },
+  alertContent: {
+    gap: 6,
+  },
+  alertTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  alertTime: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: '#555A64',
+    minWidth: 40,
+  },
+  alertSource: {
+    fontSize: 10,
+    color: '#A1A1A1',
+    textTransform: 'uppercase',
+    flex: 1,
+  },
+  alertPill: {
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
+  alertPillText: {
+    fontSize: 9,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    letterSpacing: 0.5,
+  },
+  alertHeadline: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    lineHeight: 16,
+  },
+  alertTickersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    alignItems: 'center',
+  },
+  alertTickerTag: {
+    fontSize: 9,
+    fontFamily: 'monospace',
+    color: '#00FF00',
+    fontWeight: '700',
+  },
+  alertMoreText: {
+    fontSize: 9,
+    color: '#555A64',
+  },
+  alertDataGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  alertDataCol: {
+    flex: 1,
+  },
+  alertDataLabel: {
+    fontSize: 8,
+    color: '#555A64',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  alertDataValue: {
+    fontSize: 11,
+    fontFamily: 'monospace',
+    color: '#A1A1A1',
+    fontWeight: '600',
+  },
+  alertHighImpact: {
+    color: '#FF0000',
+  },
+  alertMediumImpact: {
+    color: '#888888',
+  },
   headerRightControls: {
     flexDirection: 'row',
     alignItems: 'center',
