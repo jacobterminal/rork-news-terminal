@@ -283,6 +283,29 @@ export default function TimeRangeFilterPill({
     }
   };
 
+  const getDropdownPosition = () => {
+    if (!pillLayout) return {};
+    
+    const screenHeight = Dimensions.get('window').height;
+    const dropdownHeight = 240;
+    const spaceBelow = screenHeight - (pillLayout.y + pillLayout.height);
+    const spaceAbove = pillLayout.y;
+    
+    const shouldOpenUpward = spaceBelow < dropdownHeight + 16 && spaceAbove > spaceBelow;
+    
+    if (shouldOpenUpward) {
+      return {
+        bottom: screenHeight - pillLayout.y + 8,
+        left: pillLayout.x
+      };
+    } else {
+      return {
+        top: pillLayout.y + pillLayout.height + 8,
+        left: pillLayout.x
+      };
+    }
+  };
+
   return (
     <>
       <View ref={pillRef}>
@@ -312,11 +335,7 @@ export default function TimeRangeFilterPill({
           >
             <View 
               ref={dropdownRef}
-              style={[styles.dropdown, { 
-                top: pillLayout.y + pillLayout.height + 8,
-                left: pillLayout.x
-              }]}
-
+              style={[styles.dropdown, getDropdownPosition()]}
             >
               <TouchableOpacity 
                 style={[
