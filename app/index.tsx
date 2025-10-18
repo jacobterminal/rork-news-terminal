@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text, Pressable, Modal, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Pressable, Modal, Platform, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
@@ -29,6 +29,7 @@ export default function NewsScreen() {
   const [showWatchlistFilter, setShowWatchlistFilter] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuLayout, setMenuLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
   const menuButtonRef = useRef<View>(null);
 
   useEffect(() => {
@@ -290,7 +291,22 @@ export default function NewsScreen() {
                 style={styles.menuButton}
                 onPress={() => {
                   menuButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                    const screenWidth = Dimensions.get('window').width;
+                    const menuWidth = 200;
+                    const horizontalOffset = 10;
+                    
+                    let leftPosition = pageX + width - menuWidth;
+                    
+                    if (leftPosition < horizontalOffset) {
+                      leftPosition = horizontalOffset;
+                    } else if (leftPosition + menuWidth > screenWidth - horizontalOffset) {
+                      leftPosition = screenWidth - menuWidth - horizontalOffset;
+                    }
+                    
+                    const topPosition = pageY + height + 8;
+                    
                     setMenuLayout({ x: pageX, y: pageY, width, height });
+                    setMenuPosition({ left: leftPosition, top: topPosition });
                     setMenuVisible(true);
                   });
                 }}
@@ -364,8 +380,8 @@ export default function NewsScreen() {
               styles.menuContainer,
               {
                 position: 'absolute',
-                left: menuLayout.x + menuLayout.width - 200,
-                top: menuLayout.y + menuLayout.height + 8,
+                left: menuPosition.left,
+                top: menuPosition.top,
               }
             ]}
           >
