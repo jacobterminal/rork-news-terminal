@@ -5,7 +5,7 @@ import { MoreVertical } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
 import CriticalAlerts from '../components/CriticalAlerts';
 import TerminalTickerRow from '../components/TerminalTickerRow';
-
+import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
 
 import WatchlistOptionsSheet from '../components/WatchlistOptionsSheet';
@@ -53,8 +53,8 @@ export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
-  const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d'>('24h');
-
+  const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
+  const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
   const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   
@@ -139,17 +139,49 @@ export default function WatchlistScreen() {
       const now = new Date();
       
       switch (timeRange) {
-        case '1h': {
+        case 'last_hour': {
           const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
           return newsTime >= oneHourAgo;
         }
-        case '24h': {
-          const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-          return newsTime >= twentyFourHoursAgo;
+        case 'today': {
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          return newsTime >= todayStart;
         }
-        case '7d': {
-          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return newsTime >= sevenDaysAgo;
+        case 'past_2_days': {
+          const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+          return newsTime >= twoDaysAgo;
+        }
+        case 'past_5_days': {
+          const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+          return newsTime >= fiveDaysAgo;
+        }
+        case 'week_to_date': {
+          const weekStart = getWeekStart(now);
+          return newsTime >= weekStart;
+        }
+        case 'custom': {
+          if (!customTimeRange) return true;
+          
+          const currentYear = now.getFullYear();
+          const startDateParts = customTimeRange.startDate.split('/');
+          const endDateParts = customTimeRange.endDate.split('/');
+          
+          if (startDateParts.length !== 2 || endDateParts.length !== 2) return true;
+          
+          const startMonth = parseInt(startDateParts[0]) - 1;
+          const startDay = parseInt(startDateParts[1]);
+          const endMonth = parseInt(endDateParts[0]) - 1;
+          const endDay = parseInt(endDateParts[1]);
+          
+          const startHour = parseInt(customTimeRange.startHour);
+          const startMinute = parseInt(customTimeRange.startMinute);
+          const endHour = parseInt(customTimeRange.endHour);
+          const endMinute = parseInt(customTimeRange.endMinute);
+          
+          const rangeStart = new Date(currentYear, startMonth, startDay, startHour, startMinute);
+          const rangeEnd = new Date(currentYear, endMonth, endDay, endHour, endMinute);
+          
+          return newsTime >= rangeStart && newsTime <= rangeEnd;
         }
         default:
           return true;
@@ -194,7 +226,7 @@ export default function WatchlistScreen() {
     });
     
     return map;
-  }, [feedItems, activeTickers, timeRange]);
+  }, [feedItems, activeTickers, timeRange, customTimeRange]);
 
   const recentCriticalAlerts = useMemo(() => {
     return criticalAlerts.filter(alert => {
@@ -222,8 +254,13 @@ export default function WatchlistScreen() {
     setModalVisible(true);
   };
 
-  const handleTimeRangeChange = (range: '1h' | '24h' | '7d') => {
+  const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {
     setTimeRange(range);
+    if (range === 'custom' && customRange) {
+      setCustomTimeRange(customRange);
+    } else {
+      setCustomTimeRange(undefined);
+    }
   };
 
   const handleCreateFolder = async (name: string) => {
@@ -323,35 +360,11 @@ export default function WatchlistScreen() {
           <View style={styles.headerRow}>
             <Text style={styles.sectionTitle}>WATCHLIST</Text>
             <View style={styles.headerRightControls}>
-              <View style={styles.filterRow}>
-                <TouchableOpacity
-                  style={[styles.filterPill, timeRange === '1h' && styles.filterPillActive]}
-                  onPress={() => handleTimeRangeChange('1h')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.filterPillText, timeRange === '1h' && styles.filterPillTextActive]}>
-                    Last Hour
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.filterPill, timeRange === '24h' && styles.filterPillActive]}
-                  onPress={() => handleTimeRangeChange('24h')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.filterPillText, timeRange === '24h' && styles.filterPillTextActive]}>
-                    24 Hours
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.filterPill, timeRange === '7d' && styles.filterPillActive]}
-                  onPress={() => handleTimeRangeChange('7d')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.filterPillText, timeRange === '7d' && styles.filterPillTextActive]}>
-                    7 Days
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <TimeRangeFilterPill
+                selectedRange={timeRange}
+                customRange={customTimeRange}
+                onRangeChange={handleTimeRangeChange}
+              />
               <TouchableOpacity
                 style={styles.optionsButton}
                 onPress={() => setOptionsSheetVisible(true)}
@@ -467,31 +480,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  filterPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FFD75A',
-    backgroundColor: 'transparent',
-  },
-  filterPillActive: {
-    borderColor: '#FFD75A',
-    backgroundColor: '#FFD75A',
-  },
-  filterPillText: {
-    fontSize: 10,
-    color: '#FFD75A',
-    fontWeight: '600',
-  },
-  filterPillTextActive: {
-    color: '#000000',
-    fontWeight: '700',
   },
   optionsButton: {
     width: 40,
