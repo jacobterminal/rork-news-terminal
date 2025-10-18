@@ -9,6 +9,7 @@ import { EarningsItem, EconItem } from '../types/news';
 import { generateMockData } from '../utils/mockData';
 import { useScrollReset } from '../utils/useScrollReset';
 import UniversalBackButton from '../components/UniversalBackButton';
+import { upcomingPageMemory } from '../utils/navigationMemory';
 
 interface CalendarDay {
   date: Date;
@@ -305,7 +306,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
 export default function UpcomingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const scrollViewRef = useScrollReset();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [earnings, setEarnings] = useState<EarningsItem[]>([]);
   const [econ, setEcon] = useState<EconItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -315,12 +316,32 @@ export default function UpcomingScreen() {
   const [showMonthPicker, setShowMonthPicker] = useState<boolean>(false);
   const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
   const [feedItems, setFeedItems] = useState<any[]>([]);
+  const [scrollPosition, setScrollPosition] = useState<number>(0);
+  const hasRestoredState = useRef(false);
 
   useEffect(() => {
     const mockData = generateMockData();
     setEarnings(mockData.earnings);
     setEcon(mockData.econ);
     setFeedItems(mockData.feedItems);
+
+    if (!hasRestoredState.current) {
+      const savedState = upcomingPageMemory.getState();
+      if (savedState) {
+        console.log('[Upcoming] Restoring saved state:', savedState);
+        setSelectedDate(savedState.selectedDate);
+        setSelectedMonth(savedState.selectedMonth);
+        setSelectedYear(savedState.selectedYear);
+        
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({
+            y: savedState.scrollPosition,
+            animated: false
+          });
+        }, 100);
+      }
+      hasRestoredState.current = true;
+    }
     
     // Generate month options (current month ± 12 months for better historical access)
     const currentDate = new Date();
@@ -415,6 +436,13 @@ export default function UpcomingScreen() {
   };
 
   const handleEventPress = (item: EarningsItem | EconItem, type: 'earnings' | 'econ') => {
+    upcomingPageMemory.saveState({
+      selectedDate,
+      selectedMonth,
+      selectedYear,
+      scrollPosition
+    });
+    
     const eventId = type === 'earnings' ? (item as EarningsItem).ticker : (item as EconItem).id;
     router.push({
       pathname: '/event/[id]',
@@ -447,6 +475,10 @@ export default function UpcomingScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={(event) => {
+          setScrollPosition(event.nativeEvent.contentOffset.y);
+        }}
+        scrollEventThrottle={16}
       >
         {dayEcon.length > 0 && (
           <View style={styles.section}>

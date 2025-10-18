@@ -38,6 +38,40 @@ export const navigationMemory = {
 let settingsStack: string[] = [];
 let lastMainPage: string = 'instant';
 
+interface UpcomingPageState {
+  selectedDate: Date;
+  selectedMonth: number;
+  selectedYear: number;
+  scrollPosition: number;
+}
+
+let upcomingPageState: UpcomingPageState | null = null;
+
+export const upcomingPageMemory = {
+  saveState(state: UpcomingPageState): void {
+    upcomingPageState = {
+      selectedDate: new Date(state.selectedDate),
+      selectedMonth: state.selectedMonth,
+      selectedYear: state.selectedYear,
+      scrollPosition: state.scrollPosition
+    };
+    console.log('[UpcomingMemory] Saved state:', upcomingPageState);
+  },
+
+  getState(): UpcomingPageState | null {
+    console.log('[UpcomingMemory] Retrieved state:', upcomingPageState);
+    return upcomingPageState ? {
+      ...upcomingPageState,
+      selectedDate: new Date(upcomingPageState.selectedDate)
+    } : null;
+  },
+
+  clearState(): void {
+    upcomingPageState = null;
+    console.log('[UpcomingMemory] Cleared state');
+  }
+};
+
 export const settingsNavigation = {
   enterSettings(fromPage: string): void {
     lastMainPage = fromPage;
