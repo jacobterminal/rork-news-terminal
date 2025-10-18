@@ -312,34 +312,7 @@ export default function TimeRangeFilterPill({
                 top: pillLayout.y + pillLayout.height + 8,
                 left: pillLayout.x
               }]}
-              onLayout={(event) => {
-                const { width, height } = event.nativeEvent.layout;
-                
-                const screenWidth = Dimensions.get('window').width;
-                const screenHeight = Dimensions.get('window').height;
-                
-                let adjustedLeft = pillLayout.x;
-                let adjustedTop = pillLayout.y + pillLayout.height + 8;
-                
-                if (adjustedLeft + width > screenWidth - 16) {
-                  adjustedLeft = screenWidth - width - 16;
-                }
-                
-                if (adjustedLeft < 16) {
-                  adjustedLeft = 16;
-                }
-                
-                if (adjustedTop + height > screenHeight - 16) {
-                  adjustedTop = pillLayout.y - height - 8;
-                  if (adjustedTop < 16) {
-                    adjustedTop = 16;
-                  }
-                }
-                
-                if (dropdownRef.current && (adjustedLeft !== pillLayout.x || adjustedTop !== (pillLayout.y + pillLayout.height + 8))) {
-                  setPillLayout(prev => prev ? { ...prev, x: adjustedLeft, y: adjustedTop - pillLayout.height - 8 } : null);
-                }
-              }}
+
             >
               <TouchableOpacity 
                 style={[
