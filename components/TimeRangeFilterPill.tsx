@@ -60,8 +60,9 @@ export default function TimeRangeFilterPill({
   }, [shouldCloseDropdown, dropdownId]);
 
   useEffect(() => {
-    registerDropdown(dropdownId, dropdownVisible || modalVisible || startDatePickerVisible || endDatePickerVisible || startTimePickerVisible || endTimePickerVisible);
-  }, [dropdownVisible, modalVisible, startDatePickerVisible, endDatePickerVisible, startTimePickerVisible, endTimePickerVisible, registerDropdown, dropdownId]);
+    const isAnyOpen = dropdownVisible || modalVisible || startDatePickerVisible || endDatePickerVisible || startTimePickerVisible || endTimePickerVisible;
+    registerDropdown(dropdownId, isAnyOpen);
+  }, [dropdownVisible, modalVisible, startDatePickerVisible, endDatePickerVisible, startTimePickerVisible, endTimePickerVisible, dropdownId]);
   
   const startHourScrollRef = useRef<ScrollView>(null);
   const startMinuteScrollRef = useRef<ScrollView>(null);

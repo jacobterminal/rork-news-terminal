@@ -7,16 +7,14 @@ export const [DropdownProvider, useDropdown] = createContextHook(() => {
   const [activeDropdownId, setActiveDropdownId] = useState<DropdownId | null>(null);
 
   const registerDropdown = useCallback((dropdownId: DropdownId, isOpen: boolean) => {
-    if (isOpen) {
-      if (activeDropdownId !== dropdownId) {
-        setActiveDropdownId(dropdownId);
+    setActiveDropdownId(prev => {
+      if (isOpen) {
+        return prev !== dropdownId ? dropdownId : prev;
+      } else {
+        return prev === dropdownId ? null : prev;
       }
-    } else {
-      if (activeDropdownId === dropdownId) {
-        setActiveDropdownId(null);
-      }
-    }
-  }, [activeDropdownId]);
+    });
+  }, []);
 
   const closeAllDropdowns = useCallback(() => {
     setActiveDropdownId(null);

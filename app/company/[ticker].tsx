@@ -91,8 +91,9 @@ export default function TickerDetailPage() {
   }, [shouldCloseDropdown, dropdownId]);
 
   useEffect(() => {
-    registerDropdown(dropdownId, folderPickerVisible || createFolderModalVisible);
-  }, [folderPickerVisible, createFolderModalVisible, registerDropdown, dropdownId]);
+    const isAnyOpen = folderPickerVisible || createFolderModalVisible;
+    registerDropdown(dropdownId, isAnyOpen);
+  }, [folderPickerVisible, createFolderModalVisible, dropdownId]);
 
   const tickerUpper = ticker?.toUpperCase() || '';
   const companyName = COMPANY_NAMES[tickerUpper] || `${tickerUpper} Corporation`;
