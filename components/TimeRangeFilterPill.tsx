@@ -295,9 +295,7 @@ export default function TimeRangeFilterPill({
     
     const shouldOpenUpward = spaceBelow < dropdownHeight + padding && spaceAbove > spaceBelow;
     
-    let position: { top?: number; bottom?: number; left: number; right?: number } = {
-      left: pillLayout.x
-    };
+    let position: { top?: number; bottom?: number; left?: number; right?: number } = {};
     
     if (shouldOpenUpward) {
       const bottomPosition = screenHeight - pillLayout.y + 8;
@@ -313,7 +311,6 @@ export default function TimeRangeFilterPill({
     const dropdownWidth = Math.min(140, screenWidth - 32);
     if (pillLayout.x + dropdownWidth > screenWidth - padding) {
       position.right = padding;
-      delete position.left;
     } else {
       position.left = Math.max(padding, pillLayout.x);
     }
