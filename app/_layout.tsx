@@ -236,6 +236,12 @@ function RootLayoutNav() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="search"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
@@ -251,6 +257,7 @@ function AppWithBanners() {
   const currentPath = `/${segments.join('/')}`;
   const isSettingsRoute = currentPath.startsWith('/settings');
   const isAuthRoute = currentPath.startsWith('/auth');
+  const isSearchRoute = currentPath === '/search';
   
   const handleBannerNavigate = (alertId: string) => {
     if (setHighlightedAlert) {
@@ -266,7 +273,7 @@ function AppWithBanners() {
   
   return (
     <>
-      {!isSettingsRoute && !isAuthRoute && (
+      {!isSettingsRoute && !isAuthRoute && !isSearchRoute && (
         <View style={[styles.fixedHeader, { paddingTop: insets.top, height: headerHeight + insets.top }]}>
           <AlertSearchBar 
             onTickerPress={handleTickerPress}

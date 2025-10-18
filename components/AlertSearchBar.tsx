@@ -80,8 +80,8 @@ export default function AlertSearchBar({ onTickerPress, feedItems = [] }: AlertS
   };
 
   const handleSearchPress = () => {
-    console.log('[AlertSearchBar] Open search');
-    setShowSearch(true);
+    console.log('[AlertSearchBar] Navigate to search');
+    router.push('/search');
   };
 
   const handleCloseSearch = () => {
