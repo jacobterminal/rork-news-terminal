@@ -125,6 +125,8 @@ export default function TimeRangeFilterPill({
 
   const openStartTimePicker = () => {
     setEndTimePickerVisible(false);
+    setStartDatePickerVisible(false);
+    setEndDatePickerVisible(false);
     setStartTimePickerVisible(!startTimePickerVisible);
     if (!startTimePickerVisible) {
       setTimeout(() => {
@@ -141,6 +143,8 @@ export default function TimeRangeFilterPill({
   
   const openEndTimePicker = () => {
     setStartTimePickerVisible(false);
+    setStartDatePickerVisible(false);
+    setEndDatePickerVisible(false);
     setEndTimePickerVisible(!endTimePickerVisible);
     if (!endTimePickerVisible) {
       setTimeout(() => {
@@ -428,6 +432,8 @@ export default function TimeRangeFilterPill({
                 onPress={() => {
                   const willOpen = !startDatePickerVisible;
                   setEndDatePickerVisible(false);
+                  setStartTimePickerVisible(false);
+                  setEndTimePickerVisible(false);
                   setStartDatePickerVisible(willOpen);
                   if (willOpen && tempStartDate) {
                     setTimeout(() => {
@@ -498,6 +504,8 @@ export default function TimeRangeFilterPill({
                 onPress={() => {
                   const willOpen = !endDatePickerVisible;
                   setStartDatePickerVisible(false);
+                  setStartTimePickerVisible(false);
+                  setEndTimePickerVisible(false);
                   setEndDatePickerVisible(willOpen);
                   if (willOpen && tempEndDate) {
                     setTimeout(() => {
