@@ -149,7 +149,12 @@ export default function TickerDetailPage() {
     }
   };
 
+  const isInWatchlist = useMemo(() => {
+    return watchlistFolders.some(folder => folder.tickers.includes(tickerUpper));
+  }, [watchlistFolders, tickerUpper]);
+
   const handleAddToWatchlist = () => {
+    if (isInWatchlist) return;
     if (watchlistFolders.length === 0) {
       setCreateFolderModalVisible(true);
     } else {
@@ -224,11 +229,12 @@ export default function TickerDetailPage() {
         </View>
 
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, isInWatchlist && styles.addButtonDisabled]}
           onPress={handleAddToWatchlist}
-          activeOpacity={0.7}
+          activeOpacity={isInWatchlist ? 1 : 0.7}
+          disabled={isInWatchlist}
         >
-          <Plus size={20} color="#FFD75A" />
+          <Plus size={20} color={isInWatchlist ? "#555555" : "#FFD75A"} />
         </TouchableOpacity>
       </View>
 
@@ -242,6 +248,30 @@ export default function TickerDetailPage() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
+        <View style={styles.companyOverviewSection}>
+          <Text style={styles.companyName}>{companyName}</Text>
+          <Text style={styles.companyIndustry}>{companyIndustry}</Text>
+          <View style={styles.watchlistButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.watchlistButton,
+                isInWatchlist && styles.watchlistButtonAdded,
+              ]}
+              onPress={handleAddToWatchlist}
+              activeOpacity={isInWatchlist ? 1 : 0.7}
+              disabled={isInWatchlist}
+            >
+              <Text style={[
+                styles.watchlistButtonText,
+                isInWatchlist && styles.watchlistButtonTextAdded,
+              ]}>
+                {isInWatchlist ? 'Added to Watchlist' : 'Add to Watchlist +'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.companyOverview}>{companyOverview}</Text>
+        </View>
+
         <View style={styles.filterSection}>
           <View style={styles.filterRow}>
             <TouchableOpacity
@@ -441,6 +471,9 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'flex-end',
   },
+  addButtonDisabled: {
+    opacity: 0.4,
+  },
   divider: {
     height: 1,
     backgroundColor: '#FFD75A',
@@ -625,5 +658,51 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+  },
+  companyOverviewSection: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: '#000000',
+  },
+  companyName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  companyIndustry: {
+    fontSize: 12,
+    color: '#999999',
+    marginBottom: 14,
+  },
+  watchlistButtonContainer: {
+    marginBottom: 14,
+  },
+  watchlistButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FFD75A',
+    backgroundColor: 'rgba(255, 215, 90, 0.1)',
+  },
+  watchlistButtonAdded: {
+    borderColor: '#555555',
+    backgroundColor: 'rgba(85, 85, 85, 0.2)',
+  },
+  watchlistButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFD75A',
+  },
+  watchlistButtonTextAdded: {
+    color: '#999999',
+  },
+  companyOverview: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
 });
