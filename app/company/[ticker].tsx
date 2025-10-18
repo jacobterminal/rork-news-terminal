@@ -10,6 +10,7 @@ import WatchlistFolderPicker from '../../components/WatchlistFolderPicker';
 import CreateFolderModal from '../../components/CreateFolderModal';
 import { useNewsStore } from '../../store/newsStore';
 import { useDropdown } from '../../store/dropdownStore';
+import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../../components/TimeRangeFilterPill';
 
 const COMPANY_NAMES: Record<string, string> = {
   'AAPL': 'Apple Inc.',
@@ -72,7 +73,8 @@ export default function TickerDetailPage() {
   const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [lastRoute, setLastRoute] = useState<string>('/instant');
-  const [selectedTimeRange, setSelectedTimeRange] = useState<'1h' | '24h' | '7d'>('7d');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('last_hour');
+  const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>(undefined);
 
   useEffect(() => {
     const currentPath = `/${segments.join('/')}`;
@@ -101,11 +103,41 @@ export default function TickerDetailPage() {
 
   const timeRangeInMs = useMemo(() => {
     switch (selectedTimeRange) {
-      case '1h': return 60 * 60 * 1000;
-      case '24h': return 24 * 60 * 60 * 1000;
-      case '7d': return 7 * 24 * 60 * 60 * 1000;
+      case 'last_hour': return 60 * 60 * 1000;
+      case 'today': return 24 * 60 * 60 * 1000;
+      case 'past_2_days': return 2 * 24 * 60 * 60 * 1000;
+      case 'past_5_days': return 5 * 24 * 60 * 60 * 1000;
+      case 'week_to_date': return 7 * 24 * 60 * 60 * 1000;
+      case 'custom': {
+        if (!customTimeRange) return 24 * 60 * 60 * 1000;
+        const currentYear = new Date().getFullYear();
+        const startParts = customTimeRange.startDate.split('/');
+        const endParts = customTimeRange.endDate.split('/');
+        const startHour24 = customTimeRange.startPeriod === 'AM' 
+          ? (parseInt(customTimeRange.startHour) === 12 ? 0 : parseInt(customTimeRange.startHour))
+          : (parseInt(customTimeRange.startHour) === 12 ? 12 : parseInt(customTimeRange.startHour) + 12);
+        const endHour24 = customTimeRange.endPeriod === 'AM'
+          ? (parseInt(customTimeRange.endHour) === 12 ? 0 : parseInt(customTimeRange.endHour))
+          : (parseInt(customTimeRange.endHour) === 12 ? 12 : parseInt(customTimeRange.endHour) + 12);
+        const startDateTime = new Date(
+          currentYear,
+          parseInt(startParts[0]) - 1,
+          parseInt(startParts[1]),
+          startHour24,
+          parseInt(customTimeRange.startMinute)
+        );
+        const endDateTime = new Date(
+          currentYear,
+          parseInt(endParts[0]) - 1,
+          parseInt(endParts[1]),
+          endHour24,
+          parseInt(customTimeRange.endMinute)
+        );
+        return endDateTime.getTime() - startDateTime.getTime();
+      }
+      default: return 60 * 60 * 1000;
     }
-  }, [selectedTimeRange]);
+  }, [selectedTimeRange, customTimeRange]);
 
   const companyAlerts = useMemo(() => {
     return criticalAlerts
@@ -197,8 +229,11 @@ export default function TickerDetailPage() {
     router.replace(`/company/${ticker}`);
   };
 
-  const handleTimeRangeChange = (range: '1h' | '24h' | '7d') => {
+  const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {
     setSelectedTimeRange(range);
+    if (customRange) {
+      setCustomTimeRange(customRange);
+    }
   };
 
   const relatedTickers = useMemo(() => {
@@ -274,33 +309,11 @@ export default function TickerDetailPage() {
 
         <View style={styles.filterSection}>
           <View style={styles.filterRow}>
-            <TouchableOpacity
-              style={[styles.filterPill, selectedTimeRange === '1h' && styles.filterPillActive]}
-              onPress={() => handleTimeRangeChange('1h')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.filterPillText, selectedTimeRange === '1h' && styles.filterPillTextActive]}>
-                Last Hour
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterPill, selectedTimeRange === '24h' && styles.filterPillActive]}
-              onPress={() => handleTimeRangeChange('24h')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.filterPillText, selectedTimeRange === '24h' && styles.filterPillTextActive]}>
-                24 Hours
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterPill, selectedTimeRange === '7d' && styles.filterPillActive]}
-              onPress={() => handleTimeRangeChange('7d')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.filterPillText, selectedTimeRange === '7d' && styles.filterPillTextActive]}>
-                7 Days
-              </Text>
-            </TouchableOpacity>
+            <TimeRangeFilterPill
+              selectedRange={selectedTimeRange}
+              customRange={customTimeRange}
+              onRangeChange={handleTimeRangeChange}
+            />
           </View>
         </View>
 
@@ -368,8 +381,13 @@ export default function TickerDetailPage() {
 
         <View style={styles.sectionHeaderContainer}>
           <View style={styles.topDivider} />
-          <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>ALL NEWS FEED</Text>
+            <TimeRangeFilterPill
+              selectedRange={selectedTimeRange}
+              customRange={customTimeRange}
+              onRangeChange={handleTimeRangeChange}
+            />
           </View>
           <View style={styles.bottomDivider} />
         </View>
@@ -488,32 +506,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: '#000000',
+    alignItems: 'center',
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 10,
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  filterPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FFD75A',
-    backgroundColor: 'transparent',
-  },
-  filterPillActive: {
-    borderColor: '#FFD75A',
-    backgroundColor: '#FFD75A',
-  },
-  filterPillText: {
-    fontSize: 12,
-    color: '#FFD75A',
-    fontWeight: '600',
-  },
-  filterPillTextActive: {
-    color: '#000000',
-    fontWeight: '700',
   },
   sectionHeaderContainer: {
     marginTop: 0,
@@ -528,6 +526,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFD75A',
   },
   section: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 8,
