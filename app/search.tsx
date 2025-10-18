@@ -68,11 +68,25 @@ export default function SearchScreen() {
   const loadRecentSearches = async () => {
     try {
       const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
-      if (stored) {
-        setRecentSearches(JSON.parse(stored));
+      if (stored && typeof stored === 'string' && stored.trim().length > 0) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setRecentSearches(parsed.filter(item => typeof item === 'string'));
+          } else {
+            console.warn('Invalid recent searches format, clearing...');
+            await AsyncStorage.removeItem(RECENT_SEARCHES_KEY);
+            setRecentSearches([]);
+          }
+        } catch (parseError) {
+          console.error('Failed to parse recent searches, clearing corrupted data:', parseError);
+          await AsyncStorage.removeItem(RECENT_SEARCHES_KEY);
+          setRecentSearches([]);
+        }
       }
     } catch (error) {
       console.error('Failed to load recent searches:', error);
+      setRecentSearches([]);
     }
   };
 
