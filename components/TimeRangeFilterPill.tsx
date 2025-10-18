@@ -287,23 +287,38 @@ export default function TimeRangeFilterPill({
     if (!pillLayout) return {};
     
     const screenHeight = Dimensions.get('window').height;
+    const screenWidth = Dimensions.get('window').width;
     const dropdownHeight = 240;
+    const padding = 16;
     const spaceBelow = screenHeight - (pillLayout.y + pillLayout.height);
     const spaceAbove = pillLayout.y;
     
-    const shouldOpenUpward = spaceBelow < dropdownHeight + 16 && spaceAbove > spaceBelow;
+    const shouldOpenUpward = spaceBelow < dropdownHeight + padding && spaceAbove > spaceBelow;
+    
+    let position: { top?: number; bottom?: number; left: number; right?: number } = {
+      left: pillLayout.x
+    };
     
     if (shouldOpenUpward) {
-      return {
-        bottom: screenHeight - pillLayout.y + 8,
-        left: pillLayout.x
-      };
+      const bottomPosition = screenHeight - pillLayout.y + 8;
+      const maxBottom = screenHeight - dropdownHeight - padding;
+      position.bottom = Math.min(bottomPosition, maxBottom);
     } else {
-      return {
-        top: pillLayout.y + pillLayout.height + 8,
-        left: pillLayout.x
-      };
+      const topPosition = pillLayout.y + pillLayout.height + 8;
+      const maxTop = Math.max(padding, topPosition);
+      const constrainedTop = Math.min(maxTop, screenHeight - dropdownHeight - padding);
+      position.top = constrainedTop;
     }
+    
+    const dropdownWidth = Math.min(140, screenWidth - 32);
+    if (pillLayout.x + dropdownWidth > screenWidth - padding) {
+      position.right = padding;
+      delete position.left;
+    } else {
+      position.left = Math.max(padding, pillLayout.x);
+    }
+    
+    return position;
   };
 
   return (
