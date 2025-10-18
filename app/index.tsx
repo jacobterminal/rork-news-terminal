@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, Pressable, Modal, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +28,8 @@ export default function NewsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [showWatchlistFilter, setShowWatchlistFilter] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [menuLayout, setMenuLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const menuButtonRef = useRef<View>(null);
 
   useEffect(() => {
     if (shouldCloseDropdown(dropdownId)) {
@@ -284,8 +286,14 @@ export default function NewsScreen() {
                 {showWatchlistFilter ? 'WATCHLIST BASED NEWS' : 'ALL NEWS'}
               </Text>
               <Pressable
+                ref={menuButtonRef}
                 style={styles.menuButton}
-                onPress={() => setMenuVisible(true)}
+                onPress={() => {
+                  menuButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                    setMenuLayout({ x: pageX, y: pageY, width, height });
+                    setMenuVisible(true);
+                  });
+                }}
                 hitSlop={8}
               >
                 <MoreVertical size={16} color={theme.colors.sectionTitle} />
@@ -351,7 +359,16 @@ export default function NewsScreen() {
           style={styles.modalOverlay}
           onPress={() => setMenuVisible(false)}
         >
-          <View style={styles.menuContainer}>
+          <View 
+            style={[
+              styles.menuContainer,
+              {
+                position: 'absolute',
+                left: menuLayout.x + menuLayout.width - 200,
+                top: menuLayout.y + menuLayout.height + 8,
+              }
+            ]}
+          >
             <Pressable
               style={styles.menuItem}
               onPress={() => {
@@ -446,16 +463,19 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   menuContainer: {
     backgroundColor: theme.colors.card,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.sectionTitle,
     minWidth: 200,
     overflow: 'hidden',
+    shadowColor: theme.colors.sectionTitle,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
   },
   menuItem: {
     flexDirection: 'row',

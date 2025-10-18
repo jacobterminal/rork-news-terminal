@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MoreVertical } from 'lucide-react-native';
@@ -63,6 +63,8 @@ export default function WatchlistScreen() {
   const [renameFolderModalVisible, setRenameFolderModalVisible] = useState(false);
   const [tickerOrderModalVisible, setTickerOrderModalVisible] = useState(false);
   const [manageTickersModalVisible, setManageTickersModalVisible] = useState(false);
+  const [optionsLayout, setOptionsLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const optionsButtonRef = useRef<View>(null);
 
   const { 
     state, 
@@ -366,8 +368,14 @@ export default function WatchlistScreen() {
                 onRangeChange={handleTimeRangeChange}
               />
               <TouchableOpacity
+                ref={optionsButtonRef}
                 style={styles.optionsButton}
-                onPress={() => setOptionsSheetVisible(true)}
+                onPress={() => {
+                  optionsButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                    setOptionsLayout({ x: pageX, y: pageY, width, height });
+                    setOptionsSheetVisible(true);
+                  });
+                }}
                 activeOpacity={0.7}
               >
                 <MoreVertical size={18} color="#FFD75A" />
