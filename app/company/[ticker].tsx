@@ -497,22 +497,22 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#333333',
-    backgroundColor: '#000000',
+    borderColor: '#FFD75A',
+    backgroundColor: 'transparent',
   },
   filterPillActive: {
     borderColor: '#FFD75A',
-    backgroundColor: 'rgba(255, 215, 90, 0.1)',
+    backgroundColor: '#FFD75A',
   },
   filterPillText: {
     fontSize: 12,
-    color: '#999999',
+    color: '#FFD75A',
     fontWeight: '600',
   },
   filterPillTextActive: {
-    color: '#FFD75A',
+    color: '#000000',
     fontWeight: '700',
   },
   sectionHeaderContainer: {
