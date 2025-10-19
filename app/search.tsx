@@ -69,6 +69,13 @@ export default function SearchScreen() {
     try {
       const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
       if (stored && typeof stored === 'string' && stored.trim().length > 0) {
+        if (!stored.startsWith('[') && !stored.startsWith('{')) {
+          console.warn('Invalid JSON format detected, clearing...');
+          await AsyncStorage.removeItem(RECENT_SEARCHES_KEY);
+          setRecentSearches([]);
+          return;
+        }
+        
         try {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
@@ -83,9 +90,12 @@ export default function SearchScreen() {
           await AsyncStorage.removeItem(RECENT_SEARCHES_KEY);
           setRecentSearches([]);
         }
+      } else {
+        setRecentSearches([]);
       }
     } catch (error) {
       console.error('Failed to load recent searches:', error);
+      await AsyncStorage.removeItem(RECENT_SEARCHES_KEY).catch(() => {});
       setRecentSearches([]);
     }
   };
