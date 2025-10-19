@@ -308,16 +308,6 @@ export default function TickerDetailPage() {
           <Text style={styles.companyOverview}>{companyOverview}</Text>
         </View>
 
-        <View style={styles.filterSection}>
-          <View style={styles.filterRow}>
-            <TimeRangeFilterPill
-              selectedRange={selectedTimeRange}
-              customRange={customTimeRange}
-              onRangeChange={handleTimeRangeChange}
-            />
-          </View>
-        </View>
-
         {companyAlerts.length > 0 && (
           <>
             <View style={styles.sectionHeaderContainer}>
@@ -503,17 +493,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 20,
   },
-  filterSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#000000',
-    alignItems: 'center',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   sectionHeaderContainer: {
     marginTop: 0,
   },
