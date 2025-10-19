@@ -251,30 +251,6 @@ export default function TickerDetailPage() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-          activeOpacity={0.7}
-        >
-          <ArrowLeft size={20} color="#FFD75A" />
-        </TouchableOpacity>
-
-        <View style={styles.headerCenter}>
-          <Text style={styles.tickerTitle}>{tickerUpper}</Text>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.addButton, isInWatchlist && styles.addButtonDisabled]}
-          onPress={handleAddToWatchlist}
-          activeOpacity={isInWatchlist ? 1 : 0.7}
-          disabled={isInWatchlist}
-        >
-          <Plus size={20} color={isInWatchlist ? "#555555" : "#FFD75A"} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.divider} />
 
       <ScrollView 
         ref={scrollViewRef}
@@ -453,40 +429,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#000000',
-  },
-  backButton: {
-    padding: 6,
-    width: 40,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  tickerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFD75A',
-    letterSpacing: 0.5,
-  },
-  addButton: {
-    padding: 6,
-    width: 40,
-    alignItems: 'flex-end',
-  },
-  addButtonDisabled: {
-    opacity: 0.4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#FFD75A',
-  },
+
   scrollView: {
     flex: 1,
   },
