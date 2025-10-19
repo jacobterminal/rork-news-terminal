@@ -10,7 +10,7 @@ import WatchlistFolderPicker from '../../components/WatchlistFolderPicker';
 import CreateFolderModal from '../../components/CreateFolderModal';
 import { useNewsStore } from '../../store/newsStore';
 import { useDropdown } from '../../store/dropdownStore';
-import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../../components/TimeRangeFilterPill';
+
 
 const COMPANY_NAMES: Record<string, string> = {
   'AAPL': 'Apple Inc.',
@@ -73,8 +73,6 @@ export default function TickerDetailPage() {
   const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [lastRoute, setLastRoute] = useState<string>('/instant');
-  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('last_hour');
-  const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>(undefined);
 
   useEffect(() => {
     const currentPath = `/${segments.join('/')}`;
@@ -102,43 +100,7 @@ export default function TickerDetailPage() {
 
   const watchlistFolders = useMemo(() => state.watchlistFolders || [], [state.watchlistFolders]);
 
-  const timeRangeInMs = useMemo(() => {
-    switch (selectedTimeRange) {
-      case 'last_hour': return 60 * 60 * 1000;
-      case 'today': return 24 * 60 * 60 * 1000;
-      case 'past_2_days': return 2 * 24 * 60 * 60 * 1000;
-      case 'past_5_days': return 5 * 24 * 60 * 60 * 1000;
-      case 'week_to_date': return 7 * 24 * 60 * 60 * 1000;
-      case 'custom': {
-        if (!customTimeRange) return 24 * 60 * 60 * 1000;
-        const currentYear = new Date().getFullYear();
-        const startParts = customTimeRange.startDate.split('/');
-        const endParts = customTimeRange.endDate.split('/');
-        const startHour24 = customTimeRange.startPeriod === 'AM' 
-          ? (parseInt(customTimeRange.startHour) === 12 ? 0 : parseInt(customTimeRange.startHour))
-          : (parseInt(customTimeRange.startHour) === 12 ? 12 : parseInt(customTimeRange.startHour) + 12);
-        const endHour24 = customTimeRange.endPeriod === 'AM'
-          ? (parseInt(customTimeRange.endHour) === 12 ? 0 : parseInt(customTimeRange.endHour))
-          : (parseInt(customTimeRange.endHour) === 12 ? 12 : parseInt(customTimeRange.endHour) + 12);
-        const startDateTime = new Date(
-          currentYear,
-          parseInt(startParts[0]) - 1,
-          parseInt(startParts[1]),
-          startHour24,
-          parseInt(customTimeRange.startMinute)
-        );
-        const endDateTime = new Date(
-          currentYear,
-          parseInt(endParts[0]) - 1,
-          parseInt(endParts[1]),
-          endHour24,
-          parseInt(customTimeRange.endMinute)
-        );
-        return endDateTime.getTime() - startDateTime.getTime();
-      }
-      default: return 60 * 60 * 1000;
-    }
-  }, [selectedTimeRange, customTimeRange]);
+  const timeRangeInMs = 24 * 60 * 60 * 1000;
 
   const companyAlerts = useMemo(() => {
     return criticalAlerts
@@ -230,24 +192,7 @@ export default function TickerDetailPage() {
     router.replace(`/company/${ticker}`);
   };
 
-  const handleTimeRangeChange = (range: TimeRange, customRange?: CustomTimeRange) => {
-    setSelectedTimeRange(range);
-    if (customRange) {
-      setCustomTimeRange(customRange);
-    }
-  };
 
-  const relatedTickers = useMemo(() => {
-    const allTickers = new Set<string>();
-    companyNews.forEach(item => {
-      item.tickers.forEach(t => {
-        if (t !== tickerUpper) {
-          allTickers.add(t);
-        }
-      });
-    });
-    return Array.from(allTickers).slice(0, 5);
-  }, [companyNews, tickerUpper]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -306,16 +251,6 @@ export default function TickerDetailPage() {
             </TouchableOpacity>
           </View>
           <Text style={styles.companyOverview}>{companyOverview}</Text>
-        </View>
-
-        <View style={styles.filterSection}>
-          <View style={styles.filterRow}>
-            <TimeRangeFilterPill
-              selectedRange={selectedTimeRange}
-              customRange={customTimeRange}
-              onRangeChange={handleTimeRangeChange}
-            />
-          </View>
         </View>
 
         {companyAlerts.length > 0 && (
@@ -382,13 +317,8 @@ export default function TickerDetailPage() {
 
         <View style={styles.sectionHeaderContainer}>
           <View style={styles.topDivider} />
-          <View style={styles.sectionHeaderRow}>
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>ALL NEWS FEED</Text>
-            <TimeRangeFilterPill
-              selectedRange={selectedTimeRange}
-              customRange={customTimeRange}
-              onRangeChange={handleTimeRangeChange}
-            />
           </View>
           <View style={styles.bottomDivider} />
         </View>
@@ -503,17 +433,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 20,
   },
-  filterSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#000000',
-    alignItems: 'center',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   sectionHeaderContainer: {
     marginTop: 0,
   },
@@ -531,14 +451,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
+
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
