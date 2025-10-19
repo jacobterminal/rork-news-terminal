@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform, Animated, PanResponder, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { ChevronDown } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { ChevronDown, X } from 'lucide-react-native';
 import { useDropdown } from '../store/dropdownStore';
 import { theme } from '../constants/theme';
 import { EarningsItem, EconItem } from '../types/news';
 import { generateMockData } from '../utils/mockData';
-import { useScrollReset } from '../utils/useScrollReset';
 import UniversalBackButton from '../components/UniversalBackButton';
-import { upcomingPageMemory } from '../utils/navigationMemory';
 
 interface CalendarDay {
   date: Date;
@@ -28,6 +26,23 @@ interface EventItemProps {
   type: 'earnings' | 'econ';
   onPress: () => void;
 }
+
+interface EventDetails {
+  type: 'earnings' | 'econ';
+  data: EarningsItem | EconItem;
+  aiSummary: string;
+  aiOverview: string;
+  aiOpinion: string;
+  aiForecast: string;
+  impact: 'High' | 'Medium' | 'Low';
+  sentiment: 'Bullish' | 'Bearish' | 'Neutral';
+  confidence: number;
+  relatedTickers: string[];
+  source: string;
+  timestamp: string;
+}
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 function EventItem({ item, type, onPress }: EventItemProps) {
   const scheduledTime = new Date(item.scheduled_at);
@@ -252,12 +267,12 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
         onRequestClose={() => setShowMonthPicker(false)}
       >
         <TouchableOpacity 
-          style={styles.modalOverlay}
+          style={styles.monthPickerOverlay}
           activeOpacity={1}
           onPress={() => setShowMonthPicker(false)}
         >
           <View style={styles.monthPickerModal}>
-            <Text style={styles.modalTitle}>Select Month</Text>
+            <Text style={styles.monthPickerTitle}>Select Month</Text>
             <ScrollView 
               ref={monthScrollRef} 
               style={styles.monthList}
@@ -315,14 +330,15 @@ export default function UpcomingScreen() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [showMonthPicker, setShowMonthPicker] = useState<boolean>(false);
   const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
-  const [feedItems, setFeedItems] = useState<any[]>([]);
-  const [scrollPosition, setScrollPosition] = useState<number>(0);
+  const [eventModalVisible, setEventModalVisible] = useState<boolean>(false);
+  const [eventDetails, setEventDetails] = useState<EventDetails | null>(null);
+  const [loadingEventDetails, setLoadingEventDetails] = useState<boolean>(false);
+  const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
 
   useEffect(() => {
     const mockData = generateMockData();
     setEarnings(mockData.earnings);
     setEcon(mockData.econ);
-    setFeedItems(mockData.feedItems);
     
     const currentDate = new Date();
     const options: MonthOption[] = [];
@@ -340,27 +356,7 @@ export default function UpcomingScreen() {
     generateCalendarDays(selectedMonth, selectedYear, mockData);
   }, [selectedMonth, selectedYear]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const savedState = upcomingPageMemory.getState();
-      if (savedState) {
-        console.log('[Upcoming] Restoring saved state on focus:', savedState);
-        setSelectedDate(savedState.selectedDate);
-        setSelectedMonth(savedState.selectedMonth);
-        setSelectedYear(savedState.selectedYear);
-        
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({
-            y: savedState.scrollPosition,
-            animated: false
-          });
-        }, 50);
-        
-        upcomingPageMemory.clearState();
-      }
-      return () => {};
-    }, [])
-  );
+
   
   useEffect(() => {
     const mockData = { earnings, econ };
@@ -433,26 +429,222 @@ export default function UpcomingScreen() {
     return eventDate >= selectedDateStart && eventDate <= selectedDateEnd;
   }).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
 
-  const handleTickerPress = (ticker: string) => {
-    console.log('Ticker pressed:', ticker);
+  const handleEventPress = async (item: EarningsItem | EconItem, type: 'earnings' | 'econ') => {
+    setEventModalVisible(true);
+    setLoadingEventDetails(true);
+    
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 8,
+    }).start();
+    
+    const details = await loadEventDetails(item, type);
+    setEventDetails(details);
+    setLoadingEventDetails(false);
   };
 
-  const handleEventPress = (item: EarningsItem | EconItem, type: 'earnings' | 'econ') => {
-    upcomingPageMemory.saveState({
-      selectedDate,
-      selectedMonth,
-      selectedYear,
-      scrollPosition
-    });
+  const loadEventDetails = async (
+    data: EarningsItem | EconItem,
+    type: 'earnings' | 'econ'
+  ): Promise<EventDetails> => {
+    const aiContent = await generateAIContent(data, type);
     
-    const eventId = type === 'earnings' ? (item as EarningsItem).ticker : (item as EconItem).id;
-    router.push({
-      pathname: '/event/[id]',
-      params: { id: eventId, type },
+    return {
+      type,
+      data,
+      aiSummary: aiContent.summary,
+      aiOverview: aiContent.overview,
+      aiOpinion: aiContent.opinion,
+      aiForecast: aiContent.forecast,
+      impact: aiContent.impact,
+      sentiment: aiContent.sentiment,
+      confidence: aiContent.confidence,
+      relatedTickers: aiContent.relatedTickers,
+      source: type === 'earnings' ? 'Company Filing' : 'Economic Calendar',
+      timestamp: data.scheduled_at,
+    };
+  };
+
+  const generateAIContent = async (
+    data: EarningsItem | EconItem,
+    type: 'earnings' | 'econ'
+  ): Promise<{
+    summary: string;
+    overview: string;
+    opinion: string;
+    forecast: string;
+    impact: 'High' | 'Medium' | 'Low';
+    sentiment: 'Bullish' | 'Bearish' | 'Neutral';
+    confidence: number;
+    relatedTickers: string[];
+  }> => {
+    if (type === 'earnings') {
+      const earningsData = data as EarningsItem;
+      
+      const hasActuals = earningsData.actual_eps !== null && earningsData.actual_eps !== undefined;
+      let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
+      let impact: 'High' | 'Medium' | 'Low' = 'Medium';
+      let confidence = 50;
+      
+      if (hasActuals && earningsData.verdict) {
+        if (earningsData.verdict === 'Beat') {
+          sentiment = 'Bullish';
+          impact = 'High';
+          confidence = 78;
+        } else if (earningsData.verdict === 'Miss') {
+          sentiment = 'Bearish';
+          impact = 'High';
+          confidence = 72;
+        } else {
+          confidence = 55;
+        }
+      } else {
+        confidence = 60;
+      }
+      
+      const summary = hasActuals 
+        ? `${earningsData.ticker} reported ${earningsData.verdict?.toLowerCase() || 'results'} with EPS of ${earningsData.actual_eps?.toFixed(2)} vs expected ${earningsData.cons_eps?.toFixed(2)}.`
+        : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time} with expected EPS of ${earningsData.cons_eps?.toFixed(2)}.`;
+      
+      const overview = hasActuals
+        ? `${earningsData.ticker} reported ${earningsData.report_time} earnings with actual EPS of ${earningsData.actual_eps?.toFixed(2)} compared to consensus of ${earningsData.cons_eps?.toFixed(2)}. Revenue came in at ${earningsData.actual_rev?.toFixed(1)}B versus expectations of ${earningsData.cons_rev?.toFixed(1)}B. The company ${earningsData.verdict?.toLowerCase() || 'met'} analyst expectations.`
+        : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time}. Analysts expect EPS of ${earningsData.cons_eps?.toFixed(2)} and revenue of ${earningsData.cons_rev?.toFixed(1)}B. This earnings report will provide insights into the company's recent performance and future guidance.`;
+      
+      const opinion = `${sentiment} ${confidence}%`;
+      
+      const forecast = hasActuals
+        ? sentiment === 'Bullish'
+          ? 'Likely positive market reaction in next 24-48 hours.'
+          : sentiment === 'Bearish'
+          ? 'Likely negative market reaction in next 24-48 hours.'
+          : 'Likely stable market reaction in next 24-48 hours.'
+        : 'Likely moderate market volatility around earnings release.';
+      
+      return {
+        summary,
+        overview,
+        opinion,
+        forecast,
+        impact,
+        sentiment,
+        confidence,
+        relatedTickers: [earningsData.ticker],
+      };
+    } else {
+      const econData = data as EconItem;
+      const hasActual = econData.actual !== null && econData.actual !== undefined;
+      
+      let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
+      let confidence = 50;
+      
+      if (hasActual && econData.forecast !== null && econData.forecast !== undefined) {
+        if (econData.actual! > econData.forecast) {
+          sentiment = econData.name.toLowerCase().includes('unemployment') ? 'Bearish' : 'Bullish';
+          confidence = 72;
+        } else if (econData.actual! < econData.forecast) {
+          sentiment = econData.name.toLowerCase().includes('unemployment') ? 'Bullish' : 'Bearish';
+          confidence = 68;
+        } else {
+          confidence = 55;
+        }
+      } else {
+        confidence = 60;
+      }
+      
+      const summary = hasActual
+        ? `${econData.name} came in at ${econData.actual?.toFixed(1)}% vs forecast of ${econData.forecast?.toFixed(1)}%.`
+        : `${econData.name} is expected to be released with a forecast of ${econData.forecast?.toFixed(1)}%.`;
+      
+      const overview = hasActual
+        ? `The ${econData.name} for ${econData.country} was released showing ${econData.actual?.toFixed(1)}% compared to the forecasted ${econData.forecast?.toFixed(1)}% and previous reading of ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator provides insights into economic conditions.`
+        : `The ${econData.name} for ${econData.country} is scheduled for release. Economists forecast ${econData.forecast?.toFixed(1)}% compared to the previous ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator is closely watched by market participants.`;
+      
+      const opinion = `${sentiment} ${confidence}%`;
+      
+      const forecast = hasActual
+        ? 'Likely moderate market volatility in next 24-48 hours.'
+        : 'Likely increased market volatility around data release.';
+      
+      return {
+        summary,
+        overview,
+        opinion,
+        forecast,
+        impact: econData.impact,
+        sentiment,
+        confidence,
+        relatedTickers: ['SPY', 'QQQ', 'DXY'],
+      };
+    }
+  };
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dy) > 5;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dy > 0) {
+        translateY.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+        handleCloseEventModal();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 8,
+        }).start();
+      }
+    },
+  });
+
+  const handleCloseEventModal = () => {
+    Animated.timing(translateY, {
+      toValue: SCREEN_HEIGHT,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setEventModalVisible(false);
+      setEventDetails(null);
+      setLoadingEventDetails(false);
     });
+  };
+
+  const handleTickerPressFromModal = (ticker: string) => {
+    handleCloseEventModal();
+    setTimeout(() => {
+      router.push(`/company/${ticker}`);
+    }, 200);
+  };
+
+  const formatTime = (timeString: string) => {
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return timeString;
+    }
   };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
+
+  const isEarnings = eventDetails?.type === 'earnings';
+  const earningsData = isEarnings && eventDetails ? (eventDetails.data as EarningsItem) : null;
+  const econData = !isEarnings && eventDetails ? (eventDetails.data as EconItem) : null;
+  const modalTitle = isEarnings ? `${earningsData?.ticker} Earnings Report` : econData?.name || 'Event Details';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + headerHeight }]}>
@@ -477,10 +669,6 @@ export default function UpcomingScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        onScroll={(event) => {
-          setScrollPosition(event.nativeEvent.contentOffset.y);
-        }}
-        scrollEventThrottle={16}
       >
         {dayEcon.length > 0 && (
           <View style={styles.section}>
@@ -526,6 +714,175 @@ export default function UpcomingScreen() {
           </View>
         )}
       </ScrollView>
+
+      <Modal
+        visible={eventModalVisible}
+        transparent
+        animationType="none"
+        onRequestClose={handleCloseEventModal}
+        statusBarTranslucent
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.backdrop} 
+            activeOpacity={1} 
+            onPress={handleCloseEventModal}
+          />
+          
+          <Animated.View
+            style={[
+              styles.modalContent,
+              { transform: [{ translateY }] },
+            ]}
+          >
+            {loadingEventDetails || !eventDetails ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#FFD75A" />
+                <Text style={styles.loadingText}>Loading event details...</Text>
+              </View>
+            ) : (
+              <ScrollView 
+                style={styles.modalScrollView} 
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+                {...panResponder.panHandlers}
+              >
+                <View style={styles.modalContentContainer}>
+                  <View style={styles.modalHeader}>
+                    <View style={styles.modalHeaderContent}>
+                      <Text style={styles.modalTitle}>{modalTitle}</Text>
+                      <TouchableOpacity style={styles.modalCloseButton} onPress={handleCloseEventModal}>
+                        <X size={24} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.modalSourceText}>
+                      {eventDetails.source} • {formatTime(eventDetails.timestamp)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalDivider} />
+
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>AI SUMMARY</Text>
+                    <Text style={styles.modalText}>{eventDetails.aiSummary}</Text>
+                  </View>
+
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>AI OVERVIEW</Text>
+                    <Text style={styles.modalText}>{eventDetails.aiOverview}</Text>
+                  </View>
+
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>AI OPINION</Text>
+                    <View style={styles.opinionRow}>
+                      <Text style={styles.opinionDash}>—</Text>
+                      <Text style={styles.opinionLabel}>({eventDetails.impact})</Text>
+                      <Text style={styles.opinionSentiment}>
+                        {eventDetails.sentiment} {eventDetails.confidence}%
+                      </Text>
+                    </View>
+                    <Text style={styles.opinionDescription}>
+                      {eventDetails.sentiment === 'Bullish' ? 'Market likely to respond positively with increased buying pressure.' :
+                       eventDetails.sentiment === 'Bearish' ? 'Market likely to respond negatively with increased selling pressure.' :
+                       'Market expected to remain stable with balanced sentiment.'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>AI FORECAST</Text>
+                    <Text style={styles.modalText}>{eventDetails.aiForecast}</Text>
+                  </View>
+
+                  {((isEarnings && earningsData) || econData) && (
+                    <>
+                      <View style={styles.modalDivider} />
+                      <View style={styles.modalSection}>
+                        <Text style={styles.modalSectionTitle}>KEY METRICS</Text>
+                        {isEarnings && earningsData ? (
+                          <View style={styles.metricsGrid}>
+                            {earningsData.actual_eps !== null && earningsData.actual_eps !== undefined ? (
+                              <>
+                                <View style={styles.metricItem}>
+                                  <Text style={styles.metricLabel}>Actual EPS</Text>
+                                  <Text style={styles.metricValue}>${earningsData.actual_eps.toFixed(2)}</Text>
+                                </View>
+                                <View style={styles.metricItem}>
+                                  <Text style={styles.metricLabel}>Expected EPS</Text>
+                                  <Text style={styles.metricValue}>${earningsData.cons_eps?.toFixed(2)}</Text>
+                                </View>
+                                <View style={styles.metricItem}>
+                                  <Text style={styles.metricLabel}>Actual Revenue</Text>
+                                  <Text style={styles.metricValue}>${earningsData.actual_rev?.toFixed(1)}B</Text>
+                                </View>
+                                <View style={styles.metricItem}>
+                                  <Text style={styles.metricLabel}>Expected Revenue</Text>
+                                  <Text style={styles.metricValue}>${earningsData.cons_rev?.toFixed(1)}B</Text>
+                                </View>
+                              </>
+                            ) : (
+                              <>
+                                <View style={styles.metricItem}>
+                                  <Text style={styles.metricLabel}>Expected EPS</Text>
+                                  <Text style={styles.metricValue}>${earningsData.cons_eps?.toFixed(2)}</Text>
+                                </View>
+                                <View style={styles.metricItem}>
+                                  <Text style={styles.metricLabel}>Expected Revenue</Text>
+                                  <Text style={styles.metricValue}>${earningsData.cons_rev?.toFixed(1)}B</Text>
+                                </View>
+                              </>
+                            )}
+                          </View>
+                        ) : econData ? (
+                          <View style={styles.metricsGrid}>
+                            <View style={styles.metricItem}>
+                              <Text style={styles.metricLabel}>Forecast</Text>
+                              <Text style={styles.metricValue}>{econData.forecast?.toFixed(1)}%</Text>
+                            </View>
+                            <View style={styles.metricItem}>
+                              <Text style={styles.metricLabel}>Previous</Text>
+                              <Text style={styles.metricValue}>{econData.previous?.toFixed(1)}%</Text>
+                            </View>
+                            {econData.actual !== null && econData.actual !== undefined && (
+                              <View style={styles.metricItem}>
+                                <Text style={styles.metricLabel}>Actual</Text>
+                                <Text style={styles.metricValue}>{econData.actual.toFixed(1)}%</Text>
+                              </View>
+                            )}
+                          </View>
+                        ) : null}
+                      </View>
+                    </>
+                  )}
+
+                  <View style={styles.modalDivider} />
+
+                  <View style={styles.tickersSection}>
+                    <Text style={styles.modalSectionTitle}>RELATED TICKERS</Text>
+                    <View style={styles.tickersRow}>
+                      {eventDetails.relatedTickers.map((ticker, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={styles.tickerPill}
+                          onPress={() => handleTickerPressFromModal(ticker)}
+                          activeOpacity={0.6}
+                        >
+                          <Text style={styles.tickerPillText}>{ticker}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.modalFooter}>
+                    <Text style={styles.footerText}>
+                      AI summaries are <Text style={styles.footerUnderline}>generated for convenience</Text>. Not financial advice.
+                    </Text>
+                  </View>
+                </View>
+              </ScrollView>
+            )}
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -739,7 +1096,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginRight: theme.spacing.xs,
   },
-  modalOverlay: {
+  monthPickerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
@@ -752,7 +1109,7 @@ const styles = StyleSheet.create({
     width: '80%',
     maxHeight: '60%',
   },
-  modalTitle: {
+  monthPickerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: theme.colors.text,
@@ -785,5 +1142,172 @@ const styles = StyleSheet.create({
   },
   futureMonthText: {
     color: theme.colors.text,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContent: {
+    backgroundColor: '#000000',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#FFD75A',
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    height: SCREEN_HEIGHT * 0.92,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalContentContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    marginBottom: 16,
+  },
+  modalHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    lineHeight: 30,
+    flex: 1,
+    paddingRight: 16,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalSourceText: {
+    fontSize: 13,
+    color: '#888888',
+    lineHeight: 18,
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: '#FFD75A',
+    marginVertical: 16,
+  },
+  modalSection: {
+    marginBottom: 16,
+  },
+  modalSectionTitle: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFD75A',
+    marginBottom: 8,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
+  modalText: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    lineHeight: 22,
+    opacity: 0.9,
+  },
+  opinionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  opinionDash: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '400' as const,
+  },
+  opinionLabel: {
+    fontSize: 13,
+    color: '#888888',
+    fontWeight: '400' as const,
+  },
+  opinionSentiment: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#FFD75A',
+  },
+  opinionDescription: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    lineHeight: 22,
+    opacity: 0.9,
+  },
+  metricsGrid: {
+    gap: 12,
+  },
+  metricItem: {
+    marginBottom: 4,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#888888',
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  tickersSection: {
+    marginBottom: 16,
+  },
+  tickersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tickerPill: {
+    backgroundColor: '#FFD75A',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  tickerPillText: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#000000',
+    textTransform: 'uppercase' as const,
+  },
+  modalFooter: {
+    marginTop: 24,
+    paddingTop: 16,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: 'rgba(136, 136, 136, 0.8)',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  footerUnderline: {
+    textDecorationLine: 'underline',
+    color: '#FFD75A',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 13,
+    color: '#888888',
   },
 });
