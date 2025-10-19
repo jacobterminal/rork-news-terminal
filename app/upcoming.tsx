@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform, Animated, PanResponder, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, X } from 'lucide-react-native';
 import { useDropdown } from '../store/dropdownStore';
 import { theme } from '../constants/theme';
 import { EarningsItem, EconItem } from '../types/news';
@@ -26,6 +26,21 @@ interface EventItemProps {
   item: EarningsItem | EconItem;
   type: 'earnings' | 'econ';
   onPress: () => void;
+}
+
+interface EventDetails {
+  type: 'earnings' | 'econ';
+  data: EarningsItem | EconItem;
+  aiSummary: string;
+  aiOverview: string;
+  aiOpinion: string;
+  aiForecast: string;
+  impact: 'High' | 'Medium' | 'Low';
+  sentiment: 'Bullish' | 'Bearish' | 'Neutral';
+  confidence: number;
+  relatedTickers: string[];
+  source: string;
+  timestamp: string;
 }
 
 function EventItem({ item, type, onPress }: EventItemProps) {
@@ -315,6 +330,9 @@ export default function UpcomingScreen() {
   const [showMonthPicker, setShowMonthPicker] = useState<boolean>(false);
   const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
   const [feedItems, setFeedItems] = useState<any[]>([]);
+  const [eventOverlay, setEventOverlay] = useState<{ visible: boolean; details: EventDetails | null; loading: boolean }>({ visible: false, details: null, loading: false });
+  const currentScrollYRef = useRef<number>(0);
+  const [translateY] = useState(new Animated.Value(Dimensions.get('window').height));
 
   useEffect(() => {
     const mockData = generateMockData();
@@ -414,12 +432,192 @@ export default function UpcomingScreen() {
     console.log('Ticker pressed:', ticker);
   };
 
-  const handleEventPress = (item: EarningsItem | EconItem, type: 'earnings' | 'econ') => {
-    const eventId = type === 'earnings' ? (item as EarningsItem).ticker : (item as EconItem).id;
-    router.push({
-      pathname: '/event/[id]',
-      params: { id: eventId, type },
+  const handleEventPress = async (item: EarningsItem | EconItem, type: 'earnings' | 'econ') => {
+    setEventOverlay({ visible: true, details: null, loading: true });
+    
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 8,
+    }).start();
+    
+    const details = await generateEventDetails(item, type);
+    setEventOverlay({ visible: true, details, loading: false });
+  };
+
+  const generateEventDetails = async (
+    data: EarningsItem | EconItem,
+    type: 'earnings' | 'econ'
+  ): Promise<EventDetails> => {
+    if (type === 'earnings') {
+      const earningsData = data as EarningsItem;
+      
+      const hasActuals = earningsData.actual_eps !== null && earningsData.actual_eps !== undefined;
+      let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
+      let impact: 'High' | 'Medium' | 'Low' = 'Medium';
+      let confidence = 50;
+      
+      if (hasActuals && earningsData.verdict) {
+        if (earningsData.verdict === 'Beat') {
+          sentiment = 'Bullish';
+          impact = 'High';
+          confidence = 78;
+        } else if (earningsData.verdict === 'Miss') {
+          sentiment = 'Bearish';
+          impact = 'High';
+          confidence = 72;
+        } else {
+          confidence = 55;
+        }
+      } else {
+        confidence = 60;
+      }
+      
+      const summary = hasActuals 
+        ? `${earningsData.ticker} reported ${earningsData.verdict?.toLowerCase() || 'results'} with EPS of ${earningsData.actual_eps?.toFixed(2)} vs expected ${earningsData.cons_eps?.toFixed(2)}.`
+        : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time} with expected EPS of ${earningsData.cons_eps?.toFixed(2)}.`;
+      
+      const overview = hasActuals
+        ? `${earningsData.ticker} reported ${earningsData.report_time} earnings with actual EPS of ${earningsData.actual_eps?.toFixed(2)} compared to consensus of ${earningsData.cons_eps?.toFixed(2)}. Revenue came in at ${earningsData.actual_rev?.toFixed(1)}B versus expectations of ${earningsData.cons_rev?.toFixed(1)}B. The company ${earningsData.verdict?.toLowerCase() || 'met'} analyst expectations.`
+        : `${earningsData.ticker} is scheduled to report earnings ${earningsData.report_time}. Analysts expect EPS of ${earningsData.cons_eps?.toFixed(2)} and revenue of ${earningsData.cons_rev?.toFixed(1)}B. This earnings report will provide insights into the company's recent performance and future guidance.`;
+      
+      const opinion = `${sentiment} ${confidence}%`;
+      
+      const forecast = hasActuals
+        ? sentiment === 'Bullish'
+          ? 'Likely positive market reaction in next 24-48 hours.'
+          : sentiment === 'Bearish'
+          ? 'Likely negative market reaction in next 24-48 hours.'
+          : 'Likely stable market reaction in next 24-48 hours.'
+        : 'Likely moderate market volatility around earnings release.';
+      
+      return {
+        type: 'earnings',
+        data,
+        aiSummary: summary,
+        aiOverview: overview,
+        aiOpinion: opinion,
+        aiForecast: forecast,
+        impact,
+        sentiment,
+        confidence,
+        relatedTickers: [earningsData.ticker],
+        source: 'Company Filing',
+        timestamp: earningsData.scheduled_at,
+      };
+    } else {
+      const econData = data as EconItem;
+      const hasActual = econData.actual !== null && econData.actual !== undefined;
+      
+      let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
+      let confidence = 50;
+      
+      if (hasActual && econData.forecast !== null && econData.forecast !== undefined) {
+        if (econData.actual! > econData.forecast) {
+          sentiment = econData.name.toLowerCase().includes('unemployment') ? 'Bearish' : 'Bullish';
+          confidence = 72;
+        } else if (econData.actual! < econData.forecast) {
+          sentiment = econData.name.toLowerCase().includes('unemployment') ? 'Bullish' : 'Bearish';
+          confidence = 68;
+        } else {
+          confidence = 55;
+        }
+      } else {
+        confidence = 60;
+      }
+      
+      const summary = hasActual
+        ? `${econData.name} came in at ${econData.actual?.toFixed(1)}% vs forecast of ${econData.forecast?.toFixed(1)}%.`
+        : `${econData.name} is expected to be released with a forecast of ${econData.forecast?.toFixed(1)}%.`;
+      
+      const overview = hasActual
+        ? `The ${econData.name} for ${econData.country} was released showing ${econData.actual?.toFixed(1)}% compared to the forecasted ${econData.forecast?.toFixed(1)}% and previous reading of ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator provides insights into economic conditions.`
+        : `The ${econData.name} for ${econData.country} is scheduled for release. Economists forecast ${econData.forecast?.toFixed(1)}% compared to the previous ${econData.previous?.toFixed(1)}%. This ${econData.impact.toLowerCase()}-impact indicator is closely watched by market participants.`;
+      
+      const opinion = `${sentiment} ${confidence}%`;
+      
+      const forecast = hasActual
+        ? 'Likely moderate market volatility in next 24-48 hours.'
+        : 'Likely increased market volatility around data release.';
+      
+      return {
+        type: 'econ',
+        data,
+        aiSummary: summary,
+        aiOverview: overview,
+        aiOpinion: opinion,
+        aiForecast: forecast,
+        impact: econData.impact,
+        sentiment,
+        confidence,
+        relatedTickers: ['SPY', 'QQQ', 'DXY'],
+        source: 'Economic Calendar',
+        timestamp: econData.scheduled_at,
+      };
+    }
+  };
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dy) > 5;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dy > 0) {
+        translateY.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+        handleCloseOverlay();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 8,
+        }).start();
+      }
+    },
+  });
+
+  const handleCloseOverlay = () => {
+    Animated.timing(translateY, {
+      toValue: Dimensions.get('window').height,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setEventOverlay({ visible: false, details: null, loading: false });
+      translateY.setValue(Dimensions.get('window').height);
+      
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollTo?.({ y: currentScrollYRef.current, animated: false });
+      });
     });
+  };
+
+  const handleTickerPressFromOverlay = (ticker: string) => {
+    handleCloseOverlay();
+    setTimeout(() => {
+      router.push(`/company/${ticker}`);
+    }, 350);
+  };
+
+  const formatTime = (timeString: string) => {
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return timeString;
+    }
   };
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
@@ -447,6 +645,11 @@ export default function UpcomingScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={(e) => {
+          currentScrollYRef.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+        pointerEvents={eventOverlay.visible ? 'none' : 'auto'}
       >
         {dayEcon.length > 0 && (
           <View style={styles.section}>
@@ -492,6 +695,171 @@ export default function UpcomingScreen() {
           </View>
         )}
       </ScrollView>
+      
+      {eventOverlay.visible && (
+        <Modal visible transparent animationType="none" onRequestClose={handleCloseOverlay} statusBarTranslucent>
+          <View style={overlayStyles.modalOverlay}>
+            <TouchableOpacity 
+              style={overlayStyles.backdrop} 
+              activeOpacity={1} 
+              onPress={handleCloseOverlay}
+            />
+            
+            <Animated.View
+              style={[
+                overlayStyles.modalContent,
+                { transform: [{ translateY }] },
+              ]}
+            >
+              {eventOverlay.loading || !eventOverlay.details ? (
+                <View style={overlayStyles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#FFD75A" />
+                  <Text style={overlayStyles.loadingText}>Loading event details...</Text>
+                </View>
+              ) : (
+                <ScrollView 
+                  style={overlayStyles.scrollView} 
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}
+                  {...panResponder.panHandlers}
+                >
+                  <View style={overlayStyles.contentContainer}>
+                    <View style={overlayStyles.header}>
+                      <View style={overlayStyles.headerContent}>
+                        <Text style={overlayStyles.title}>
+                          {eventOverlay.details.type === 'earnings' 
+                            ? `${(eventOverlay.details.data as EarningsItem).ticker} Earnings Report` 
+                            : (eventOverlay.details.data as EconItem).name}
+                        </Text>
+                        <TouchableOpacity style={overlayStyles.closeButton} onPress={handleCloseOverlay}>
+                          <X size={24} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={overlayStyles.sourceText}>
+                        {eventOverlay.details.source} • {formatTime(eventOverlay.details.timestamp)}
+                      </Text>
+                    </View>
+
+                    <View style={overlayStyles.divider} />
+
+                    <View style={overlayStyles.aiSection}>
+                      <Text style={overlayStyles.sectionTitle}>AI SUMMARY</Text>
+                      <Text style={overlayStyles.aiText}>{eventOverlay.details.aiSummary}</Text>
+                    </View>
+
+                    <View style={overlayStyles.aiSection}>
+                      <Text style={overlayStyles.sectionTitle}>AI OVERVIEW</Text>
+                      <Text style={overlayStyles.aiText}>{eventOverlay.details.aiOverview}</Text>
+                    </View>
+
+                    <View style={overlayStyles.aiSection}>
+                      <Text style={overlayStyles.sectionTitle}>AI OPINION</Text>
+                      <View style={overlayStyles.opinionRow}>
+                        <Text style={overlayStyles.opinionDash}>—</Text>
+                        <Text style={overlayStyles.opinionLabel}>({eventOverlay.details.impact})</Text>
+                        <Text style={overlayStyles.opinionSentiment}>
+                          {eventOverlay.details.sentiment} {eventOverlay.details.confidence}%
+                        </Text>
+                      </View>
+                      <Text style={overlayStyles.opinionDescription}>
+                        {eventOverlay.details.sentiment === 'Bullish' ? 'Market likely to respond positively with increased buying pressure.' :
+                         eventOverlay.details.sentiment === 'Bearish' ? 'Market likely to respond negatively with increased selling pressure.' :
+                         'Market expected to remain stable with balanced sentiment.'}
+                      </Text>
+                    </View>
+
+                    <View style={overlayStyles.aiSection}>
+                      <Text style={overlayStyles.sectionTitle}>AI FORECAST</Text>
+                      <Text style={overlayStyles.aiText}>{eventOverlay.details.aiForecast}</Text>
+                    </View>
+
+                    <View style={overlayStyles.divider} />
+                    <View style={overlayStyles.aiSection}>
+                      <Text style={overlayStyles.sectionTitle}>KEY METRICS</Text>
+                      {eventOverlay.details.type === 'earnings' ? (
+                        <View style={overlayStyles.metricsGrid}>
+                          {(eventOverlay.details.data as EarningsItem).actual_eps !== null && (eventOverlay.details.data as EarningsItem).actual_eps !== undefined ? (
+                            <>
+                              <View style={overlayStyles.metricItem}>
+                                <Text style={overlayStyles.metricLabel}>Actual EPS</Text>
+                                <Text style={overlayStyles.metricValue}>${(eventOverlay.details.data as EarningsItem).actual_eps?.toFixed(2)}</Text>
+                              </View>
+                              <View style={overlayStyles.metricItem}>
+                                <Text style={overlayStyles.metricLabel}>Expected EPS</Text>
+                                <Text style={overlayStyles.metricValue}>${(eventOverlay.details.data as EarningsItem).cons_eps?.toFixed(2)}</Text>
+                              </View>
+                              <View style={overlayStyles.metricItem}>
+                                <Text style={overlayStyles.metricLabel}>Actual Revenue</Text>
+                                <Text style={overlayStyles.metricValue}>${(eventOverlay.details.data as EarningsItem).actual_rev?.toFixed(1)}B</Text>
+                              </View>
+                              <View style={overlayStyles.metricItem}>
+                                <Text style={overlayStyles.metricLabel}>Expected Revenue</Text>
+                                <Text style={overlayStyles.metricValue}>${(eventOverlay.details.data as EarningsItem).cons_rev?.toFixed(1)}B</Text>
+                              </View>
+                            </>
+                          ) : (
+                            <>
+                              <View style={overlayStyles.metricItem}>
+                                <Text style={overlayStyles.metricLabel}>Expected EPS</Text>
+                                <Text style={overlayStyles.metricValue}>${(eventOverlay.details.data as EarningsItem).cons_eps?.toFixed(2)}</Text>
+                              </View>
+                              <View style={overlayStyles.metricItem}>
+                                <Text style={overlayStyles.metricLabel}>Expected Revenue</Text>
+                                <Text style={overlayStyles.metricValue}>${(eventOverlay.details.data as EarningsItem).cons_rev?.toFixed(1)}B</Text>
+                              </View>
+                            </>
+                          )}
+                        </View>
+                      ) : (
+                        <View style={overlayStyles.metricsGrid}>
+                          <View style={overlayStyles.metricItem}>
+                            <Text style={overlayStyles.metricLabel}>Forecast</Text>
+                            <Text style={overlayStyles.metricValue}>{(eventOverlay.details.data as EconItem).forecast?.toFixed(1)}%</Text>
+                          </View>
+                          <View style={overlayStyles.metricItem}>
+                            <Text style={overlayStyles.metricLabel}>Previous</Text>
+                            <Text style={overlayStyles.metricValue}>{(eventOverlay.details.data as EconItem).previous?.toFixed(1)}%</Text>
+                          </View>
+                          {(eventOverlay.details.data as EconItem).actual !== null && (eventOverlay.details.data as EconItem).actual !== undefined && (
+                            <View style={overlayStyles.metricItem}>
+                              <Text style={overlayStyles.metricLabel}>Actual</Text>
+                              <Text style={overlayStyles.metricValue}>{(eventOverlay.details.data as EconItem).actual?.toFixed(1)}%</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={overlayStyles.divider} />
+
+                    <View style={overlayStyles.tickersSection}>
+                      <Text style={overlayStyles.sectionTitle}>RELATED TICKERS</Text>
+                      <View style={overlayStyles.tickersRow}>
+                        {eventOverlay.details.relatedTickers.map((ticker, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            style={overlayStyles.tickerPill}
+                            onPress={() => handleTickerPressFromOverlay(ticker)}
+                            activeOpacity={0.6}
+                          >
+                            <Text style={overlayStyles.tickerText}>{ticker}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+
+                    <View style={overlayStyles.footer}>
+                      <Text style={overlayStyles.footerText}>
+                        AI summaries are <Text style={overlayStyles.footerUnderline}>generated for convenience</Text>. Not financial advice.
+                      </Text>
+                    </View>
+                  </View>
+                </ScrollView>
+              )}
+            </Animated.View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -751,5 +1119,175 @@ const styles = StyleSheet.create({
   },
   futureMonthText: {
     color: theme.colors.text,
+  },
+});
+
+const overlayStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContent: {
+    backgroundColor: '#000000',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#FFD75A',
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    height: Dimensions.get('window').height * 0.92,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  header: {
+    marginBottom: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    lineHeight: 30,
+    flex: 1,
+    paddingRight: 16,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  sourceText: {
+    fontSize: 13,
+    color: '#888888',
+    lineHeight: 18,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#FFD75A',
+    marginVertical: 16,
+  },
+  aiSection: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFD75A',
+    marginBottom: 8,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
+  aiText: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    lineHeight: 22,
+    opacity: 0.9,
+  },
+  opinionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  opinionDash: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '400' as const,
+  },
+  opinionLabel: {
+    fontSize: 13,
+    color: '#888888',
+    fontWeight: '400' as const,
+  },
+  opinionSentiment: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#FFD75A',
+  },
+  opinionDescription: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    lineHeight: 22,
+    opacity: 0.9,
+  },
+  metricsGrid: {
+    gap: 12,
+  },
+  metricItem: {
+    marginBottom: 4,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#888888',
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  tickersSection: {
+    marginBottom: 16,
+  },
+  tickersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tickerPill: {
+    backgroundColor: '#FFD75A',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  tickerText: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#000000',
+    textTransform: 'uppercase' as const,
+  },
+  footer: {
+    marginTop: 24,
+    paddingTop: 16,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: 'rgba(136, 136, 136, 0.8)',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  footerUnderline: {
+    textDecorationLine: 'underline',
+    color: '#FFD75A',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 13,
+    color: '#888888',
   },
 });
