@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronDown } from 'lucide-react-native';
 import { useDropdown } from '../store/dropdownStore';
 import { theme } from '../constants/theme';
@@ -317,33 +317,13 @@ export default function UpcomingScreen() {
   const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [scrollPosition, setScrollPosition] = useState<number>(0);
-  const hasRestoredState = useRef(false);
 
   useEffect(() => {
     const mockData = generateMockData();
     setEarnings(mockData.earnings);
     setEcon(mockData.econ);
     setFeedItems(mockData.feedItems);
-
-    if (!hasRestoredState.current) {
-      const savedState = upcomingPageMemory.getState();
-      if (savedState) {
-        console.log('[Upcoming] Restoring saved state:', savedState);
-        setSelectedDate(savedState.selectedDate);
-        setSelectedMonth(savedState.selectedMonth);
-        setSelectedYear(savedState.selectedYear);
-        
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({
-            y: savedState.scrollPosition,
-            animated: false
-          });
-        }, 100);
-      }
-      hasRestoredState.current = true;
-    }
     
-    // Generate month options (current month ± 12 months for better historical access)
     const currentDate = new Date();
     const options: MonthOption[] = [];
     
@@ -359,6 +339,28 @@ export default function UpcomingScreen() {
     setMonthOptions(options);
     generateCalendarDays(selectedMonth, selectedYear, mockData);
   }, [selectedMonth, selectedYear]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const savedState = upcomingPageMemory.getState();
+      if (savedState) {
+        console.log('[Upcoming] Restoring saved state on focus:', savedState);
+        setSelectedDate(savedState.selectedDate);
+        setSelectedMonth(savedState.selectedMonth);
+        setSelectedYear(savedState.selectedYear);
+        
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({
+            y: savedState.scrollPosition,
+            animated: false
+          });
+        }, 50);
+        
+        upcomingPageMemory.clearState();
+      }
+      return () => {};
+    }, [])
+  );
   
   useEffect(() => {
     const mockData = { earnings, econ };
