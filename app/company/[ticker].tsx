@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, router, useSegments } from 'expo-router';
+import { useLocalSearchParams, router, useSegments, useNavigation } from 'expo-router';
 import { ArrowLeft, Plus, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedItem, CriticalAlert } from '../../types/news';
@@ -51,14 +51,28 @@ const COMPANY_OVERVIEW: Record<string, string> = {
   'WMT': 'Walmart Inc. engages in the operation of retail, wholesale, and other units worldwide. The company operates through three segments: Walmart U.S., Walmart International, and Sam\'s Club.',
 };
 
+type NavigationContext = {
+  routeName: string;
+  params?: Record<string, any>;
+  tab?: string;
+  scrollY?: number;
+  filters?: any;
+};
+
+let sessionNavigationContext: NavigationContext | null = null;
+let lastBackPressTime = 0;
+const BACK_DEBOUNCE_MS = 500;
+
 export default function TickerDetailPage() {
   const { ticker } = useLocalSearchParams<{ ticker: string }>();
   const insets = useSafeAreaInsets();
   const segments = useSegments();
+  const navigation = useNavigation();
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
   const dropdownId = 'company-folder-picker';
   const scrollViewRef = useRef<ScrollView>(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const currentScrollYRef = useRef(0);
   
   const { 
     state, 
@@ -72,12 +86,16 @@ export default function TickerDetailPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
-  const [lastRoute, setLastRoute] = useState<string>('/instant');
 
   useEffect(() => {
     const currentPath = `/${segments.join('/')}`;
     if (!currentPath.startsWith('/company/')) {
-      setLastRoute(currentPath);
+      sessionNavigationContext = {
+        routeName: currentPath,
+        scrollY: 0,
+        tab: segments[0] || 'instant',
+      };
+      console.log('[CompanyPage] Captured entry context:', sessionNavigationContext);
     }
   }, [segments]);
 
@@ -91,7 +109,7 @@ export default function TickerDetailPage() {
   useEffect(() => {
     const isAnyOpen = folderPickerVisible || createFolderModalVisible;
     registerDropdown(dropdownId, isAnyOpen);
-  }, [folderPickerVisible, createFolderModalVisible, dropdownId]);
+  }, [folderPickerVisible, createFolderModalVisible, dropdownId, registerDropdown]);
 
   const tickerUpper = ticker?.toUpperCase() || '';
   const companyName = COMPANY_NAMES[tickerUpper] || `${tickerUpper} Corporation`;
@@ -126,6 +144,7 @@ export default function TickerDetailPage() {
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
+    currentScrollYRef.current = offsetY;
     const screenHeight = event.nativeEvent.layoutMeasurement.height;
     setShowScrollToTop(offsetY > screenHeight * 2);
   };
@@ -135,13 +154,36 @@ export default function TickerDetailPage() {
   };
 
   const handleBack = () => {
-    const mainPages = ['/instant', '/index', '/upcoming', '/watchlist', '/twitter'];
-    
-    if (mainPages.includes(lastRoute)) {
-      router.replace(lastRoute as any);
-    } else {
-      router.replace('/instant');
+    const now = Date.now();
+    if (now - lastBackPressTime < BACK_DEBOUNCE_MS) {
+      console.log('[CompanyPage] Back debounced');
+      return;
     }
+    lastBackPressTime = now;
+
+    console.log('[CompanyPage] Back pressed');
+
+    if (navigation.canGoBack()) {
+      console.log('[CompanyPage] Using navigation.goBack()');
+      navigation.goBack();
+      return;
+    }
+
+    if (sessionNavigationContext) {
+      const ctx = sessionNavigationContext;
+      console.log('[CompanyPage] Restoring context:', ctx);
+      
+      const mainPages = ['/instant', '/index', '/upcoming', '/watchlist', '/twitter'];
+      if (mainPages.includes(ctx.routeName)) {
+        router.replace(ctx.routeName as any);
+      } else {
+        router.replace('/instant');
+      }
+      return;
+    }
+
+    console.log('[CompanyPage] Fallback to /instant');
+    router.replace('/instant');
   };
 
   const isInWatchlist = useMemo(() => {
@@ -201,6 +243,7 @@ export default function TickerDetailPage() {
           style={styles.backButton}
           onPress={handleBack}
           activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <ArrowLeft size={20} color="#FFD75A" />
         </TouchableOpacity>
@@ -404,6 +447,11 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 6,
     width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    zIndex: 9999,
   },
   headerCenter: {
     flex: 1,
