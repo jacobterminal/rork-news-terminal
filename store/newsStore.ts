@@ -25,23 +25,41 @@ const storage = {
   async getItem(key: string): Promise<string | null> {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const item = localStorage.getItem(key);
+        let item: string | null = null;
+        
+        try {
+          item = localStorage.getItem(key);
+        } catch (getError) {
+          console.warn(`Failed to get localStorage item for key ${key}:`, getError);
+          return null;
+        }
+        
         // Validate that the item is a valid JSON string before returning
         if (item && typeof item === 'string' && item.trim().length > 0) {
           const trimmed = item.trim();
+          
           // Check for common corruption patterns
-          if (trimmed.startsWith('o') && !trimmed.startsWith('{') && !trimmed.startsWith('[') && !trimmed.startsWith('"')) {
-            console.warn(`Detected corrupted localStorage data for key ${key} (starts with 'o'), clearing...`);
-            localStorage.removeItem(key);
+          if (!trimmed.startsWith('{') && !trimmed.startsWith('[') && !trimmed.startsWith('"') && !trimmed.startsWith('true') && !trimmed.startsWith('false') && !trimmed.startsWith('null') && isNaN(Number(trimmed))) {
+            console.warn(`Detected corrupted localStorage data for key ${key}, clearing...`);
+            try {
+              localStorage.removeItem(key);
+            } catch (removeError) {
+              console.warn(`Failed to remove corrupted key ${key}:`, removeError);
+            }
             return null;
           }
+          
           // More robust validation - check if it's valid JSON
           try {
             JSON.parse(trimmed);
             return trimmed;
           } catch (parseError) {
             console.warn(`Invalid JSON in localStorage for key ${key}, clearing corrupted data:`, parseError);
-            localStorage.removeItem(key);
+            try {
+              localStorage.removeItem(key);
+            } catch (removeError) {
+              console.warn(`Failed to remove corrupted key ${key}:`, removeError);
+            }
             return null;
           }
         }
