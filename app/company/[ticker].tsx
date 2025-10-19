@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useSegments } from 'expo-router';
 import { ArrowLeft, Plus, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedItem, CriticalAlert } from '../../types/news';
@@ -54,6 +54,7 @@ const COMPANY_OVERVIEW: Record<string, string> = {
 export default function TickerDetailPage() {
   const { ticker } = useLocalSearchParams<{ ticker: string }>();
   const insets = useSafeAreaInsets();
+  const segments = useSegments();
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
   const dropdownId = 'company-folder-picker';
   const scrollViewRef = useRef<ScrollView>(null);
@@ -71,6 +72,14 @@ export default function TickerDetailPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
+  const [lastRoute, setLastRoute] = useState<string>('/instant');
+
+  useEffect(() => {
+    const currentPath = `/${segments.join('/')}`;
+    if (!currentPath.startsWith('/company/')) {
+      setLastRoute(currentPath);
+    }
+  }, [segments]);
 
   useEffect(() => {
     if (shouldCloseDropdown(dropdownId)) {
@@ -82,7 +91,7 @@ export default function TickerDetailPage() {
   useEffect(() => {
     const isAnyOpen = folderPickerVisible || createFolderModalVisible;
     registerDropdown(dropdownId, isAnyOpen);
-  }, [folderPickerVisible, createFolderModalVisible, dropdownId, registerDropdown]);
+  }, [folderPickerVisible, createFolderModalVisible, dropdownId]);
 
   const tickerUpper = ticker?.toUpperCase() || '';
   const companyName = COMPANY_NAMES[tickerUpper] || `${tickerUpper} Corporation`;
@@ -126,8 +135,10 @@ export default function TickerDetailPage() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
+    const mainPages = ['/instant', '/index', '/upcoming', '/watchlist', '/twitter'];
+    
+    if (mainPages.includes(lastRoute)) {
+      router.replace(lastRoute as any);
     } else {
       router.replace('/instant');
     }
@@ -391,11 +402,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   backButton: {
-    padding: 8,
-    minWidth: 36,
-    minHeight: 36,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
+    padding: 6,
+    width: 40,
   },
   headerCenter: {
     flex: 1,
