@@ -10,6 +10,7 @@ import WatchlistFolderPicker from '../../components/WatchlistFolderPicker';
 import CreateFolderModal from '../../components/CreateFolderModal';
 import { useNewsStore } from '../../store/newsStore';
 import { useDropdown } from '../../store/dropdownStore';
+import { companyNavigation } from '../../utils/navigationMemory';
 
 
 const COMPANY_NAMES: Record<string, string> = {
@@ -59,6 +60,8 @@ export default function TickerDetailPage() {
   const dropdownId = 'company-folder-picker';
   const scrollViewRef = useRef<ScrollView>(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const lastTapRef = useRef<number>(0);
+  const currentScrollPosition = useRef<number>(0);
   
   const { 
     state, 
@@ -78,6 +81,12 @@ export default function TickerDetailPage() {
     const currentPath = `/${segments.join('/')}`;
     if (!currentPath.startsWith('/company/')) {
       setLastRoute(currentPath);
+      
+      companyNavigation.saveNavigationMemory({
+        lastRoute: currentPath,
+        routeParams: {},
+        scrollPosition: 0,
+      });
     }
   }, [segments]);
 
@@ -91,7 +100,7 @@ export default function TickerDetailPage() {
   useEffect(() => {
     const isAnyOpen = folderPickerVisible || createFolderModalVisible;
     registerDropdown(dropdownId, isAnyOpen);
-  }, [folderPickerVisible, createFolderModalVisible, dropdownId]);
+  }, [folderPickerVisible, createFolderModalVisible, dropdownId, registerDropdown]);
 
   const tickerUpper = ticker?.toUpperCase() || '';
   const companyName = COMPANY_NAMES[tickerUpper] || `${tickerUpper} Corporation`;
@@ -128,18 +137,66 @@ export default function TickerDetailPage() {
     const offsetY = event.nativeEvent.contentOffset.y;
     const screenHeight = event.nativeEvent.layoutMeasurement.height;
     setShowScrollToTop(offsetY > screenHeight * 2);
+    currentScrollPosition.current = offsetY;
   };
 
   const scrollToTop = () => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 500) {
+      console.log('[CompanyBack] Double tap prevented');
+      return;
+    }
+    lastTapRef.current = now;
+
+    console.log('[CompanyBack] Back pressed');
+
+    if (modalVisible) {
+      console.log('[CompanyBack] Modal is open, closing it');
+      setModalVisible(false);
+      return;
+    }
+
+    if (folderPickerVisible) {
+      console.log('[CompanyBack] Folder picker is open, closing it');
+      setFolderPickerVisible(false);
+      return;
+    }
+
+    if (createFolderModalVisible) {
+      console.log('[CompanyBack] Create folder modal is open, closing it');
+      setCreateFolderModalVisible(false);
+      return;
+    }
+
+    const memory = await companyNavigation.getNavigationMemory();
+    let targetRoute = lastRoute;
+
+    if (memory) {
+      targetRoute = memory.lastRoute;
+      console.log('[CompanyBack] Using stored memory:', memory);
+    }
+
     const mainPages = ['/instant', '/index', '/upcoming', '/watchlist', '/twitter'];
     
-    if (mainPages.includes(lastRoute)) {
-      router.replace(lastRoute as any);
-    } else {
+    if (!targetRoute || !mainPages.includes(targetRoute)) {
+      console.log('[CompanyBack] No valid route, navigating to /instant');
+      targetRoute = '/instant';
+    }
+
+    console.log('[CompanyBack] Navigating to:', targetRoute);
+    
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace(targetRoute as any);
+      }
+    } catch (error) {
+      console.error('[CompanyBack] Navigation error:', error);
       router.replace('/instant');
     }
   };
@@ -196,14 +253,17 @@ export default function TickerDetailPage() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <TouchableOpacity
+        style={[styles.absoluteBackButton, { top: insets.top + 8 }]}
+        onPress={handleBack}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <ArrowLeft size={22} color="#FFD75A" strokeWidth={2.5} />
+      </TouchableOpacity>
+
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-          activeOpacity={0.7}
-        >
-          <ArrowLeft size={20} color="#FFD75A" />
-        </TouchableOpacity>
+        <View style={styles.backButtonSpacer} />
 
         <View style={styles.headerCenter}>
           <Text style={styles.tickerTitle}>{tickerUpper}</Text>
@@ -393,6 +453,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
+  absoluteBackButton: {
+    position: 'absolute',
+    left: 12,
+    zIndex: 9999,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -401,8 +471,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: '#000000',
   },
-  backButton: {
-    padding: 6,
+  backButtonSpacer: {
     width: 40,
   },
   headerCenter: {

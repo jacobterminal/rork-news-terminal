@@ -1,8 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SESSION_ROUTE_KEY = '@session_route';
+const COMPANY_NAV_MEMORY_KEY = '@company_nav_memory';
 
 export type AppRoute = 'instant' | 'index' | 'upcoming' | 'watchlist' | 'twitter';
+
+interface CompanyNavigationMemory {
+  lastRoute: string;
+  routeParams?: Record<string, any>;
+  scrollPosition?: number;
+  timestamp: number;
+}
 
 export const navigationMemory = {
   async saveLastRoute(route: AppRoute): Promise<void> {
@@ -91,5 +99,51 @@ export const settingsNavigation = {
     settingsStack = [];
     lastMainPage = 'instant';
     console.log('[SettingsNav] Reset stack');
+  }
+};
+
+export const companyNavigation = {
+  async saveNavigationMemory(memory: Omit<CompanyNavigationMemory, 'timestamp'>): Promise<void> {
+    try {
+      const data: CompanyNavigationMemory = {
+        ...memory,
+        timestamp: Date.now(),
+      };
+      await AsyncStorage.setItem(COMPANY_NAV_MEMORY_KEY, JSON.stringify(data));
+      console.log('[CompanyNav] Saved navigation memory:', data);
+    } catch (error) {
+      console.error('[CompanyNav] Error saving navigation memory:', error);
+    }
+  },
+
+  async getNavigationMemory(): Promise<CompanyNavigationMemory | null> {
+    try {
+      const data = await AsyncStorage.getItem(COMPANY_NAV_MEMORY_KEY);
+      if (!data) return null;
+      
+      const memory: CompanyNavigationMemory = JSON.parse(data);
+      const age = Date.now() - memory.timestamp;
+      
+      if (age > 5 * 60 * 1000) {
+        console.log('[CompanyNav] Memory too old, clearing');
+        await this.clearNavigationMemory();
+        return null;
+      }
+      
+      console.log('[CompanyNav] Retrieved navigation memory:', memory);
+      return memory;
+    } catch (error) {
+      console.error('[CompanyNav] Error getting navigation memory:', error);
+      return null;
+    }
+  },
+
+  async clearNavigationMemory(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(COMPANY_NAV_MEMORY_KEY);
+      console.log('[CompanyNav] Cleared navigation memory');
+    } catch (error) {
+      console.error('[CompanyNav] Error clearing navigation memory:', error);
+    }
   }
 };
