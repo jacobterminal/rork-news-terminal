@@ -217,15 +217,15 @@ export default function TickerDetailPage() {
   }, [state.feedItems, tickerUpper, timeRangeInMs]);
 
   const companyEarnings = useMemo(() => {
+    const now = Date.now();
     return earningsItems
       .filter(item => item.ticker === tickerUpper)
       .filter(item => {
         const eventTime = new Date(item.scheduled_at).getTime();
-        const cutoffTime = Date.now() - timeRangeInMs;
-        return eventTime > cutoffTime;
+        return eventTime > now;
       })
-      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
-  }, [earningsItems, tickerUpper, timeRangeInMs]);
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+  }, [earningsItems, tickerUpper]);
 
   const relevantEconEvents = useMemo(() => {
     const isUSListed = US_LISTED_TICKERS.includes(tickerUpper);
@@ -459,16 +459,18 @@ export default function TickerDetailPage() {
           )}
         </View>
 
-        <View style={styles.timeFilterContainer}>
-          <TimeRangeFilterPill
-            selectedRange={selectedTimeRange}
-            customRange={customTimeRange}
-            onRangeChange={(range, custom) => {
-              setSelectedTimeRange(range);
-              setCustomTimeRange(custom);
-            }}
-          />
-        </View>
+        {activeTab !== 'earnings' && (
+          <View style={styles.timeFilterContainer}>
+            <TimeRangeFilterPill
+              selectedRange={selectedTimeRange}
+              customRange={customTimeRange}
+              onRangeChange={(range, custom) => {
+                setSelectedTimeRange(range);
+                setCustomTimeRange(custom);
+              }}
+            />
+          </View>
+        )}
 
         {activeTab === 'news' && companyAlerts.length > 0 && (
           <>
@@ -578,7 +580,7 @@ export default function TickerDetailPage() {
 
             {companyEarnings.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No earnings for {tickerUpper} in selected time range</Text>
+                <Text style={styles.emptyText}>No upcoming earnings scheduled.</Text>
               </View>
             ) : (
               <View style={styles.earningsTable}>
