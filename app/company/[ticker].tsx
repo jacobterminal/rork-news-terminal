@@ -266,29 +266,31 @@ export default function TickerDetailPage() {
     if (navigation.canGoBack()) {
       console.log('[CompanyPage] Using navigation.goBack()');
       navigation.goBack();
-      clearReturnContext();
       return;
     }
 
     if (returnContext) {
       console.log('[CompanyPage] Restoring context:', returnContext);
       
-      const validRoutes = ['instant', 'index', 'upcoming', 'watchlist', 'twitter', 'search'];
-      const routeName = returnContext.routeName.replace(/^\//g, '');
+      const routeName = returnContext.routeName || 'index';
       
-      if (validRoutes.includes(routeName) || routeName === '') {
-        const targetRoute = routeName === '' ? '/instant' : `/${routeName}`;
-        router.push(targetRoute as any);
-        clearReturnContext();
-      } else {
-        router.push('/instant');
-        clearReturnContext();
-      }
+      const routeMap: Record<string, string> = {
+        'index': '/',
+        'instant': '/instant',
+        'upcoming': '/upcoming',
+        'watchlist': '/watchlist',
+        'twitter': '/twitter',
+        'search': '/search',
+      };
+      
+      const targetRoute = routeMap[routeName] || '/';
+      router.push(targetRoute as any);
+      clearReturnContext();
       return;
     }
 
-    console.log('[CompanyPage] Fallback to /instant');
-    router.push('/instant');
+    console.log('[CompanyPage] Fallback to News (index)');
+    router.push('/');
   };
 
   const isInWatchlist = useMemo(() => {
