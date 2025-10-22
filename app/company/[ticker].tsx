@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform }
 import { useLocalSearchParams, router, useSegments, useNavigation } from 'expo-router';
 import { ArrowLeft, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FeedItem, CriticalAlert, EarningsItem } from '../../types/news';
+import { FeedItem, CriticalAlert, EarningsItem, EconItem } from '../../types/news';
 import NewsCard from '../../components/NewsCard';
 import NewsArticleModal from '../../components/NewsArticleModal';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../../components/TimeRangeFilterPill';
@@ -52,6 +52,23 @@ const COMPANY_OVERVIEW: Record<string, string> = {
   'WMT': 'Walmart Inc. engages in the operation of retail, wholesale, and other units worldwide. The company operates through three segments: Walmart U.S., Walmart International, and Sam\'s Club.',
 };
 
+const SECTOR_ETF_MAP: Record<string, string> = {
+  'AAPL': 'XLK',
+  'NVDA': 'XLK',
+  'MSFT': 'XLK',
+  'GOOGL': 'XLK',
+  'META': 'XLK',
+  'AMZN': 'XLY',
+  'TSLA': 'XLY',
+  'JPM': 'XLF',
+  'BAC': 'XLF',
+  'WMT': 'XLY',
+};
+
+const BROAD_ETFS = ['SPY', 'QQQ', 'DIA', 'IWM', 'DXY'];
+const SECTOR_ETFS = ['XLK', 'XLF', 'XLY', 'XLI', 'XLE', 'XLV', 'XLP', 'XLU', 'XLB', 'XLRE'];
+const US_LISTED_TICKERS = Object.keys(COMPANY_NAMES);
+
 type NavigationContext = {
   routeName: string;
   params?: Record<string, any>;
@@ -90,6 +107,8 @@ export default function TickerDetailPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedEarnings, setSelectedEarnings] = useState<EarningsItem | null>(null);
   const [earningsModalVisible, setEarningsModalVisible] = useState(false);
+  const [selectedEconEvent, setSelectedEconEvent] = useState<EconItem | null>(null);
+  const [econModalVisible, setEconModalVisible] = useState(false);
   const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'news' | 'earnings' | 'econ'>('news');
@@ -209,14 +228,37 @@ export default function TickerDetailPage() {
   }, [earningsItems, tickerUpper, timeRangeInMs]);
 
   const relevantEconEvents = useMemo(() => {
+    const isUSListed = US_LISTED_TICKERS.includes(tickerUpper);
+    const sectorETF = SECTOR_ETF_MAP[tickerUpper];
+    const isBroadETF = BROAD_ETFS.includes(tickerUpper);
+    const isSectorETF = SECTOR_ETFS.includes(tickerUpper);
+
     return econItems
       .filter(item => {
         const eventTime = new Date(item.scheduled_at).getTime();
         const cutoffTime = Date.now() - timeRangeInMs;
-        return eventTime > cutoffTime;
+        if (eventTime <= cutoffTime) return false;
+
+        if (isBroadETF || isSectorETF) {
+          return item.impact === 'High' && item.country === 'US';
+        }
+
+        if (isUSListed) {
+          const broadETFRelated = BROAD_ETFS.some(etf => 
+            item.name.includes(etf) || item.id.includes(etf.toLowerCase())
+          );
+          if (broadETFRelated) return true;
+        }
+
+        if (sectorETF) {
+          const sectorRelated = item.name.includes(sectorETF) || item.id.includes(sectorETF.toLowerCase());
+          if (sectorRelated) return true;
+        }
+
+        return false;
       })
       .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
-  }, [econItems, timeRangeInMs]);
+  }, [econItems, timeRangeInMs, tickerUpper]);
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -308,6 +350,16 @@ export default function TickerDetailPage() {
   const handleEarningsPress = (earning: EarningsItem) => {
     setSelectedEarnings(earning);
     setEarningsModalVisible(true);
+  };
+
+  const handleEconPress = (event: EconItem) => {
+    setSelectedEconEvent(event);
+    setEconModalVisible(true);
+  };
+
+  const handleExpandTo7Days = () => {
+    setSelectedTimeRange('week_to_date');
+    setCustomTimeRange(undefined);
   };
 
   const handleTickerPress = (ticker: string) => {
@@ -596,12 +648,20 @@ export default function TickerDetailPage() {
 
             {relevantEconEvents.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No economic events in selected time range</Text>
+                <TouchableOpacity onPress={handleExpandTo7Days} activeOpacity={0.7}>
+                  <Text style={styles.emptyText}>No events in this range</Text>
+                  <Text style={styles.emptyTextLink}>• Expand to 7 Days</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.econTable}>
                 {relevantEconEvents.map(item => (
-                  <View key={item.id} style={styles.econRow}>
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.econRow}
+                    onPress={() => handleEconPress(item)}
+                    activeOpacity={0.8}
+                  >
                     <View style={styles.econHeader}>
                       <Text style={styles.econName}>{item.name}</Text>
                       <View style={[
@@ -636,7 +696,7 @@ export default function TickerDetailPage() {
                         </View>
                       )}
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -694,6 +754,15 @@ export default function TickerDetailPage() {
         onClose={() => {
           setEarningsModalVisible(false);
           setSelectedEarnings(null);
+        }}
+      />
+
+      <EconEventSheet
+        visible={econModalVisible}
+        event={selectedEconEvent}
+        onClose={() => {
+          setEconModalVisible(false);
+          setSelectedEconEvent(null);
         }}
       />
     </View>
@@ -941,6 +1010,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555A64',
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyTextLink: {
+    fontSize: 14,
+    color: '#FFD75A',
+    textAlign: 'center',
+    fontWeight: '600',
   },
   scrollToTopButton: {
     position: 'absolute',
@@ -1327,3 +1403,108 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
 });
+
+type EconEventSheetProps = {
+  visible: boolean;
+  event: EconItem | null;
+  onClose: () => void;
+};
+
+function EconEventSheet({ visible, event, onClose }: EconEventSheetProps) {
+  if (!event || !visible) return null;
+
+  const scheduledDate = new Date(event.scheduled_at);
+  const dateStr = scheduledDate.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+  const timeStr = scheduledDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  const hasActual = event.actual !== null && event.actual !== undefined;
+
+  return (
+    <TouchableOpacity
+      style={styles.modalOverlay}
+      activeOpacity={1}
+      onPress={onClose}
+    >
+      <View style={styles.modalContentWrapper}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.earningsSheetContent}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{event.name}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sheetSection}>
+            <View style={styles.sheetRow}>
+              <Text style={styles.sheetLabel}>Country</Text>
+              <Text style={styles.sheetValue}>{event.country}</Text>
+            </View>
+            <View style={styles.sheetRow}>
+              <Text style={styles.sheetLabel}>Scheduled</Text>
+              <Text style={styles.sheetValue}>{dateStr} • {timeStr}</Text>
+            </View>
+            <View style={styles.sheetRow}>
+              <Text style={styles.sheetLabel}>Impact</Text>
+              <View style={[
+                styles.econImpactBadge,
+                event.impact === 'High' && styles.econImpactHigh,
+                event.impact === 'Medium' && styles.econImpactMedium,
+                event.impact === 'Low' && styles.econImpactLow,
+              ]}>
+                <Text style={styles.econImpactText}>{event.impact.toUpperCase()}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.sheetSection}>
+            <Text style={styles.sheetSectionTitle}>Data</Text>
+            {event.forecast !== undefined && (
+              <View style={styles.sheetMetricRow}>
+                <Text style={styles.sheetMetricLabel}>Forecast</Text>
+                <Text style={styles.sheetMetricValue}>{event.forecast.toFixed(1)}%</Text>
+              </View>
+            )}
+            {event.previous !== undefined && (
+              <View style={styles.sheetMetricRow}>
+                <Text style={styles.sheetMetricLabel}>Previous</Text>
+                <Text style={styles.sheetMetricValue}>{event.previous.toFixed(1)}%</Text>
+              </View>
+            )}
+            {hasActual && (
+              <View style={styles.sheetMetricRow}>
+                <Text style={styles.sheetMetricLabel}>Actual</Text>
+                <Text style={[styles.sheetMetricValue, { color: '#00FF66' }]}>
+                  {event.actual!.toFixed(1)}%
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {hasActual && event.forecast !== undefined && (
+            <View style={styles.sheetSection}>
+              <Text style={styles.sheetSectionTitle}>Result</Text>
+              <Text style={styles.sheetValue}>
+                {event.actual! > event.forecast ? 'Above Forecast' : 
+                 event.actual! < event.forecast ? 'Below Forecast' : 
+                 'Inline with Forecast'}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+}
