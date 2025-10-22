@@ -380,15 +380,17 @@ export default function TickerDetailPage() {
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
   const topOffset = insets.top + headerHeight + 8;
+  const backButtonTop = insets.top + 8;
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.backButton, { top: insets.top + (Platform.select({ web: 64, default: 56 })) + 16 }]}
+        style={[styles.backButton, { top: backButtonTop }]}
         onPress={handleBack}
         activeOpacity={0.7}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <ArrowLeft size={20} color="#FFD75A" />
+        <ArrowLeft size={18} color="#FFD75A" />
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
@@ -1098,17 +1100,17 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    left: 12,
+    left: 16,
     zIndex: 9999,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     borderRadius: 20,
     backgroundColor: 'transparent',
-    minWidth: 40,
-    minHeight: 40,
+    minWidth: 44,
+    minHeight: 44,
   },
   backText: {
     fontSize: 15,
