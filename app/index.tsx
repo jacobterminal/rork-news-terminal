@@ -21,6 +21,7 @@ export default function NewsScreen() {
   const dropdownId = 'news-menu';
   const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
+  const currentScrollRef = useRef(0);
   const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines } = useNewsStore();
   const { setReturnContext } = useNavigationStore();
   const { watchlist, feedItems, ui } = state;
@@ -225,7 +226,7 @@ export default function NewsScreen() {
     
     setReturnContext({
       routeName: 'index',
-      scrollOffset: 0,
+      scrollOffset: currentScrollRef.current,
       timeRange: timeRange,
       customTimeRange: customTimeRange,
       filters: { showWatchlistFilter },
@@ -283,6 +284,8 @@ export default function NewsScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={(e) => (currentScrollRef.current = e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
       >
         {recentCriticalAlerts.length > 0 && (
           <CriticalAlerts 

@@ -8,6 +8,7 @@ import { theme } from '../constants/theme';
 import { EarningsItem, EconItem } from '../types/news';
 import { generateMockData } from '../utils/mockData';
 import { useScrollReset } from '../utils/useScrollReset';
+import { useNavigationStore } from '../store/navigationStore';
 import { getEarningsSession, getSessionAriaLabel } from '../utils/newsUtils';
 import UniversalBackButton from '../components/UniversalBackButton';
 
@@ -331,6 +332,8 @@ export default function UpcomingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const scrollViewRef = useScrollReset();
+  const scrollYRef = useRef(0);
+  const { setReturnContext } = useNavigationStore();
   const [earnings, setEarnings] = useState<EarningsItem[]>([]);
   const [econ, setEcon] = useState<EconItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -439,7 +442,18 @@ export default function UpcomingScreen() {
   }).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
 
   const handleTickerPress = (ticker: string) => {
-    console.log('Ticker pressed:', ticker);
+    if (!ticker?.trim() || ticker.length > 20) return;
+    const sanitizedTicker = ticker.trim().toUpperCase();
+    
+    setReturnContext({
+      routeName: 'upcoming',
+      scrollOffset: scrollYRef.current,
+      selectedDate: selectedDate.toISOString(),
+      selectedMonth,
+      selectedYear,
+    });
+    
+    router.push(`/company/${sanitizedTicker}` as any);
   };
 
   const handleEventPress = async (item: EarningsItem | EconItem, type: 'earnings' | 'econ') => {
@@ -657,6 +671,7 @@ export default function UpcomingScreen() {
         contentContainerStyle={styles.scrollContent}
         onScroll={(e) => {
           currentScrollYRef.current = e.nativeEvent.contentOffset.y;
+          scrollYRef.current = e.nativeEvent.contentOffset.y;
         }}
         scrollEventThrottle={16}
         pointerEvents={eventOverlay.visible ? 'none' : 'auto'}

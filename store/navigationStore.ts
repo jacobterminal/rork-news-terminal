@@ -7,6 +7,10 @@ export interface NavigationContext {
   timeRange?: string;
   customTimeRange?: any;
   filters?: any;
+  selectedDate?: string;
+  selectedMonth?: number;
+  selectedYear?: number;
+  searchQuery?: string;
 }
 
 export const useNavigationStore = create(

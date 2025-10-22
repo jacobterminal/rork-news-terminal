@@ -5,6 +5,7 @@ import { Bookmark } from 'lucide-react-native';
 import { FeedItem } from '../types/news';
 import { theme, sentimentConfig } from '../constants/theme';
 import { useNewsStore } from '../store/newsStore';
+import { useNavigationStore } from '../store/navigationStore';
 
 interface NewsCardProps {
   item: FeedItem;
@@ -15,6 +16,7 @@ interface NewsCardProps {
 
 export default function NewsCard({ item, onTickerPress, showTweet = false, onPress }: NewsCardProps) {
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
+  const { setReturnContext } = useNavigationStore();
   
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -79,7 +81,11 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
                   e.stopPropagation();
                   if (!ticker?.trim() || ticker.length > 10) return;
                   const tickerUpper = ticker.trim().toUpperCase();
-                  router.push(`/company/${tickerUpper}`);
+                  if (onTickerPress) {
+                    onTickerPress(tickerUpper);
+                  } else {
+                    router.push(`/company/${tickerUpper}`);
+                  }
                 }}
               >
                 <Text style={styles.tickerTag}>{ticker}</Text>

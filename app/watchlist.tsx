@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MoreVertical } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
@@ -15,6 +16,7 @@ import ManageTickersModal from '../components/ManageTickersModal';
 import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
 import { useScrollReset } from '../utils/useScrollReset';
+import { useNavigationStore } from '../store/navigationStore';
 
 
 interface TickerNewsItem {
@@ -52,6 +54,8 @@ const ALL_AVAILABLE_TICKERS = Object.keys(COMPANY_NAMES);
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
+  const currentScrollRef = useRef(0);
+  const { setReturnContext } = useNavigationStore();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
@@ -248,7 +252,16 @@ export default function WatchlistScreen() {
 
   const handleTickerPress = (ticker: string) => {
     if (!ticker?.trim() || ticker.length > 20) return;
-    console.log('Ticker pressed:', ticker);
+    const sanitizedTicker = ticker.trim().toUpperCase();
+    
+    setReturnContext({
+      routeName: 'watchlist',
+      scrollOffset: currentScrollRef.current,
+      timeRange: timeRange,
+      customTimeRange: customTimeRange,
+    });
+    
+    router.push(`/company/${sanitizedTicker}` as any);
   };
 
   const handleCriticalAlertPress = (alert: CriticalAlert) => {
@@ -351,6 +364,8 @@ export default function WatchlistScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={(e) => (currentScrollRef.current = e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
       >
         <CriticalAlerts 
           alerts={recentCriticalAlerts}

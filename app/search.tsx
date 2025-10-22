@@ -119,6 +119,7 @@ export default function SearchScreen() {
     setReturnContext({
       routeName: 'search',
       scrollOffset: 0,
+      searchQuery: searchQuery,
     });
     
     router.push(`/company/${ticker}` as any);

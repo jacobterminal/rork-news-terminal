@@ -15,6 +15,7 @@ import { useNavigationStore } from '../store/navigationStore';
 export default function InstantScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
+  const currentScrollRef = useRef(0);
   const { 
     state, 
     criticalAlerts, 
@@ -78,7 +79,7 @@ export default function InstantScreen() {
     
     setReturnContext({
       routeName: 'instant',
-      scrollOffset: 0,
+      scrollOffset: currentScrollRef.current,
     });
     
     router.push(`/company/${sanitizedTicker}` as any);
@@ -113,6 +114,8 @@ export default function InstantScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={(e) => (currentScrollRef.current = e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
       >
         {/* Critical Alerts at the top of the scrollable content */}
         <CriticalAlerts 
