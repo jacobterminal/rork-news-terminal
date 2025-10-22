@@ -1,10 +1,9 @@
-// template
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet, Text, View, Platform } from "react-native";
+import { StyleSheet, View, Platform, Text } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
 import { theme } from "../constants/theme";
@@ -13,7 +12,6 @@ import { DropdownProvider } from "../store/dropdownStore";
 import DropBanner from "../components/DropBanner";
 import AlertSearchBar from "../components/AlertSearchBar";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
@@ -258,6 +256,7 @@ function AppWithBanners() {
   const isSettingsRoute = currentPath.startsWith('/settings');
   const isAuthRoute = currentPath.startsWith('/auth');
   const isSearchRoute = currentPath === '/search';
+  const isCompanyRoute = (segments as string[]).some(seg => seg === 'company' || seg.startsWith('[ticker'));
   
   const handleBannerNavigate = (alertId: string) => {
     if (setHighlightedAlert) {
@@ -273,7 +272,7 @@ function AppWithBanners() {
   
   return (
     <>
-      {!isSettingsRoute && !isAuthRoute && !isSearchRoute && (
+      {!isSettingsRoute && !isAuthRoute && !isSearchRoute && !isCompanyRoute && (
         <View style={[styles.fixedHeader, { paddingTop: insets.top, height: headerHeight + insets.top }]}>
           <AlertSearchBar 
             onTickerPress={handleTickerPress}
