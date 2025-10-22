@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform, Animated, PanResponder, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { ChevronDown, X } from 'lucide-react-native';
 import { useDropdown } from '../store/dropdownStore';
 import { theme } from '../constants/theme';
@@ -331,6 +332,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
 export default function UpcomingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const route = useRoute<any>();
   const scrollViewRef = useScrollReset();
   const scrollYRef = useRef(0);
   const { setReturnContext } = useNavigationStore();
@@ -346,6 +348,16 @@ export default function UpcomingScreen() {
   const [eventOverlay, setEventOverlay] = useState<{ visible: boolean; details: EventDetails | null; loading: boolean }>({ visible: false, details: null, loading: false });
   const currentScrollYRef = useRef<number>(0);
   const [translateY] = useState(new Animated.Value(Dimensions.get('window').height));
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      const restore = route.params?.__restore;
+      if (restore?.scrollOffset != null && scrollViewRef.current) {
+        scrollViewRef.current.scrollTo?.({ y: restore.scrollOffset, animated: false });
+        router.setParams({ __restore: undefined });
+      }
+    }, [route.params?.__restore])
+  );
 
   useEffect(() => {
     const mockData = generateMockData();

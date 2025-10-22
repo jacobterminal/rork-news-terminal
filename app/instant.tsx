@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, Animated, Platform } from 'react-native';
 import { router } from 'expo-router';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
@@ -14,6 +15,7 @@ import { useNavigationStore } from '../store/navigationStore';
 
 export default function InstantScreen() {
   const insets = useSafeAreaInsets();
+  const route = useRoute<any>();
   const scrollViewRef = useScrollReset();
   const currentScrollRef = useRef(0);
   const { 
@@ -39,6 +41,16 @@ export default function InstantScreen() {
   
   const [animatedItems, setAnimatedItems] = useState<Set<string>>(new Set());
   const animationRefs = useRef<Map<string, Animated.Value>>(new Map());
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      const restore = route.params?.__restore;
+      if (restore?.scrollOffset != null && scrollViewRef.current) {
+        scrollViewRef.current.scrollTo?.({ y: restore.scrollOffset, animated: false });
+        router.setParams({ __restore: undefined });
+      }
+    }, [route.params?.__restore])
+  );
   
   useEffect(() => {
     instantNews.forEach((item, index) => {

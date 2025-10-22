@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MoreVertical } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
@@ -53,6 +54,7 @@ const ALL_AVAILABLE_TICKERS = Object.keys(COMPANY_NAMES);
 
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
+  const route = useRoute<any>();
   const scrollViewRef = useScrollReset();
   const currentScrollRef = useRef(0);
   const { setReturnContext } = useNavigationStore();
@@ -88,6 +90,16 @@ export default function WatchlistScreen() {
   const activeFolder = useMemo(() => {
     return watchlistFolders.find(f => f.id === activeFolderId) || null;
   }, [watchlistFolders, activeFolderId]);
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      const restore = route.params?.__restore;
+      if (restore?.scrollOffset != null && scrollViewRef.current) {
+        scrollViewRef.current.scrollTo?.({ y: restore.scrollOffset, animated: false });
+        router.setParams({ __restore: undefined });
+      }
+    }, [route.params?.__restore])
+  );
   
   const activeTickers = useMemo(() => {
     return activeFolder?.tickers || [];

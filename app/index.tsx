@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, Pressable, Modal, Platform, Dimensions } from 'react-native';
 import { router } from 'expo-router';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
@@ -20,6 +21,7 @@ export default function NewsScreen() {
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
   const dropdownId = 'news-menu';
   const insets = useSafeAreaInsets();
+  const route = useRoute<any>();
   const scrollViewRef = useScrollReset();
   const currentScrollRef = useRef(0);
   const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines } = useNewsStore();
@@ -44,6 +46,16 @@ export default function NewsScreen() {
   useEffect(() => {
     registerDropdown(dropdownId, menuVisible);
   }, [menuVisible, registerDropdown, dropdownId]);
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      const restore = route.params?.__restore;
+      if (restore?.scrollOffset != null && scrollViewRef.current) {
+        scrollViewRef.current.scrollTo?.({ y: restore.scrollOffset, animated: false });
+        router.setParams({ __restore: undefined });
+      }
+    }, [route.params?.__restore])
+  );
   
   // Filter feed items to only show news for tickers in watchlist
   const watchlistFeedItems = useMemo(() => {
