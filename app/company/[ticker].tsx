@@ -217,15 +217,15 @@ export default function TickerDetailPage() {
   }, [state.feedItems, tickerUpper, timeRangeInMs]);
 
   const companyEarnings = useMemo(() => {
+    const now = Date.now();
     return earningsItems
       .filter(item => item.ticker === tickerUpper)
       .filter(item => {
         const eventTime = new Date(item.scheduled_at).getTime();
-        const cutoffTime = Date.now() - timeRangeInMs;
-        return eventTime > cutoffTime;
+        return eventTime >= now;
       })
-      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
-  }, [earningsItems, tickerUpper, timeRangeInMs]);
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+  }, [earningsItems, tickerUpper]);
 
   const relevantEconEvents = useMemo(() => {
     const isUSListed = US_LISTED_TICKERS.includes(tickerUpper);
@@ -379,29 +379,29 @@ export default function TickerDetailPage() {
 
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
-  const headlineRibbonHeight = 28;
-  const minGapBelowRibbon = 4;
-  const topOffset = insets.top + headerHeight + 8;
-  const backButtonTop = insets.top + headlineRibbonHeight + minGapBelowRibbon + 8;
+  const backRowHeight = 44;
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[styles.backButton, { top: backButtonTop }]}
-        onPress={handleBack}
-        activeOpacity={0.7}
-        hitSlop={{ top: 22, bottom: 22, left: 22, right: 22 }}
-      >
-        <ArrowLeft size={18} color="#FFD75A" />
-        <Text style={styles.backText}>Back</Text>
-      </TouchableOpacity>
+      <View style={[styles.fixedBackRow, { top: insets.top + headerHeight }]}>
+        <View style={styles.goldDivider} />
+        <TouchableOpacity
+          style={styles.backButtonFixed}
+          onPress={handleBack}
+          activeOpacity={0.7}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <ArrowLeft size={18} color="#FFD75A" />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+      </View>
 
       <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { 
-          paddingTop: topOffset,
+          paddingTop: insets.top + headerHeight + backRowHeight + 16,
           paddingBottom: insets.bottom + 24,
         }]}
         onScroll={handleScroll}
@@ -459,16 +459,18 @@ export default function TickerDetailPage() {
           )}
         </View>
 
-        <View style={styles.timeFilterContainer}>
-          <TimeRangeFilterPill
-            selectedRange={selectedTimeRange}
-            customRange={customTimeRange}
-            onRangeChange={(range, custom) => {
-              setSelectedTimeRange(range);
-              setCustomTimeRange(custom);
-            }}
-          />
-        </View>
+        {activeTab !== 'earnings' && (
+          <View style={styles.timeFilterContainer}>
+            <TimeRangeFilterPill
+              selectedRange={selectedTimeRange}
+              customRange={customTimeRange}
+              onRangeChange={(range, custom) => {
+                setSelectedTimeRange(range);
+                setCustomTimeRange(custom);
+              }}
+            />
+          </View>
+        )}
 
         {activeTab === 'news' && companyAlerts.length > 0 && (
           <>
@@ -578,7 +580,7 @@ export default function TickerDetailPage() {
 
             {companyEarnings.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No earnings for {tickerUpper} in selected time range</Text>
+                <Text style={styles.emptyText}>No upcoming earnings scheduled.</Text>
               </View>
             ) : (
               <View style={styles.earningsTable}>
@@ -1100,19 +1102,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.85)',
   },
-  backButton: {
+  fixedBackRow: {
     position: 'absolute',
-    left: 16,
+    left: 0,
+    right: 0,
+    height: 44,
     zIndex: 9999,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+  },
+  goldDivider: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: '#FFD75A',
+  },
+  backButtonFixed: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
-    minWidth: 44,
-    minHeight: 44,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-start',
   },
   backText: {
     fontSize: 15,
