@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, router, useSegments, useNavigation } from 'expo-router';
 import { ArrowLeft, Plus, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -236,39 +236,19 @@ export default function TickerDetailPage() {
 
 
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+  const topOffset = insets.top + headerHeight + 8;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ArrowLeft size={20} color="#FFD75A" />
-        </TouchableOpacity>
-
-        <View style={styles.headerCenter}>
-          <Text style={styles.tickerTitle}>{tickerUpper}</Text>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.addButton, isInWatchlist && styles.addButtonDisabled]}
-          onPress={handleAddToWatchlist}
-          activeOpacity={isInWatchlist ? 1 : 0.7}
-          disabled={isInWatchlist}
-        >
-          <Plus size={20} color={isInWatchlist ? "#555555" : "#FFD75A"} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.divider} />
-
+    <View style={styles.container}>
       <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { 
+          paddingTop: topOffset,
+          paddingBottom: insets.bottom + 24,
+        }]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
@@ -436,50 +416,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#000000',
-  },
-  backButton: {
-    padding: 6,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    zIndex: 9999,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  tickerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFD75A',
-    letterSpacing: 0.5,
-  },
-  addButton: {
-    padding: 6,
-    width: 40,
-    alignItems: 'flex-end',
-  },
-  addButtonDisabled: {
-    opacity: 0.4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#FFD75A',
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
   },
 
   sectionHeaderContainer: {
