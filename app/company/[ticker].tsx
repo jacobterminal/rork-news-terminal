@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedItem, CriticalAlert } from '../../types/news';
 import NewsCard from '../../components/NewsCard';
 import NewsArticleModal from '../../components/NewsArticleModal';
+import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../../components/TimeRangeFilterPill';
 import WatchlistFolderPicker from '../../components/WatchlistFolderPicker';
 import CreateFolderModal from '../../components/CreateFolderModal';
 import { useNewsStore } from '../../store/newsStore';
@@ -90,6 +91,8 @@ export default function TickerDetailPage() {
   const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'news' | 'earnings' | 'econ'>('news');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('today');
+  const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>(undefined);
 
   useEffect(() => {
     const currentPath = `/${segments.join('/')}`;
@@ -122,7 +125,53 @@ export default function TickerDetailPage() {
 
   const watchlistFolders = useMemo(() => state.watchlistFolders || [], [state.watchlistFolders]);
 
-  const timeRangeInMs = 24 * 60 * 60 * 1000;
+  const timeRangeInMs = useMemo(() => {
+    if (selectedTimeRange === 'custom' && customTimeRange) {
+      const currentYear = new Date().getFullYear();
+      const startParts = customTimeRange.startDate.split('/');
+      const endParts = customTimeRange.endDate.split('/');
+      
+      const startHour24 = customTimeRange.startPeriod === 'AM'
+        ? (parseInt(customTimeRange.startHour) === 12 ? 0 : parseInt(customTimeRange.startHour))
+        : (parseInt(customTimeRange.startHour) === 12 ? 12 : parseInt(customTimeRange.startHour) + 12);
+      
+      const endHour24 = customTimeRange.endPeriod === 'AM'
+        ? (parseInt(customTimeRange.endHour) === 12 ? 0 : parseInt(customTimeRange.endHour))
+        : (parseInt(customTimeRange.endHour) === 12 ? 12 : parseInt(customTimeRange.endHour) + 12);
+      
+      const startDateTime = new Date(
+        currentYear,
+        parseInt(startParts[0]) - 1,
+        parseInt(startParts[1]),
+        startHour24,
+        parseInt(customTimeRange.startMinute)
+      );
+      const endDateTime = new Date(
+        currentYear,
+        parseInt(endParts[0]) - 1,
+        parseInt(endParts[1]),
+        endHour24,
+        parseInt(customTimeRange.endMinute)
+      );
+      
+      return endDateTime.getTime() - startDateTime.getTime();
+    }
+    
+    switch (selectedTimeRange) {
+      case 'last_hour':
+        return 60 * 60 * 1000;
+      case 'today':
+        return 24 * 60 * 60 * 1000;
+      case 'past_2_days':
+        return 2 * 24 * 60 * 60 * 1000;
+      case 'past_5_days':
+        return 5 * 24 * 60 * 60 * 1000;
+      case 'week_to_date':
+        return 7 * 24 * 60 * 60 * 1000;
+      default:
+        return 24 * 60 * 60 * 1000;
+    }
+  }, [selectedTimeRange, customTimeRange]);
 
   const companyAlerts = useMemo(() => {
     return criticalAlerts
@@ -336,6 +385,17 @@ export default function TickerDetailPage() {
               <Text style={[styles.tabText, activeTab === 'econ' && styles.tabTextActive]}>Econ Events</Text>
             </TouchableOpacity>
           )}
+        </View>
+
+        <View style={styles.timeFilterContainer}>
+          <TimeRangeFilterPill
+            selectedRange={selectedTimeRange}
+            customRange={customTimeRange}
+            onRangeChange={(range, custom) => {
+              setSelectedTimeRange(range);
+              setCustomTimeRange(custom);
+            }}
+          />
         </View>
 
         {activeTab === 'news' && companyAlerts.length > 0 && (
@@ -1030,5 +1090,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'monospace',
+  },
+  timeFilterContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'flex-end',
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
   },
 });
