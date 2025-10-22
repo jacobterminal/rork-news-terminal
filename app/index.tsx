@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, Pressable, Modal, Platform, Dimensions } from 'react-native';
 import { router } from 'expo-router';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { useRoute, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
@@ -22,6 +22,7 @@ export default function NewsScreen() {
   const dropdownId = 'news-menu';
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const scrollViewRef = useScrollReset();
   const currentScrollRef = useRef(0);
   const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines } = useNewsStore();
@@ -236,15 +237,20 @@ export default function NewsScreen() {
     if (!ticker || !ticker.trim() || ticker.length > 10) return;
     const sanitizedTicker = ticker.trim().toUpperCase();
     
-    setReturnContext({
-      routeName: 'index',
+    const ctx = {
+      origin: 'index',
+      originParams: route.params ?? null,
+      restoreKey: `${route.key}:${Date.now()}`,
       scrollOffset: currentScrollRef.current,
       timeRange: timeRange,
       customTimeRange: customTimeRange,
       filters: { showWatchlistFilter },
-    });
+    };
     
-    router.push(`/company/${sanitizedTicker}` as any);
+    navigation.getParent()?.navigate('company/[ticker]', {
+      ticker: sanitizedTicker,
+      returnContext: ctx,
+    });
   };
 
   const handleCloseDrawer = () => {

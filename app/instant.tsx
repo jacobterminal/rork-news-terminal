@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, Animated, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { useRoute, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { CriticalAlert, FeedItem } from '../types/news';
@@ -16,6 +16,7 @@ import { useNavigationStore } from '../store/navigationStore';
 export default function InstantScreen() {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const scrollViewRef = useScrollReset();
   const currentScrollRef = useRef(0);
   const { 
@@ -89,12 +90,17 @@ export default function InstantScreen() {
     if (!ticker?.trim() || ticker.length > 20) return;
     const sanitizedTicker = ticker.trim().toUpperCase();
     
-    setReturnContext({
-      routeName: 'instant',
+    const ctx = {
+      origin: 'instant',
+      originParams: route.params ?? null,
+      restoreKey: `${route.key}:${Date.now()}`,
       scrollOffset: currentScrollRef.current,
-    });
+    };
     
-    router.push(`/company/${sanitizedTicker}` as any);
+    navigation.getParent()?.navigate('company/[ticker]', {
+      ticker: sanitizedTicker,
+      returnContext: ctx,
+    });
   };
 
   const handleCloseDrawer = () => {

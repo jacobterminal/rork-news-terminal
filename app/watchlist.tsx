@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { useRoute, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MoreVertical } from 'lucide-react-native';
 import { FeedItem, CriticalAlert } from '../types/news';
@@ -55,6 +55,7 @@ const ALL_AVAILABLE_TICKERS = Object.keys(COMPANY_NAMES);
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const scrollViewRef = useScrollReset();
   const currentScrollRef = useRef(0);
   const { setReturnContext } = useNavigationStore();
@@ -266,14 +267,19 @@ export default function WatchlistScreen() {
     if (!ticker?.trim() || ticker.length > 20) return;
     const sanitizedTicker = ticker.trim().toUpperCase();
     
-    setReturnContext({
-      routeName: 'watchlist',
+    const ctx = {
+      origin: 'watchlist',
+      originParams: route.params ?? null,
+      restoreKey: `${route.key}:${Date.now()}`,
       scrollOffset: currentScrollRef.current,
       timeRange: timeRange,
       customTimeRange: customTimeRange,
-    });
+    };
     
-    router.push(`/company/${sanitizedTicker}` as any);
+    navigation.getParent()?.navigate('company/[ticker]', {
+      ticker: sanitizedTicker,
+      returnContext: ctx,
+    });
   };
 
   const handleCriticalAlertPress = (alert: CriticalAlert) => {

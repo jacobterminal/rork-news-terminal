@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Keyboard } from 'react-native';
 import { router } from 'expo-router';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { useRoute, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, X } from 'lucide-react-native';
 import { theme } from '../constants/theme';
@@ -42,6 +42,7 @@ interface TickerResult {
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const { setReturnContext } = useNavigationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -128,13 +129,18 @@ export default function SearchScreen() {
     saveRecentSearch(ticker);
     Keyboard.dismiss();
     
-    setReturnContext({
-      routeName: 'search',
+    const ctx = {
+      origin: 'search',
+      originParams: route.params ?? null,
+      restoreKey: `${route.key}:${Date.now()}`,
       scrollOffset: 0,
       searchQuery: searchQuery,
-    });
+    };
     
-    router.push(`/company/${ticker}` as any);
+    navigation.getParent()?.navigate('company/[ticker]', {
+      ticker: ticker,
+      returnContext: ctx,
+    });
   };
 
   const handleBack = () => {

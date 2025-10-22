@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform, Animated, PanResponder, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { useRoute, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { ChevronDown, X } from 'lucide-react-native';
 import { useDropdown } from '../store/dropdownStore';
 import { theme } from '../constants/theme';
@@ -332,6 +332,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
 export default function UpcomingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const scrollViewRef = useScrollReset();
   const scrollYRef = useRef(0);
@@ -457,15 +458,20 @@ export default function UpcomingScreen() {
     if (!ticker?.trim() || ticker.length > 20) return;
     const sanitizedTicker = ticker.trim().toUpperCase();
     
-    setReturnContext({
-      routeName: 'upcoming',
+    const ctx = {
+      origin: 'upcoming',
+      originParams: route.params ?? null,
+      restoreKey: `${route.key}:${Date.now()}`,
       scrollOffset: scrollYRef.current,
       selectedDate: selectedDate.toISOString(),
       selectedMonth,
       selectedYear,
-    });
+    };
     
-    router.push(`/company/${sanitizedTicker}` as any);
+    navigation.getParent()?.navigate('company/[ticker]', {
+      ticker: sanitizedTicker,
+      returnContext: ctx,
+    });
   };
 
   const handleEventPress = async (item: EarningsItem | EconItem, type: 'earnings' | 'econ') => {
