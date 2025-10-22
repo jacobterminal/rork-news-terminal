@@ -379,8 +379,10 @@ export default function TickerDetailPage() {
 
 
   const headerHeight = Platform.select({ web: 64, default: 56 });
+  const headlineRibbonHeight = 28;
+  const minGapBelowRibbon = 4;
   const topOffset = insets.top + headerHeight + 8;
-  const backButtonTop = insets.top + 8;
+  const backButtonTop = insets.top + headlineRibbonHeight + minGapBelowRibbon + 8;
 
   return (
     <View style={styles.container}>
@@ -388,7 +390,7 @@ export default function TickerDetailPage() {
         style={[styles.backButton, { top: backButtonTop }]}
         onPress={handleBack}
         activeOpacity={0.7}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        hitSlop={{ top: 22, bottom: 22, left: 22, right: 22 }}
       >
         <ArrowLeft size={18} color="#FFD75A" />
         <Text style={styles.backText}>Back</Text>
