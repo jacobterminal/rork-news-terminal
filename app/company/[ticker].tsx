@@ -82,10 +82,14 @@ export default function TickerDetailPage() {
     createFolder,
   } = useNewsStore();
 
+  const earningsItems = state.earnings || [];
+  const econItems = state.econ || [];
+
   const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'news' | 'earnings' | 'econ'>('news');
 
   useEffect(() => {
     const currentPath = `/${segments.join('/')}`;
@@ -141,6 +145,27 @@ export default function TickerDetailPage() {
       })
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
   }, [state.feedItems, tickerUpper, timeRangeInMs]);
+
+  const companyEarnings = useMemo(() => {
+    return earningsItems
+      .filter(item => item.ticker === tickerUpper)
+      .filter(item => {
+        const eventTime = new Date(item.scheduled_at).getTime();
+        const cutoffTime = Date.now() - timeRangeInMs;
+        return eventTime > cutoffTime;
+      })
+      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+  }, [earningsItems, tickerUpper, timeRangeInMs]);
+
+  const relevantEconEvents = useMemo(() => {
+    return econItems
+      .filter(item => {
+        const eventTime = new Date(item.scheduled_at).getTime();
+        const cutoffTime = Date.now() - timeRangeInMs;
+        return eventTime > cutoffTime;
+      })
+      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+  }, [econItems, timeRangeInMs]);
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -285,7 +310,35 @@ export default function TickerDetailPage() {
           <Text style={styles.companyOverview}>{companyOverview}</Text>
         </View>
 
-        {companyAlerts.length > 0 && (
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'news' && styles.tabActive]}
+            onPress={() => setActiveTab('news')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.tabText, activeTab === 'news' && styles.tabTextActive]}>News</Text>
+          </TouchableOpacity>
+          {companyEarnings.length > 0 && (
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'earnings' && styles.tabActive]}
+              onPress={() => setActiveTab('earnings')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, activeTab === 'earnings' && styles.tabTextActive]}>Earnings</Text>
+            </TouchableOpacity>
+          )}
+          {relevantEconEvents.length > 0 && (
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'econ' && styles.tabActive]}
+              onPress={() => setActiveTab('econ')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, activeTab === 'econ' && styles.tabTextActive]}>Econ Events</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {activeTab === 'news' && companyAlerts.length > 0 && (
           <>
             <View style={styles.sectionHeaderContainer}>
               <View style={styles.topDivider} />
@@ -347,29 +400,175 @@ export default function TickerDetailPage() {
           </>
         )}
 
-        <View style={styles.sectionHeaderContainer}>
-          <View style={styles.topDivider} />
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ALL NEWS FEED</Text>
-          </View>
-          <View style={styles.bottomDivider} />
-        </View>
+        {activeTab === 'news' && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <View style={styles.topDivider} />
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>ALL NEWS FEED</Text>
+              </View>
+              <View style={styles.bottomDivider} />
+            </View>
 
-        {companyNews.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No news for {tickerUpper} in selected time range</Text>
-          </View>
-        ) : (
-          <View style={styles.newsTable}>
-            {companyNews.map(item => (
-              <NewsCard
-                key={item.id}
-                item={item}
-                onTickerPress={handleTickerPress}
-                onPress={() => handleNewsCardPress(item)}
-              />
-            ))}
-          </View>
+            {companyNews.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No news for {tickerUpper} in selected time range</Text>
+              </View>
+            ) : (
+              <View style={styles.newsTable}>
+                {companyNews.map(item => (
+                  <NewsCard
+                    key={item.id}
+                    item={item}
+                    onTickerPress={handleTickerPress}
+                    onPress={() => handleNewsCardPress(item)}
+                  />
+                ))}
+              </View>
+            )}
+          </>
+        )}
+
+        {activeTab === 'earnings' && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <View style={styles.topDivider} />
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>EARNINGS</Text>
+              </View>
+              <View style={styles.bottomDivider} />
+            </View>
+
+            {companyEarnings.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No earnings for {tickerUpper} in selected time range</Text>
+              </View>
+            ) : (
+              <View style={styles.earningsTable}>
+                {companyEarnings.map((item, index) => (
+                  <View key={index} style={styles.earningsRow}>
+                    <View style={styles.earningsHeader}>
+                      <View style={styles.earningsLeft}>
+                        <Text style={styles.earningsTicker}>{item.ticker}</Text>
+                        <View style={styles.earningsSessionPill}>
+                          <Text style={styles.earningsSessionText}>{item.report_time}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.earningsTime}>
+                        {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {new Date(item.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    {item.verdict && (
+                      <View style={styles.earningsVerdict}>
+                        <View style={[
+                          styles.verdictBadge,
+                          item.verdict === 'Beat' && styles.verdictBeatBadge,
+                          item.verdict === 'Miss' && styles.verdictMissBadge,
+                        ]}>
+                          <Text style={[
+                            styles.verdictBadgeText,
+                            item.verdict === 'Beat' && styles.verdictBeatText,
+                            item.verdict === 'Miss' && styles.verdictMissText,
+                          ]}>{item.verdict.toUpperCase()}</Text>
+                        </View>
+                      </View>
+                    )}
+                    <View style={styles.earningsMetrics}>
+                      {item.actual_eps !== undefined && (
+                        <View style={styles.metric}>
+                          <Text style={styles.metricLabel}>EPS</Text>
+                          <Text style={styles.metricValue}>${item.actual_eps.toFixed(2)}</Text>
+                          {item.cons_eps !== undefined && (
+                            <Text style={styles.metricCons}>(est. ${item.cons_eps.toFixed(2)})</Text>
+                          )}
+                        </View>
+                      )}
+                      {item.actual_rev !== undefined && (
+                        <View style={styles.metric}>
+                          <Text style={styles.metricLabel}>Revenue</Text>
+                          <Text style={styles.metricValue}>${item.actual_rev.toFixed(1)}B</Text>
+                          {item.cons_rev !== undefined && (
+                            <Text style={styles.metricCons}>(est. ${item.cons_rev.toFixed(1)}B)</Text>
+                          )}
+                        </View>
+                      )}
+                      {item.cons_eps !== undefined && item.actual_eps === undefined && (
+                        <View style={styles.metric}>
+                          <Text style={styles.metricLabel}>Expected EPS</Text>
+                          <Text style={styles.metricValue}>${item.cons_eps.toFixed(2)}</Text>
+                        </View>
+                      )}
+                      {item.cons_rev !== undefined && item.actual_rev === undefined && (
+                        <View style={styles.metric}>
+                          <Text style={styles.metricLabel}>Expected Revenue</Text>
+                          <Text style={styles.metricValue}>${item.cons_rev.toFixed(1)}B</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        )}
+
+        {activeTab === 'econ' && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <View style={styles.topDivider} />
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>ECONOMIC EVENTS</Text>
+              </View>
+              <View style={styles.bottomDivider} />
+            </View>
+
+            {relevantEconEvents.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No economic events in selected time range</Text>
+              </View>
+            ) : (
+              <View style={styles.econTable}>
+                {relevantEconEvents.map(item => (
+                  <View key={item.id} style={styles.econRow}>
+                    <View style={styles.econHeader}>
+                      <Text style={styles.econName}>{item.name}</Text>
+                      <View style={[
+                        styles.econImpactBadge,
+                        item.impact === 'High' && styles.econImpactHigh,
+                        item.impact === 'Medium' && styles.econImpactMedium,
+                        item.impact === 'Low' && styles.econImpactLow,
+                      ]}>
+                        <Text style={styles.econImpactText}>{item.impact.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.econTime}>
+                      {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {new Date(item.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    <View style={styles.econMetrics}>
+                      {item.actual !== undefined && item.actual !== null && (
+                        <View style={styles.econMetric}>
+                          <Text style={styles.econMetricLabel}>Actual</Text>
+                          <Text style={styles.econMetricValue}>{item.actual}</Text>
+                        </View>
+                      )}
+                      {item.forecast !== undefined && (
+                        <View style={styles.econMetric}>
+                          <Text style={styles.econMetricLabel}>Forecast</Text>
+                          <Text style={styles.econMetricValue}>{item.forecast}</Text>
+                        </View>
+                      )}
+                      {item.previous !== undefined && (
+                        <View style={styles.econMetric}>
+                          <Text style={styles.econMetricLabel}>Previous</Text>
+                          <Text style={styles.econMetricValue}>{item.previous}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
         )}
 
         <View style={{ height: 80 }} />
@@ -640,5 +839,196 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FFD75A',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+  },
+  tab: {
+    paddingBottom: 4,
+  },
+  tabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFD75A',
+  },
+  tabText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#777777',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    fontFamily: Platform.select({ ios: 'Courier', android: 'monospace', default: 'monospace' }) as 'Courier' | 'monospace',
+  },
+  tabTextActive: {
+    color: '#FFD75A',
+  },
+  earningsTable: {
+    backgroundColor: '#000000',
+  },
+  earningsRow: {
+    backgroundColor: '#000000',
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  earningsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  earningsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  earningsTicker: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+  },
+  earningsSessionPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(255, 215, 90, 0.15)',
+    borderRadius: 4,
+  },
+  earningsSessionText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFD75A',
+    fontFamily: 'monospace',
+  },
+  earningsTime: {
+    fontSize: 11,
+    color: '#777777',
+    fontFamily: 'monospace',
+  },
+  earningsVerdict: {
+    marginBottom: 8,
+  },
+  verdictBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+    borderWidth: 1,
+  },
+  verdictBeatBadge: {
+    borderColor: '#00FF66',
+  },
+  verdictMissBadge: {
+    borderColor: '#FF4444',
+  },
+  verdictBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+  },
+  verdictBeatText: {
+    color: '#00FF66',
+  },
+  verdictMissText: {
+    color: '#FF4444',
+  },
+  earningsMetrics: {
+    flexDirection: 'row',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  metric: {
+    flexDirection: 'column',
+  },
+  metricLabel: {
+    fontSize: 9,
+    color: '#666666',
+    marginBottom: 2,
+  },
+  metricValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+  },
+  metricCons: {
+    fontSize: 10,
+    color: '#777777',
+    marginTop: 2,
+  },
+  econTable: {
+    backgroundColor: '#000000',
+  },
+  econRow: {
+    backgroundColor: '#000000',
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  econHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  econName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  econImpactBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+    borderWidth: 1,
+    marginLeft: 8,
+  },
+  econImpactHigh: {
+    borderColor: '#FF4444',
+  },
+  econImpactMedium: {
+    borderColor: '#FFD75A',
+  },
+  econImpactLow: {
+    borderColor: '#666666',
+  },
+  econImpactText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#999999',
+    fontFamily: 'monospace',
+  },
+  econTime: {
+    fontSize: 11,
+    color: '#777777',
+    fontFamily: 'monospace',
+    marginBottom: 8,
+  },
+  econMetrics: {
+    flexDirection: 'row',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  econMetric: {
+    flexDirection: 'column',
+  },
+  econMetricLabel: {
+    fontSize: 9,
+    color: '#666666',
+    marginBottom: 2,
+  },
+  econMetricValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
   },
 });
