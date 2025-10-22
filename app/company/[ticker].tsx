@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform }
 import { useLocalSearchParams, router, useSegments, useNavigation } from 'expo-router';
 import { ArrowLeft, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FeedItem, CriticalAlert } from '../../types/news';
+import { FeedItem, CriticalAlert, EarningsItem } from '../../types/news';
 import NewsCard from '../../components/NewsCard';
 import NewsArticleModal from '../../components/NewsArticleModal';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../../components/TimeRangeFilterPill';
@@ -88,6 +88,8 @@ export default function TickerDetailPage() {
 
   const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedEarnings, setSelectedEarnings] = useState<EarningsItem | null>(null);
+  const [earningsModalVisible, setEarningsModalVisible] = useState(false);
   const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'news' | 'earnings' | 'econ'>('news');
@@ -303,6 +305,11 @@ export default function TickerDetailPage() {
     setModalVisible(true);
   };
 
+  const handleEarningsPress = (earning: EarningsItem) => {
+    setSelectedEarnings(earning);
+    setEarningsModalVisible(true);
+  };
+
   const handleTickerPress = (ticker: string) => {
     if (ticker === tickerUpper) return;
     router.replace(`/company/${ticker}`);
@@ -506,7 +513,12 @@ export default function TickerDetailPage() {
             ) : (
               <View style={styles.earningsTable}>
                 {companyEarnings.map((item, index) => (
-                  <View key={index} style={styles.earningsRow}>
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.earningsRow}
+                    onPress={() => handleEarningsPress(item)}
+                    activeOpacity={0.8}
+                  >
                     <View style={styles.earningsHeader}>
                       <View style={styles.earningsLeft}>
                         <Text style={styles.earningsTicker}>{item.ticker}</Text>
@@ -514,8 +526,8 @@ export default function TickerDetailPage() {
                           <Text style={styles.earningsSessionText}>{item.report_time}</Text>
                         </View>
                       </View>
-                      <Text style={styles.earningsTime}>
-                        {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {new Date(item.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <Text style={styles.earningsDate}>
+                        {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </Text>
                     </View>
                     {item.verdict && (
@@ -565,7 +577,7 @@ export default function TickerDetailPage() {
                         </View>
                       )}
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -675,7 +687,118 @@ export default function TickerDetailPage() {
         onClose={() => setCreateFolderModalVisible(false)}
         onSubmit={handleCreateFolder}
       />
+
+      <EarningsSheet
+        visible={earningsModalVisible}
+        earning={selectedEarnings}
+        onClose={() => {
+          setEarningsModalVisible(false);
+          setSelectedEarnings(null);
+        }}
+      />
     </View>
+  );
+}
+
+type EarningsSheetProps = {
+  visible: boolean;
+  earning: EarningsItem | null;
+  onClose: () => void;
+};
+
+function EarningsSheet({ visible, earning, onClose }: EarningsSheetProps) {
+  if (!earning || !visible) return null;
+
+  const scheduledDate = new Date(earning.scheduled_at);
+  const dateStr = scheduledDate.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+
+  return (
+    <TouchableOpacity
+      style={styles.modalOverlay}
+      activeOpacity={1}
+      onPress={onClose}
+    >
+      <View style={styles.modalContentWrapper}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.earningsSheetContent}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{earning.ticker} Earnings Report</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sheetSection}>
+            <View style={styles.sheetRow}>
+              <Text style={styles.sheetLabel}>Date</Text>
+              <Text style={styles.sheetValue}>{dateStr}</Text>
+            </View>
+            <View style={styles.sheetRow}>
+              <Text style={styles.sheetLabel}>Report Time</Text>
+              <View style={styles.earningsSessionPill}>
+                <Text style={styles.earningsSessionText}>{earning.report_time}</Text>
+              </View>
+            </View>
+          </View>
+
+          {earning.verdict && (
+            <View style={styles.sheetSection}>
+              <View style={[styles.verdictBadgeLarge, 
+                earning.verdict === 'Beat' && styles.verdictBeatBadge,
+                earning.verdict === 'Miss' && styles.verdictMissBadge
+              ]}>
+                <Text style={[styles.verdictBadgeTextLarge,
+                  earning.verdict === 'Beat' && styles.verdictBeatText,
+                  earning.verdict === 'Miss' && styles.verdictMissText
+                ]}>{earning.verdict.toUpperCase()}</Text>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.sheetSection}>
+            <Text style={styles.sheetSectionTitle}>Estimates</Text>
+            {earning.cons_eps !== undefined && (
+              <View style={styles.sheetMetricRow}>
+                <Text style={styles.sheetMetricLabel}>EPS (est.)</Text>
+                <Text style={styles.sheetMetricValue}>${earning.cons_eps.toFixed(2)}</Text>
+              </View>
+            )}
+            {earning.cons_rev !== undefined && (
+              <View style={styles.sheetMetricRow}>
+                <Text style={styles.sheetMetricLabel}>Revenue (est.)</Text>
+                <Text style={styles.sheetMetricValue}>${earning.cons_rev.toFixed(1)}B</Text>
+              </View>
+            )}
+          </View>
+
+          {(earning.actual_eps !== undefined || earning.actual_rev !== undefined) && (
+            <View style={styles.sheetSection}>
+              <Text style={styles.sheetSectionTitle}>Actuals</Text>
+              {earning.actual_eps !== undefined && (
+                <View style={styles.sheetMetricRow}>
+                  <Text style={styles.sheetMetricLabel}>EPS</Text>
+                  <Text style={styles.sheetMetricValue}>${earning.actual_eps.toFixed(2)}</Text>
+                </View>
+              )}
+              {earning.actual_rev !== undefined && (
+                <View style={styles.sheetMetricRow}>
+                  <Text style={styles.sheetMetricLabel}>Revenue</Text>
+                  <Text style={styles.sheetMetricValue}>${earning.actual_rev.toFixed(1)}B</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -966,7 +1089,7 @@ const styles = StyleSheet.create({
     color: '#FFD75A',
     fontFamily: 'monospace',
   },
-  earningsTime: {
+  earningsDate: {
     fontSize: 11,
     color: '#777777',
     fontFamily: 'monospace',
@@ -1097,5 +1220,110 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     borderBottomWidth: 1,
     borderBottomColor: '#222222',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10000,
+  },
+  modalContentWrapper: {
+    width: '90%',
+    maxWidth: 500,
+  },
+  earningsSheetContent: {
+    backgroundColor: '#0A0A0A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFD75A',
+    padding: 20,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFD75A',
+    fontFamily: 'monospace',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 215, 90, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#FFD75A',
+    fontWeight: '700',
+  },
+  sheetSection: {
+    marginBottom: 16,
+  },
+  sheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  sheetLabel: {
+    fontSize: 12,
+    color: '#999999',
+    fontWeight: '600',
+  },
+  sheetValue: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+  },
+  sheetSectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFD75A',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  sheetMetricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  sheetMetricLabel: {
+    fontSize: 12,
+    color: '#999999',
+  },
+  sheetMetricValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+  },
+  verdictBadgeLarge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 2,
+  },
+  verdictBadgeTextLarge: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: 'monospace',
   },
 });
