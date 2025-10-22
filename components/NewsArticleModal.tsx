@@ -23,6 +23,7 @@ interface NewsArticleModalProps {
   visible: boolean;
   article: FeedItem | CriticalAlert | null;
   onClose: () => void;
+  onTickerPress?: (ticker: string) => void;
 }
 
 interface AIContent {
@@ -35,7 +36,7 @@ interface AIContent {
   forecast: string;
 }
 
-export default function NewsArticleModal({ visible, article, onClose }: NewsArticleModalProps) {
+export default function NewsArticleModal({ visible, article, onClose, onTickerPress }: NewsArticleModalProps) {
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
   const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
   const [aiContent, setAiContent] = useState<AIContent | null>(null);
@@ -156,10 +157,17 @@ export default function NewsArticleModal({ visible, article, onClose }: NewsArti
   };
 
   const handleTickerPress = (ticker: string) => {
-    handleClose();
-    setTimeout(() => {
-      router.push(`/company/${ticker}`);
-    }, 350);
+    if (onTickerPress) {
+      handleClose();
+      setTimeout(() => {
+        onTickerPress(ticker);
+      }, 350);
+    } else {
+      handleClose();
+      setTimeout(() => {
+        router.push(`/company/${ticker}`);
+      }, 350);
+    }
   };
 
   const formatTime = (timeString: string) => {

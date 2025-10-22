@@ -364,7 +364,16 @@ export default function TickerDetailPage() {
 
   const handleTickerPress = (ticker: string) => {
     if (ticker === tickerUpper) return;
-    router.replace(`/company/${ticker}`);
+    
+    const stateToPreserve = {
+      activeTab,
+      selectedTimeRange,
+      customTimeRange,
+      scrollY: currentScrollYRef.current,
+    };
+    console.log('[CompanyPage] Navigating to', ticker, 'with preserved state:', stateToPreserve);
+    
+    router.push(`/company/${ticker}`);
   };
 
 
@@ -503,7 +512,12 @@ export default function TickerDetailPage() {
                       <View style={styles.relatedTickersRow}>
                         <Text style={styles.relatedLabel}>Related: </Text>
                         {otherTickers.slice(0, 3).map(t => (
-                          <TouchableOpacity key={t} onPress={() => handleTickerPress(t)}>
+                          <TouchableOpacity 
+                            key={t} 
+                            onPress={() => handleTickerPress(t)}
+                            activeOpacity={0.7}
+                            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                          >
                             <Text style={styles.relatedTicker}>{t}</Text>
                           </TouchableOpacity>
                         ))}
@@ -723,6 +737,7 @@ export default function TickerDetailPage() {
           setModalVisible(false);
           setSelectedArticle(null);
         }}
+        onTickerPress={handleTickerPress}
       />
 
       <WatchlistFolderPicker
@@ -990,8 +1005,9 @@ const styles = StyleSheet.create({
   relatedTicker: {
     fontSize: 10,
     fontFamily: 'monospace',
-    color: '#999999',
+    color: '#FFD75A',
     fontWeight: '700',
+    textDecorationLine: 'underline' as const,
   },
   relatedMore: {
     fontSize: 9,
