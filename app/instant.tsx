@@ -10,6 +10,7 @@ import CriticalAlerts from '../components/CriticalAlerts';
 import NewsArticleModal from '../components/NewsArticleModal';
 import { useNewsStore } from '../store/newsStore';
 import { useScrollReset } from '../utils/useScrollReset';
+import { useNavigationStore } from '../store/navigationStore';
 
 export default function InstantScreen() {
   const insets = useSafeAreaInsets();
@@ -23,6 +24,7 @@ export default function InstantScreen() {
     getTickerHeadlines,
     clearHighlightedAlert
   } = useNewsStore();
+  const { setReturnContext } = useNavigationStore();
   const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   
@@ -73,6 +75,12 @@ export default function InstantScreen() {
   const handleTickerPress = (ticker: string) => {
     if (!ticker?.trim() || ticker.length > 20) return;
     const sanitizedTicker = ticker.trim().toUpperCase();
+    
+    setReturnContext({
+      routeName: 'instant',
+      scrollOffset: 0,
+    });
+    
     router.push(`/company/${sanitizedTicker}` as any);
   };
 

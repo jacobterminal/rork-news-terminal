@@ -10,6 +10,7 @@ import TickerDrawer from '../components/TickerDrawer';
 import { useNewsStore } from '../store/newsStore';
 import { useDropdown } from '../store/dropdownStore';
 import { useScrollReset } from '../utils/useScrollReset';
+import { useNavigationStore } from '../store/navigationStore';
 import CriticalAlerts from '../components/CriticalAlerts';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
@@ -21,6 +22,7 @@ export default function NewsScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useScrollReset();
   const { state, criticalAlerts, openTicker, closeTicker, getTickerHeadlines } = useNewsStore();
+  const { setReturnContext } = useNavigationStore();
   const { watchlist, feedItems, ui } = state;
   const [timeRange, setTimeRange] = useState<TimeRange>('last_hour');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>();
@@ -220,6 +222,15 @@ export default function NewsScreen() {
   const handleTickerPress = (ticker: string) => {
     if (!ticker || !ticker.trim() || ticker.length > 10) return;
     const sanitizedTicker = ticker.trim().toUpperCase();
+    
+    setReturnContext({
+      routeName: 'index',
+      scrollOffset: 0,
+      timeRange: timeRange,
+      customTimeRange: customTimeRange,
+      filters: { showWatchlistFilter },
+    });
+    
     router.push(`/company/${sanitizedTicker}` as any);
   };
 

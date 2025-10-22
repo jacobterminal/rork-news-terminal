@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, X } from 'lucide-react-native';
 import { theme } from '../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigationStore } from '../store/navigationStore';
 
 const COMPANY_NAMES: Record<string, string> = {
   'AAPL': 'Apple Inc.',
@@ -39,6 +40,7 @@ interface TickerResult {
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
+  const { setReturnContext } = useNavigationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<TickerResult[]>([]);
@@ -113,10 +115,13 @@ export default function SearchScreen() {
   const handleTickerPress = (ticker: string) => {
     saveRecentSearch(ticker);
     Keyboard.dismiss();
-    router.back();
-    setTimeout(() => {
-      router.push(`/company/${ticker}` as any);
-    }, 100);
+    
+    setReturnContext({
+      routeName: 'search',
+      scrollOffset: 0,
+    });
+    
+    router.push(`/company/${ticker}` as any);
   };
 
   const handleBack = () => {

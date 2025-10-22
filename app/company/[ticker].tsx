@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
-import { useLocalSearchParams, router, useSegments, useNavigation } from 'expo-router';
+import { useLocalSearchParams, router, useNavigation } from 'expo-router';
 import { ArrowLeft, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedItem, CriticalAlert, EarningsItem, EconItem } from '../../types/news';
@@ -11,6 +11,7 @@ import WatchlistFolderPicker from '../../components/WatchlistFolderPicker';
 import CreateFolderModal from '../../components/CreateFolderModal';
 import { useNewsStore } from '../../store/newsStore';
 import { useDropdown } from '../../store/dropdownStore';
+import { useNavigationStore } from '../../store/navigationStore';
 
 
 const COMPANY_NAMES: Record<string, string> = {
@@ -69,25 +70,16 @@ const BROAD_ETFS = ['SPY', 'QQQ', 'DIA', 'IWM', 'DXY'];
 const SECTOR_ETFS = ['XLK', 'XLF', 'XLY', 'XLI', 'XLE', 'XLV', 'XLP', 'XLU', 'XLB', 'XLRE'];
 const US_LISTED_TICKERS = Object.keys(COMPANY_NAMES);
 
-type NavigationContext = {
-  routeName: string;
-  params?: Record<string, any>;
-  tab?: string;
-  scrollY?: number;
-  filters?: any;
-};
-
-let sessionNavigationContext: NavigationContext | null = null;
 let lastBackPressTime = 0;
 const BACK_DEBOUNCE_MS = 500;
 
 export default function TickerDetailPage() {
   const { ticker } = useLocalSearchParams<{ ticker: string }>();
   const insets = useSafeAreaInsets();
-  const segments = useSegments();
   const navigation = useNavigation();
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
   const dropdownId = 'company-folder-picker';
+  const { returnContext, clearReturnContext } = useNavigationStore();
   const scrollViewRef = useRef<ScrollView>(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const currentScrollYRef = useRef(0);
@@ -115,17 +107,7 @@ export default function TickerDetailPage() {
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('today');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>(undefined);
 
-  useEffect(() => {
-    const currentPath = `/${segments.join('/')}`;
-    if (!currentPath.startsWith('/company/')) {
-      sessionNavigationContext = {
-        routeName: currentPath,
-        scrollY: 0,
-        tab: segments[0] || 'instant',
-      };
-      console.log('[CompanyPage] Captured entry context:', sessionNavigationContext);
-    }
-  }, [segments]);
+
 
   useEffect(() => {
     if (shouldCloseDropdown(dropdownId)) {
@@ -284,24 +266,29 @@ export default function TickerDetailPage() {
     if (navigation.canGoBack()) {
       console.log('[CompanyPage] Using navigation.goBack()');
       navigation.goBack();
+      clearReturnContext();
       return;
     }
 
-    if (sessionNavigationContext) {
-      const ctx = sessionNavigationContext;
-      console.log('[CompanyPage] Restoring context:', ctx);
+    if (returnContext) {
+      console.log('[CompanyPage] Restoring context:', returnContext);
       
-      const mainPages = ['/instant', '/index', '/upcoming', '/watchlist', '/twitter'];
-      if (mainPages.includes(ctx.routeName)) {
-        router.replace(ctx.routeName as any);
+      const validRoutes = ['instant', 'index', 'upcoming', 'watchlist', 'twitter', 'search'];
+      const routeName = returnContext.routeName.replace(/^\//g, '');
+      
+      if (validRoutes.includes(routeName) || routeName === '') {
+        const targetRoute = routeName === '' ? '/instant' : `/${routeName}`;
+        router.push(targetRoute as any);
+        clearReturnContext();
       } else {
-        router.replace('/instant');
+        router.push('/instant');
+        clearReturnContext();
       }
       return;
     }
 
     console.log('[CompanyPage] Fallback to /instant');
-    router.replace('/instant');
+    router.push('/instant');
   };
 
   const isInWatchlist = useMemo(() => {
