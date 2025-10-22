@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, router, useSegments, useNavigation } from 'expo-router';
-import { ArrowLeft, Plus, ArrowUp } from 'lucide-react-native';
+import { ArrowLeft, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedItem, CriticalAlert } from '../../types/news';
 import NewsCard from '../../components/NewsCard';
@@ -241,6 +241,15 @@ export default function TickerDetailPage() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.backButton, { top: insets.top + (Platform.select({ web: 64, default: 56 })) + 16 }]}
+        onPress={handleBack}
+        activeOpacity={0.7}
+      >
+        <ArrowLeft size={20} color="#FFD75A" />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+
       <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -612,5 +621,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.85)',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 12,
+    zIndex: 9999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    minWidth: 40,
+    minHeight: 40,
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFD75A',
   },
 });
