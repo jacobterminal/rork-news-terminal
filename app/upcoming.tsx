@@ -8,6 +8,7 @@ import { theme } from '../constants/theme';
 import { EarningsItem, EconItem } from '../types/news';
 import { generateMockData } from '../utils/mockData';
 import { useScrollReset } from '../utils/useScrollReset';
+import { getEarningsSession, getSessionAriaLabel } from '../utils/newsUtils';
 import UniversalBackButton from '../components/UniversalBackButton';
 
 interface CalendarDay {
@@ -54,12 +55,21 @@ function EventItem({ item, type, onPress }: EventItemProps) {
   if (type === 'earnings') {
     const earningsItem = item as EarningsItem;
     const isReleased = !!earningsItem.actual_eps;
+    const session = getEarningsSession(earningsItem.report_time, earningsItem.scheduled_at);
+    const sessionAriaLabel = getSessionAriaLabel(session);
     
     return (
       <TouchableOpacity style={styles.eventRow} onPress={onPress} activeOpacity={0.7}>
         <View style={styles.timeColumn}>
-          <Text style={styles.eventTime}>{timeString}</Text>
-          <Text style={styles.reportTime}>{earningsItem.report_time}</Text>
+          {session && (
+            <View 
+              style={styles.sessionChip}
+              accessible={true}
+              accessibilityLabel={sessionAriaLabel}
+            >
+              <Text style={styles.sessionChipText}>{session}</Text>
+            </View>
+          )}
         </View>
         
         <View style={styles.eventContent}>
@@ -967,6 +977,18 @@ const styles = StyleSheet.create({
     width: 80,
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
+  },
+  sessionChip: {
+    backgroundColor: theme.colors.border,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  sessionChipText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: theme.colors.text,
   },
   eventTime: {
     fontSize: 12,

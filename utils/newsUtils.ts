@@ -193,3 +193,58 @@ export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength - 3) + '...';
 }
+
+export function getEarningsSession(reportTime?: string, scheduledAt?: string): 'BMO' | 'AMC' | null {
+  if (reportTime && typeof reportTime === 'string') {
+    const normalized = reportTime.trim().toUpperCase();
+    
+    // Map various session strings
+    if (normalized === 'BMO' || normalized === 'BEFORE OPEN' || normalized === 'BEFORE MARKET OPEN') {
+      return 'BMO';
+    }
+    
+    if (normalized === 'AMC' || normalized === 'PMO' || normalized === 'AFTER MARKET' || 
+        normalized === 'AFTER HOURS' || normalized === 'AFTER CLOSE' || normalized === 'AFTER MARKET CLOSE') {
+      return 'AMC';
+    }
+  }
+  
+  // Infer from scheduled time if no session provided
+  if (scheduledAt && typeof scheduledAt === 'string') {
+    try {
+      const date = new Date(scheduledAt);
+      if (!isNaN(date.getTime())) {
+        // Get hours in US/Eastern timezone
+        // For simplicity, we'll use UTC and adjust by 5 hours (EST offset)
+        // In production, use a proper timezone library
+        const utcHours = date.getUTCHours();
+        const utcMinutes = date.getUTCMinutes();
+        
+        // Convert to EST/EDT (approximate - doesn't account for DST properly)
+        let estHours = utcHours - 5;
+        if (estHours < 0) estHours += 24;
+        
+        const totalMinutes = estHours * 60 + utcMinutes;
+        const marketOpenMinutes = 9 * 60 + 30; // 09:30
+        const marketCloseMinutes = 16 * 60; // 16:00
+        
+        if (totalMinutes < marketOpenMinutes) {
+          return 'BMO';
+        } else if (totalMinutes >= marketCloseMinutes) {
+          return 'AMC';
+        }
+        // If between 09:30-15:59, return null (no chip)
+      }
+    } catch (error) {
+      console.warn('Error inferring session from scheduled time:', error);
+    }
+  }
+  
+  return null;
+}
+
+export function getSessionAriaLabel(session: 'BMO' | 'AMC' | null): string {
+  if (session === 'BMO') return 'Before Market Open';
+  if (session === 'AMC') return 'After Market Close';
+  return '';
+}
