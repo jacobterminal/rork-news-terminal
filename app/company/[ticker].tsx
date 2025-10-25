@@ -9,6 +9,7 @@ import NewsArticleModal from '../../components/NewsArticleModal';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../../components/TimeRangeFilterPill';
 import WatchlistFolderPicker from '../../components/WatchlistFolderPicker';
 import CreateFolderModal from '../../components/CreateFolderModal';
+import ScheduledEarningsCard from '../../components/ScheduledEarningsCard';
 import { useNewsStore } from '../../store/newsStore';
 import { useDropdown } from '../../store/dropdownStore';
 import { useNavigationStore } from '../../store/navigationStore';
@@ -431,6 +432,12 @@ export default function TickerDetailPage() {
           </View>
           <Text style={styles.companyOverview}>{companyOverview}</Text>
         </View>
+
+        <ScheduledEarningsCard
+          symbol={tickerUpper}
+          companyFiscalStartMonth={1}
+          events={earningsItems}
+        />
 
         <View style={styles.tabsContainer}>
           <TouchableOpacity
