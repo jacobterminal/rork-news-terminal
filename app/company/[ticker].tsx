@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
-import { useLocalSearchParams, router, useNavigation } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, BackHandler } from 'react-native';
+import { useLocalSearchParams, router, useNavigation, useFocusEffect } from 'expo-router';
 import { ArrowLeft, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedItem, CriticalAlert, EarningsItem, EconItem } from '../../types/news';
@@ -253,7 +253,7 @@ export default function TickerDetailPage() {
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
 
-  const handleBack = () => {
+  const goSmartBack = React.useCallback(() => {
     const now = Date.now();
     if (now - lastBackPressTime < BACK_DEBOUNCE_MS) {
       console.log('[CompanyPage] Back debounced');
@@ -264,12 +264,12 @@ export default function TickerDetailPage() {
     console.log('[CompanyPage] Back pressed');
 
     if (navigation.canGoBack()) {
-      console.log('[CompanyPage] Using navigation.goBack()');
+      console.log('[CompanyPage] Using navigation.goBack() - modal pop');
       navigation.goBack();
       return;
     }
 
-    if (returnContext) {
+    if (returnContext?.routeName) {
       console.log('[CompanyPage] Restoring context:', returnContext);
       
       const routeName = returnContext.routeName || 'index';
@@ -291,7 +291,19 @@ export default function TickerDetailPage() {
 
     console.log('[CompanyPage] Fallback to News (index)');
     router.push('/');
-  };
+  }, [navigation, returnContext, clearReturnContext]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        goSmartBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [goSmartBack])
+  );
 
   const isInWatchlist = useMemo(() => {
     return watchlistFolders.some(folder => folder.tickers.includes(tickerUpper));
@@ -376,7 +388,7 @@ export default function TickerDetailPage() {
         <View style={styles.goldDivider} />
         <TouchableOpacity
           style={styles.backButtonFixed}
-          onPress={handleBack}
+          onPress={goSmartBack}
           activeOpacity={0.7}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
