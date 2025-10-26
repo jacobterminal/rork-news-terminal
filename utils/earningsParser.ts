@@ -6,6 +6,7 @@ export interface ParsedEarningsData {
   revenueUsd: number | null;
   result: EarningsResult;
   confidence: number;
+  session: 'BMO' | 'AMC' | 'TBA';
 }
 
 function extractQuarter(text: string): Quarter | null {
@@ -151,10 +152,35 @@ function extractBeatMiss(text: string): { result: EarningsResult; confidence: nu
   return { result: '—', confidence: 0.3 };
 }
 
+function extractOrInferSession(text: string, publishedDate: Date): 'BMO' | 'AMC' | 'TBA' {
+  const lowerText = text.toLowerCase();
+  
+  if (lowerText.includes('before market') || lowerText.includes('before the market') || 
+      lowerText.includes('pre-market') || lowerText.includes('premarket') ||
+      lowerText.includes('bmo')) {
+    return 'BMO';
+  }
+  
+  if (lowerText.includes('after market') || lowerText.includes('after the market') || 
+      lowerText.includes('after-hours') || lowerText.includes('aftermarket') ||
+      lowerText.includes('amc')) {
+    return 'AMC';
+  }
+  
+  const hour = publishedDate.getHours();
+  
+  if (hour < 12) {
+    return 'BMO';
+  } else {
+    return 'AMC';
+  }
+}
+
 export function parseEarningsFromNews(newsItem: FeedItem): ParsedEarningsData | null {
   const title = newsItem.title || '';
   const summary = newsItem.classification?.summary_15 || '';
   const text = `${title} ${summary}`.toLowerCase();
+  const fullText = `${title} ${summary}`;
   
   if (!text.includes('earnings') && 
       !text.includes('eps') && 
@@ -188,11 +214,15 @@ export function parseEarningsFromNews(newsItem: FeedItem): ParsedEarningsData | 
     confidence = Math.min(confidence + 0.05, 0.95);
   }
   
+  const publishedDate = new Date(newsItem.published_at);
+  const session = extractOrInferSession(fullText, publishedDate);
+  
   return {
     actualEps,
     revenueUsd,
     result: beatMiss.result,
     confidence,
+    session,
   };
 }
 
@@ -309,7 +339,7 @@ export function backfillEarningsFromNews(
         quarter,
         actualEps: parsed.actualEps,
         revenueUsd: parsed.revenueUsd,
-        session: 'TBA',
+        session: parsed.session,
         result: parsed.result,
         source: 'news_parse',
         articleId: newsItem.id,

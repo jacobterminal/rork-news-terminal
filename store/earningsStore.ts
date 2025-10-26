@@ -277,7 +277,7 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
             quarter,
             actualEps: parsed.actualEps,
             revenueUsd: parsed.revenueUsd,
-            session: 'TBA',
+            session: parsed.session,
             result: parsed.result,
             source: 'news_parse',
             articleId: newsItem.id,
