@@ -213,6 +213,8 @@ export function searchRelevantEarningsNews(
     quarter === 'Q3' ? 'third quarter' : 'fourth quarter'
   ];
   
+  console.log(`🔍 Searching earnings news for ${ticker} ${quarter} ${fiscalYear} (last 18 months)`);
+  
   return newsItems
     .filter(item => {
       if (!item.tickers?.includes(ticker)) return false;
@@ -258,8 +260,16 @@ function calculateRelevanceScore(item: FeedItem, ticker: string, quarter: Quarte
   if (item.classification?.impact === 'High') score += 30;
   if (item.classification?.rumor_level === 'Confirmed') score += 20;
   
-  if (title.includes(quarter.toLowerCase())) score += 40;
-  else if (summary.includes(quarter.toLowerCase())) score += 20;
+  const explicitQuarterVariants = [
+    quarter.toLowerCase(),
+    `q${quarter.charAt(1)}`,
+    quarter === 'Q1' ? 'first quarter' :
+    quarter === 'Q2' ? 'second quarter' :
+    quarter === 'Q3' ? 'third quarter' : 'fourth quarter'
+  ];
+  
+  if (explicitQuarterVariants.some(v => title.includes(v))) score += 40;
+  else if (explicitQuarterVariants.some(v => summary.includes(v))) score += 20;
   
   if (text.includes('beat') || text.includes('miss')) score += 25;
   if (text.includes('eps')) score += 15;
