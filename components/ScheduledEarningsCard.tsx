@@ -2,12 +2,17 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 type Ev = { 
-  datetime: string | number | Date; 
+  datetime?: string | number | Date; 
   session?: 'AMC' | 'BMO'; 
-  symbol: string;
+  symbol?: string;
   scheduled_at?: string | number | Date;
   report_time?: string;
   ticker?: string;
+  actual_eps?: number;
+  cons_eps?: number;
+  actual_rev?: number;
+  cons_rev?: number;
+  verdict?: 'Beat' | 'Miss' | 'Inline' | null;
 };
 
 interface ScheduledEarningsCardProps {
@@ -30,7 +35,17 @@ export default function ScheduledEarningsCard({
       const d = new Date(dt);
       const { q, fy } = toFiscal(d, companyFiscalStartMonth);
       const session = e.session ?? e.report_time ?? guessSession(d);
-      return { d, q, fy, session };
+      return { 
+        d, 
+        q, 
+        fy, 
+        session, 
+        actual_eps: e.actual_eps,
+        cons_eps: e.cons_eps,
+        actual_rev: e.actual_rev,
+        cons_rev: e.cons_rev,
+        verdict: e.verdict,
+      };
     })
     .filter((n): n is NonNullable<typeof n> => n !== null)
     .sort((a, b) => a.d.getTime() - b.d.getTime());
@@ -41,9 +56,34 @@ export default function ScheduledEarningsCard({
 
   const fyRows = [1, 2, 3, 4].map(q => {
     const m = norm.find(n => n.fy === currentFY && n.q === q);
-    const status = !m ? '—' : (m.d < now ? 'Reported' : 'Upcoming');
-    const when = !m ? 'TBA' : fmt(m.d) + ' · ' + m.session;
-    return { q, status, when };
+    const status = !m ? '—' : (m.d < now ? 'Reported' : 'Not Reported');
+    const when = !m ? 'TBA' : fmt(m.d) + ' • ' + m.session;
+    
+    const estEps = m?.cons_eps !== undefined ? m.cons_eps.toFixed(2) : 'NA';
+    const actualEps = m?.actual_eps !== undefined ? m.actual_eps.toFixed(2) : 'NA';
+    
+    let result = '—';
+    let resultColor = '#9aa0a6';
+    if (m?.verdict === 'Beat') {
+      result = 'Beat';
+      resultColor = '#8DD48C';
+    } else if (m?.verdict === 'Miss') {
+      result = 'Miss';
+      resultColor = '#FF6B6B';
+    } else if (m?.actual_eps !== undefined && m?.cons_eps !== undefined) {
+      if (m.actual_eps > m.cons_eps) {
+        result = 'Beat';
+        resultColor = '#8DD48C';
+      } else if (m.actual_eps < m.cons_eps) {
+        result = 'Miss';
+        resultColor = '#FF6B6B';
+      } else {
+        result = 'Inline';
+        resultColor = '#9aa0a6';
+      }
+    }
+    
+    return { q, status, when, estEps, actualEps, result, resultColor };
   });
 
   const allReported = fyRows.every(r => r.status === 'Reported');
@@ -57,21 +97,35 @@ export default function ScheduledEarningsCard({
         <View 
           key={r.q} 
           style={[
-            styles.row,
-            r.q === 1 && styles.rowFirst,
+            styles.rowContainer,
+            r.q === 1 && styles.rowContainerFirst,
           ]}
         >
-          <Text style={styles.quarter}>Q{r.q}</Text>
-          <Text 
-            style={[
-              styles.status,
-              r.status === 'Upcoming' && styles.statusUpcoming,
-              r.status === 'Reported' && styles.statusReported,
-            ]}
-          >
-            {r.status}
-          </Text>
-          <Text style={styles.when}>{r.when}</Text>
+          <View style={styles.row}>
+            <Text style={styles.quarter}>Q{r.q}</Text>
+            <Text 
+              style={[
+                styles.status,
+                r.status === 'Reported' && styles.statusReported,
+                r.status === 'Not Reported' && styles.statusNotReported,
+              ]}
+            >
+              {r.status}
+            </Text>
+            <Text style={styles.when}>{r.when}</Text>
+          </View>
+          <View style={styles.detailsRow}>
+            <Text style={styles.detailsText}>
+              <Text style={styles.detailLabel}>EST EPS: </Text>
+              <Text style={styles.detailValue}>{r.estEps}</Text>
+              <Text style={styles.detailSeparator}> • </Text>
+              <Text style={styles.detailLabel}>Actual EPS: </Text>
+              <Text style={styles.detailValue}>{r.actualEps}</Text>
+              <Text style={styles.detailSeparator}> • </Text>
+              <Text style={styles.detailLabel}>Result: </Text>
+              <Text style={[styles.detailValue, { color: r.resultColor }]}>{r.result}</Text>
+            </Text>
+          </View>
         </View>
       ))}
       {allReported && (
@@ -113,15 +167,38 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 13,
   },
+  rowContainer: {
+    borderBottomWidth: 1,
+    borderColor: '#3a2f14',
+    paddingVertical: 10,
+  },
+  rowContainerFirst: {
+    borderTopWidth: 1,
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: '#3a2f14',
+    marginBottom: 4,
   },
-  rowFirst: {
-    borderTopWidth: 1,
+  detailsRow: {
+    marginTop: 2,
+  },
+  detailsText: {
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  detailLabel: {
+    color: '#777777',
+    fontSize: 11,
+  },
+  detailValue: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  detailSeparator: {
+    color: '#555555',
+    fontSize: 11,
   },
   quarter: {
     color: '#fff',
@@ -131,11 +208,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  statusUpcoming: {
-    color: '#E7C15F',
-  },
   statusReported: {
     color: '#8DD48C',
+  },
+  statusNotReported: {
+    color: '#9aa0a6',
   },
   when: {
     color: '#cfcfcf',
