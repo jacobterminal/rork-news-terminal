@@ -1,11 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { EarningsItem } from '../types/news';
+
+type Ev = { 
+  datetime: string | number | Date; 
+  session?: 'AMC' | 'BMO'; 
+  symbol: string;
+  scheduled_at?: string | number | Date;
+  report_time?: string;
+  ticker?: string;
+};
 
 interface ScheduledEarningsCardProps {
   symbol: string;
   companyFiscalStartMonth?: number;
-  events: EarningsItem[];
+  events: Ev[];
 }
 
 export default function ScheduledEarningsCard({
@@ -13,159 +21,129 @@ export default function ScheduledEarningsCard({
   companyFiscalStartMonth = 1,
   events,
 }: ScheduledEarningsCardProps) {
-  const now = Date.now();
-  
-  const upcomingEvents = events
-    .filter(e => e.ticker === symbol)
-    .filter(e => {
-      const eventTime = new Date(e.scheduled_at).getTime();
-      return eventTime >= now;
-    })
-    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
-    .slice(0, 3);
+  const now = new Date();
 
-  if (upcomingEvents.length === 0) {
-    return null;
-  }
+  const norm = (events ?? [])
+    .map(e => {
+      const dt = e.datetime ?? e.scheduled_at;
+      if (!dt) return null;
+      const d = new Date(dt);
+      const { q, fy } = toFiscal(d, companyFiscalStartMonth);
+      const session = e.session ?? e.report_time ?? guessSession(d);
+      return { d, q, fy, session };
+    })
+    .filter((n): n is NonNullable<typeof n> => n !== null)
+    .sort((a, b) => a.d.getTime() - b.d.getTime());
+
+  const currentFY = 
+    (norm.find(n => n.d >= new Date(now.getFullYear() - 1, 0, 1))?.fy) ?? 
+    toFiscal(now, companyFiscalStartMonth).fy;
+
+  const fyRows = [1, 2, 3, 4].map(q => {
+    const m = norm.find(n => n.fy === currentFY && n.q === q);
+    const status = !m ? '—' : (m.d < now ? 'Reported' : 'Upcoming');
+    const when = !m ? 'TBA' : fmt(m.d) + ' · ' + m.session;
+    return { q, status, when };
+  });
+
+  const allReported = fyRows.every(r => r.status === 'Reported');
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>SCHEDULED EARNINGS</Text>
-      <View style={styles.eventsContainer}>
-        {upcomingEvents.map((event, index) => {
-          const scheduledDate = new Date(event.scheduled_at);
-          const dateStr = scheduledDate.toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric',
-            year: 'numeric',
-          });
-          
-          return (
-            <View key={index} style={styles.eventRow}>
-              <View style={styles.eventLeft}>
-                <View style={styles.tickerChip}>
-                  <Text style={styles.tickerText}>{event.ticker}</Text>
-                </View>
-                <View style={styles.sessionPill}>
-                  <Text style={styles.sessionText}>{event.report_time}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.eventRight}>
-                <Text style={styles.dateText}>{dateStr}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-      
-      {upcomingEvents.length > 0 && (
-        <View style={styles.metricsSection}>
-          {upcomingEvents[0].cons_eps !== undefined && (
-            <View style={styles.metricRow}>
-              <Text style={styles.metricLabel}>Expected EPS</Text>
-              <Text style={styles.metricValue}>${upcomingEvents[0].cons_eps.toFixed(2)}</Text>
-            </View>
-          )}
-          {upcomingEvents[0].cons_rev !== undefined && (
-            <View style={styles.metricRow}>
-              <Text style={styles.metricLabel}>Expected Revenue</Text>
-              <Text style={styles.metricValue}>${upcomingEvents[0].cons_rev.toFixed(1)}B</Text>
-            </View>
-          )}
+      <Text style={styles.title}>
+        Scheduled Earnings — FY{currentFY}
+      </Text>
+      {fyRows.map(r => (
+        <View 
+          key={r.q} 
+          style={[
+            styles.row,
+            r.q === 1 && styles.rowFirst,
+          ]}
+        >
+          <Text style={styles.quarter}>Q{r.q}</Text>
+          <Text 
+            style={[
+              styles.status,
+              r.status === 'Upcoming' && styles.statusUpcoming,
+              r.status === 'Reported' && styles.statusReported,
+            ]}
+          >
+            {r.status}
+          </Text>
+          <Text style={styles.when}>{r.when}</Text>
         </View>
+      ))}
+      {allReported && (
+        <Text style={styles.allReportedText}>
+          All four earnings for FY{currentFY} are reported.
+        </Text>
       )}
     </View>
   );
 }
 
+function toFiscal(d: Date, startMonth = 1) {
+  const m = d.getMonth() + 1;
+  const offset = (m - startMonth + 12) % 12;
+  const q = Math.floor(offset / 3) + 1;
+  const fy = (m >= startMonth) ? d.getFullYear() : d.getFullYear() - 1;
+  return { q, fy };
+}
+
+function fmt(d: Date) {
+  const mo = d.toLocaleString(undefined, { month: 'short' });
+  const day = d.getDate();
+  return `${mo} ${day}`;
+}
+
+function guessSession(d: Date): string {
+  const h = d.getHours();
+  return h < 12 ? 'BMO' : 'AMC';
+}
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#000000',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#FFD75A',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FFD75A',
-    marginBottom: 12,
+    paddingTop: 8,
   },
   title: {
-    fontSize: 11,
+    color: '#E7C15F',
     fontWeight: '700',
-    color: '#FFD75A',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  eventsContainer: {
-    gap: 8,
-  },
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
-  },
-  eventLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  tickerChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(255, 215, 90, 0.15)',
-    borderRadius: 4,
-  },
-  tickerText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFD75A',
-    fontFamily: 'monospace',
-  },
-  sessionPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    backgroundColor: 'rgba(255, 215, 90, 0.08)',
-    borderRadius: 3,
-  },
-  sessionText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FFD75A',
-    fontFamily: 'monospace',
-  },
-  eventRight: {
-    alignItems: 'flex-end',
-  },
-  dateText: {
-    fontSize: 11,
-    color: '#777777',
-    fontFamily: 'monospace',
-  },
-  metricsSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#222222',
-    gap: 8,
-  },
-  metricRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: '#666666',
-  },
-  metricValue: {
+    marginBottom: 8,
     fontSize: 13,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: '#3a2f14',
+  },
+  rowFirst: {
+    borderTopWidth: 1,
+  },
+  quarter: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  status: {
     fontWeight: '600',
-    color: '#FFFFFF',
-    fontFamily: 'monospace',
+    fontSize: 14,
+  },
+  statusUpcoming: {
+    color: '#E7C15F',
+  },
+  statusReported: {
+    color: '#8DD48C',
+  },
+  when: {
+    color: '#cfcfcf',
+    fontSize: 14,
+  },
+  allReportedText: {
+    color: '#9aa0a6',
+    marginTop: 8,
+    fontSize: 12,
   },
 });
