@@ -42,7 +42,7 @@ export default function SupportSettingsScreen() {
   };
 
   const handleEmail = () => {
-    Linking.openURL('mailto:support@example.com');
+    Linking.openURL('mailto:contact@insidervega.com');
   };
 
   const handleFAQ = () => {
@@ -72,7 +72,7 @@ export default function SupportSettingsScreen() {
           <SupportItem
             icon={<Mail size={24} color="#FFD600" />}
             title="Email Support"
-            description="support@example.com"
+            description="contact@insidervega.com"
             onPress={handleEmail}
           />
           <SupportItem
@@ -86,8 +86,8 @@ export default function SupportSettingsScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoBoxTitle}>Support Hours</Text>
           <Text style={styles.infoBoxText}>
-            Monday - Friday: 9:00 AM - 6:00 PM EST{'\n'}
-            Saturday - Sunday: 10:00 AM - 4:00 PM EST
+            Monday – Friday: 9:00 AM – 6:00 PM EST{'\n'}
+            Sunday: 10:00 AM – 4:00 PM EST
           </Text>
         </View>
 
