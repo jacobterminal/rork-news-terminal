@@ -666,19 +666,25 @@ export default function TickerDetailPage() {
                       {item.actual !== undefined && item.actual !== null && (
                         <View style={styles.econMetric}>
                           <Text style={styles.econMetricLabel}>Actual</Text>
-                          <Text style={styles.econMetricValue}>{item.actual}</Text>
+                          <Text style={styles.econMetricValue}>
+                            {typeof item.actual === 'number' ? item.actual.toFixed(1) : String(item.actual)}
+                          </Text>
                         </View>
                       )}
                       {item.forecast !== undefined && (
                         <View style={styles.econMetric}>
                           <Text style={styles.econMetricLabel}>Forecast</Text>
-                          <Text style={styles.econMetricValue}>{item.forecast}</Text>
+                          <Text style={styles.econMetricValue}>
+                            {typeof item.forecast === 'number' ? item.forecast.toFixed(1) : String(item.forecast)}
+                          </Text>
                         </View>
                       )}
                       {item.previous !== undefined && (
                         <View style={styles.econMetric}>
                           <Text style={styles.econMetricLabel}>Previous</Text>
-                          <Text style={styles.econMetricValue}>{item.previous}</Text>
+                          <Text style={styles.econMetricValue}>
+                            {typeof item.previous === 'number' ? item.previous.toFixed(1) : String(item.previous)}
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -1450,31 +1456,35 @@ function EconEventSheet({ visible, event, onClose }: EconEventSheetProps) {
             {event.forecast !== undefined && (
               <View style={styles.sheetMetricRow}>
                 <Text style={styles.sheetMetricLabel}>Forecast</Text>
-                <Text style={styles.sheetMetricValue}>{event.forecast.toFixed(1)}%</Text>
+                <Text style={styles.sheetMetricValue}>
+                  {typeof event.forecast === 'number' ? event.forecast.toFixed(1) + '%' : String(event.forecast)}
+                </Text>
               </View>
             )}
             {event.previous !== undefined && (
               <View style={styles.sheetMetricRow}>
                 <Text style={styles.sheetMetricLabel}>Previous</Text>
-                <Text style={styles.sheetMetricValue}>{event.previous.toFixed(1)}%</Text>
+                <Text style={styles.sheetMetricValue}>
+                  {typeof event.previous === 'number' ? event.previous.toFixed(1) + '%' : String(event.previous)}
+                </Text>
               </View>
             )}
             {hasActual && (
               <View style={styles.sheetMetricRow}>
                 <Text style={styles.sheetMetricLabel}>Actual</Text>
                 <Text style={[styles.sheetMetricValue, { color: '#00FF66' }]}>
-                  {event.actual!.toFixed(1)}%
+                  {typeof event.actual === 'number' ? event.actual.toFixed(1) + '%' : String(event.actual)}
                 </Text>
               </View>
             )}
           </View>
 
-          {hasActual && event.forecast !== undefined && (
+          {hasActual && event.forecast !== undefined && typeof event.actual === 'number' && typeof event.forecast === 'number' && (
             <View style={styles.sheetSection}>
               <Text style={styles.sheetSectionTitle}>Result</Text>
               <Text style={styles.sheetValue}>
-                {event.actual! > event.forecast ? 'Above Forecast' : 
-                 event.actual! < event.forecast ? 'Below Forecast' : 
+                {event.actual > event.forecast ? 'Above Forecast' : 
+                 event.actual < event.forecast ? 'Below Forecast' : 
                  'Inline with Forecast'}
               </Text>
             </View>
