@@ -326,84 +326,43 @@ export default function TickerDetailPage() {
         />
 
         {companyEarnings.length > 0 && (
-          <>
-            <View style={styles.sectionHeaderContainer}>
-              <View style={styles.topDivider} />
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>UPCOMING EARNINGS</Text>
-              </View>
-              <View style={styles.bottomDivider} />
-            </View>
-            <View style={styles.earningsTable}>
-              {companyEarnings.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.earningsRow}
-                  onPress={() => handleEarningsPress(item)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.earningsHeader}>
-                    <View style={styles.earningsLeft}>
-                      <Text style={styles.earningsTicker}>{item.ticker}</Text>
-                      <View style={styles.earningsSessionPill}>
-                        <Text style={styles.earningsSessionText}>{item.report_time}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.earningsDate}>
-                      {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          <View style={styles.upcomingEarningsSection}>
+            <Text style={styles.upcomingEarningsTitle}>Upcoming Earnings</Text>
+            {companyEarnings.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.upcomingEarningsCard}
+                onPress={() => handleEarningsPress(item)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.upcomingHeader}>
+                  <View style={styles.upcomingTickerPill}>
+                    <Text style={styles.upcomingTickerText}>{item.ticker}</Text>
+                  </View>
+                  <View style={styles.upcomingSessionPill}>
+                    <Text style={styles.upcomingSessionText}>{item.report_time}</Text>
+                  </View>
+                  <Text style={styles.upcomingDate}>
+                    {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </Text>
+                </View>
+                <View style={styles.upcomingMetrics}>
+                  <View style={styles.upcomingMetric}>
+                    <Text style={styles.upcomingMetricLabel}>Expected EPS</Text>
+                    <Text style={styles.upcomingMetricValue}>
+                      {item.cons_eps !== undefined ? `${item.cons_eps.toFixed(2)}` : 'NA'}
                     </Text>
                   </View>
-                  {item.verdict && (
-                    <View style={styles.earningsVerdict}>
-                      <View style={[
-                        styles.verdictBadge,
-                        item.verdict === 'Beat' && styles.verdictBeatBadge,
-                        item.verdict === 'Miss' && styles.verdictMissBadge,
-                      ]}>
-                        <Text style={[
-                          styles.verdictBadgeText,
-                          item.verdict === 'Beat' && styles.verdictBeatText,
-                          item.verdict === 'Miss' && styles.verdictMissText,
-                        ]}>{item.verdict.toUpperCase()}</Text>
-                      </View>
-                    </View>
-                  )}
-                  <View style={styles.earningsMetrics}>
-                    {item.actual_eps !== undefined && (
-                      <View style={styles.metric}>
-                        <Text style={styles.metricLabel}>EPS</Text>
-                        <Text style={styles.metricValue}>${item.actual_eps.toFixed(2)}</Text>
-                        {item.cons_eps !== undefined && (
-                          <Text style={styles.metricCons}>(est. ${item.cons_eps.toFixed(2)})</Text>
-                        )}
-                      </View>
-                    )}
-                    {item.actual_rev !== undefined && (
-                      <View style={styles.metric}>
-                        <Text style={styles.metricLabel}>Revenue</Text>
-                        <Text style={styles.metricValue}>${item.actual_rev.toFixed(1)}B</Text>
-                        {item.cons_rev !== undefined && (
-                          <Text style={styles.metricCons}>(est. ${item.cons_rev.toFixed(1)}B)</Text>
-                        )}
-                      </View>
-                    )}
-                    {item.cons_eps !== undefined && item.actual_eps === undefined && (
-                      <View style={styles.metric}>
-                        <Text style={styles.metricLabel}>Expected EPS</Text>
-                        <Text style={styles.metricValue}>${item.cons_eps.toFixed(2)}</Text>
-                      </View>
-                    )}
-                    {item.cons_rev !== undefined && item.actual_rev === undefined && (
-                      <View style={styles.metric}>
-                        <Text style={styles.metricLabel}>Expected Revenue</Text>
-                        <Text style={styles.metricValue}>${item.cons_rev.toFixed(1)}B</Text>
-                      </View>
-                    )}
+                  <View style={styles.upcomingMetric}>
+                    <Text style={styles.upcomingMetricLabel}>Expected Revenue</Text>
+                    <Text style={styles.upcomingMetricValue}>
+                      {item.cons_rev !== undefined ? `${item.cons_rev.toFixed(1)}B` : 'NA'}
+                    </Text>
                   </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         )}
 
         {companyAlerts.length > 0 && (
@@ -1073,6 +1032,79 @@ const styles = StyleSheet.create({
   verdictBadgeTextLarge: {
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: 'monospace',
+  },
+  upcomingEarningsSection: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  upcomingEarningsTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E7C15F',
+    marginBottom: 12,
+  },
+  upcomingEarningsCard: {
+    backgroundColor: '#0A0A0A',
+    borderWidth: 1,
+    borderColor: '#3a2f14',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  upcomingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  upcomingTickerPill: {
+    backgroundColor: 'rgba(231, 193, 95, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  upcomingTickerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#E7C15F',
+    fontFamily: 'monospace',
+  },
+  upcomingSessionPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(255, 215, 90, 0.15)',
+    borderRadius: 4,
+  },
+  upcomingSessionText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFD75A',
+    fontFamily: 'monospace',
+  },
+  upcomingDate: {
+    fontSize: 11,
+    color: '#999999',
+    fontFamily: 'monospace',
+    marginLeft: 'auto',
+  },
+  upcomingMetrics: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  upcomingMetric: {
+    flex: 1,
+  },
+  upcomingMetricLabel: {
+    fontSize: 10,
+    color: '#777777',
+    marginBottom: 4,
+  },
+  upcomingMetricValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
     fontFamily: 'monospace',
   },
 });
