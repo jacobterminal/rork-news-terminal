@@ -256,7 +256,6 @@ function AppWithBanners() {
   const isSettingsRoute = currentPath.startsWith('/settings');
   const isAuthRoute = currentPath.startsWith('/auth');
   const isSearchRoute = currentPath === '/search';
-  const isCompanyRoute = (segments as string[]).some(seg => seg === 'company' || seg.startsWith('[ticker'));
   
   const handleBannerNavigate = (alertId: string) => {
     if (setHighlightedAlert) {
@@ -272,7 +271,7 @@ function AppWithBanners() {
   
   return (
     <>
-      {!isSettingsRoute && !isAuthRoute && !isSearchRoute && !isCompanyRoute && (
+      {!isSettingsRoute && !isAuthRoute && !isSearchRoute && (
         <View style={[styles.fixedHeader, { paddingTop: insets.top, height: headerHeight + insets.top }]}>
           <AlertSearchBar 
             onTickerPress={handleTickerPress}

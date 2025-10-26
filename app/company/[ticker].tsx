@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler, Platform } from 'react-native';
 import { useLocalSearchParams, router, useNavigation, useFocusEffect } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 import { ArrowLeft, ArrowUp } from 'lucide-react-native';
@@ -301,6 +301,8 @@ export default function TickerDetailPage() {
     router.push(`/company/${ticker}`);
   };
 
+  const headerHeight = Platform.select({ web: 64, default: 56 });
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -308,6 +310,7 @@ export default function TickerDetailPage() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { 
+          paddingTop: headerHeight + insets.top,
           paddingBottom: insets.bottom + 24,
         }]}
         onScroll={handleScroll}
