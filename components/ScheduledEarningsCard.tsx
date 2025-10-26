@@ -77,8 +77,11 @@ export default function ScheduledEarningsCard({
         const needsBackfill = !record || record.source === 'mock' || record.actualEps === null;
         
         if (needsBackfill) {
-          console.log(`📥 Triggering backfill for ${symbol} ${currentFY} ${q}`);
+          const source = record?.source || 'none';
+          console.log(`📥 Backfill needed for ${symbol} ${currentFY} ${q} (current source: ${source})`);
           await backfillFromNews(symbol, currentFY, q, state.feedItems);
+        } else {
+          console.log(`✓ ${symbol} ${currentFY} ${q} has real data (source: ${record.source})`);
         }
       }
     };

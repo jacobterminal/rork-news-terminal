@@ -248,19 +248,35 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     const existing = historyMap[key];
     
     if (existing && existing.source !== 'mock' && existing.actualEps !== null) {
-      console.log(`⏭️ Skipping backfill for ${key}: already has real data`);
+      console.log(`⏭️ Priority 1: Using earnings_history for ${key} (source: ${existing.source})`);
       return false;
     }
     
-    console.log(`🔍 Attempting backfill for ${ticker} ${fiscalYear} ${quarter} from ${newsItems.length} news items`);
+    if (existing && existing.source === 'mock') {
+      console.log(`🔄 Priority 2: Found mock data for ${key}, attempting news parse`);
+    } else {
+      console.log(`🔍 Priority 2: No real data for ${key}, attempting news parse`);
+    }
+    
+    const eighteenMonthsAgo = new Date();
+    eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18);
     
     const relevantNews = newsItems
-      .filter(item => 
-        item.tickers?.includes(ticker) &&
-        (item.tags?.earnings || item.classification?.impact === 'High') &&
-        item.title?.toLowerCase().includes('earnings')
-      )
+      .filter(item => {
+        if (!item.tickers?.includes(ticker)) return false;
+        
+        const publishedDate = new Date(item.published_at);
+        if (publishedDate < eighteenMonthsAgo) return false;
+        
+        const isEarningsRelated = item.tags?.earnings || 
+                                 (item.classification?.impact === 'High' && 
+                                  item.title?.toLowerCase().includes('earnings'));
+        
+        return isEarningsRelated;
+      })
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+    
+    console.log(`📰 Found ${relevantNews.length} earnings news items in last 18 months for ${ticker}`);
     
     for (const newsItem of relevantNews) {
       try {
@@ -271,7 +287,7 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
         const hasQuarter = text.includes(quarter.toLowerCase()) || 
                           text.includes(`q${quarter.charAt(1)}`);
         
-        if (!hasQuarter && !text.includes('beat') && !text.includes('miss')) {
+        if (!hasQuarter) {
           continue;
         }
         
@@ -311,7 +327,7 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
           };
           
           await saveEarningsRecord(newRecord);
-          console.log(`✅ Backfilled ${key} from news: result=${result}, confidence=${confidence}`);
+          console.log(`✅ Priority 2 Success: Backfilled ${key} from news (article: ${newsItem.id}, result: ${result}, confidence: ${confidence})`);
           return true;
         }
       } catch (error) {
@@ -319,7 +335,7 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
       }
     }
     
-    console.log(`❌ No backfill data found for ${key}`);
+    console.log(`❌ Priority 2 Failed: No earnings data found in news for ${key} (leaving NA)`);
     return false;
   }, [historyMap, saveEarningsRecord]);
 
