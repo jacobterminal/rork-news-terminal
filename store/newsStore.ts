@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppFilters, AppState, FeedItem, CriticalAlert, WatchlistFolder } from '../types/news';
 import { generateMockData } from '../utils/mockData';
 import { calculateScore, deduplicateItems } from '../utils/newsUtils';
-import { getNotificationPreferences, filterFeedItems, filterCriticalAlerts, ImpactLevel } from '../utils/impactFilter';
+import { getNotificationPreferences, filterFeedItems, filterCriticalAlerts, ImpactLevel, shouldShowInAppBanner } from '../utils/impactFilter';
 
 // Simple storage implementation for demo
 const storage = {
@@ -372,20 +372,25 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
 
           console.log('📰 New item injected:', (newItem.title || 'Untitled').slice(0, 50) + '...');
           
-          // Add to notifications if it's high impact or watchlist item
-          const isHighImpact = newItem.classification?.impact === 'High';
-          const isWatchlistItem = (newItem.tickers || []).some(ticker => 
-            (Array.isArray(prev.watchlist) ? prev.watchlist : []).includes(ticker)
-          );
+          // Add to notifications with in-app banner filter
+          const shouldShow = async () => {
+            return await shouldShowInAppBanner(newItem, Array.isArray(prev.watchlist) ? prev.watchlist : []);
+          };
           
-          if (isHighImpact || isWatchlistItem) {
-            setNotifications(prevNotifications => {
-              const updated = [newItem, ...prevNotifications].slice(0, 5); // Keep max 5 notifications
-              return updated;
-            });
-            
-            // Create critical alert for high impact items
-            if (isHighImpact) {
+          shouldShow().then(canShow => {
+            if (canShow) {
+              setNotifications(prevNotifications => {
+                const updated = [newItem, ...prevNotifications].slice(0, 5);
+                return updated;
+              });
+            }
+          }).catch(err => {
+            console.error('[NewsStore] Error checking banner filter:', err);
+          });
+          
+          // Create critical alert for high impact items (independent of banner filter)
+          const isHighImpact = newItem.classification?.impact === 'High';
+          if (isHighImpact) {
               const criticalAlert: CriticalAlert = {
                 id: `critical_${newItem.id}`,
                 type: newItem.tags?.fed ? 'fed' : newItem.tags?.earnings ? 'earnings' : 'cpi',
@@ -401,7 +406,6 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
               
               setCriticalAlerts(prev => [criticalAlert, ...prev].slice(0, 10));
             }
-          }
           
           return {
             ...prev,

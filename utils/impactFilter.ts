@@ -138,3 +138,92 @@ export function filterCriticalAlerts(
 ): CriticalAlert[] {
   return alerts.filter(alert => alert.impact === 'High');
 }
+
+export interface InAppSettings {
+  critical: boolean;
+  earnings: boolean;
+  cpi: boolean;
+  fed: boolean;
+  watchlist: boolean;
+  highImpactOnly: boolean;
+}
+
+const IN_APP_STORAGE_KEY = 'settings.inApp';
+
+export async function getInAppSettings(): Promise<InAppSettings> {
+  try {
+    const stored = await AsyncStorage.getItem(IN_APP_STORAGE_KEY);
+    if (stored) {
+      const prefs = JSON.parse(stored);
+      return {
+        critical: prefs.critical ?? true,
+        earnings: prefs.earnings ?? true,
+        cpi: prefs.cpi ?? true,
+        fed: prefs.fed ?? true,
+        watchlist: prefs.watchlist ?? true,
+        highImpactOnly: prefs.highImpactOnly ?? false,
+      };
+    }
+  } catch (error) {
+    console.error('[ImpactFilter] Failed to load in-app settings:', error);
+  }
+  
+  return {
+    critical: true,
+    earnings: true,
+    cpi: true,
+    fed: true,
+    watchlist: true,
+    highImpactOnly: false,
+  };
+}
+
+export async function shouldShowInAppBanner(
+  item: FeedItem,
+  watchlist: string[]
+): Promise<boolean> {
+  try {
+    const inAppSettings = await getInAppSettings();
+    
+    const category = determineCategory(item);
+    if (!category) return false;
+    
+    let categoryPasses = false;
+    switch (category) {
+      case 'critical':
+        categoryPasses = inAppSettings.critical;
+        break;
+      case 'economic':
+        categoryPasses = inAppSettings.cpi || inAppSettings.fed;
+        break;
+      case 'earnings':
+        categoryPasses = inAppSettings.earnings;
+        break;
+      case 'watchlist':
+        if (!inAppSettings.watchlist) return false;
+        const itemTickers = item.tickers || [];
+        categoryPasses = itemTickers.some(ticker => watchlist.includes(ticker));
+        break;
+      default:
+        return false;
+    }
+    
+    if (!categoryPasses) return false;
+    
+    if (inAppSettings.highImpactOnly) {
+      const passesHighImpactGate = 
+        item.aiImpact === 'High' || 
+        (item.impactScore !== undefined && item.impactScore >= 0.70);
+      
+      if (!passesHighImpactGate) {
+        console.log('[InAppBanner] Suppressed by High Impact AI filter:', item.title?.substring(0, 50));
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[ImpactFilter] Error in shouldShowInAppBanner:', error);
+    return false;
+  }
+}

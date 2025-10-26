@@ -32,6 +32,8 @@ export interface FeedItem {
   dedupe_key?: string;
   classification: NewsClassification;
   score?: number;
+  aiImpact?: 'Low' | 'Medium' | 'High';
+  impactScore?: number;
 }
 
 export interface EarningsItem {
