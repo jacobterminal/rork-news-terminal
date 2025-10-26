@@ -34,40 +34,45 @@ const storage = {
           return null;
         }
         
-        // Validate that the item is a valid JSON string before returning
-        if (item && typeof item === 'string' && item.trim().length > 0) {
-          const trimmed = item.trim();
-          
-          // Check for common corruption patterns
-          if (!trimmed.startsWith('{') && !trimmed.startsWith('[') && !trimmed.startsWith('"') && !trimmed.startsWith('true') && !trimmed.startsWith('false') && !trimmed.startsWith('null') && isNaN(Number(trimmed))) {
-            console.warn(`Detected corrupted localStorage data for key ${key}, clearing...`);
-            try {
-              localStorage.removeItem(key);
-            } catch (removeError) {
-              console.warn(`Failed to remove corrupted key ${key}:`, removeError);
-            }
-            return null;
-          }
-          
-          // More robust validation - check if it's valid JSON
-          try {
-            JSON.parse(trimmed);
-            return trimmed;
-          } catch (parseError) {
-            console.warn(`Invalid JSON in localStorage for key ${key}, clearing corrupted data:`, parseError);
-            try {
-              localStorage.removeItem(key);
-            } catch (removeError) {
-              console.warn(`Failed to remove corrupted key ${key}:`, removeError);
-            }
-            return null;
-          }
+        if (!item || typeof item !== 'string') {
+          return null;
         }
-        return null; // Return null for empty/null items
+        
+        const trimmed = item.trim();
+        if (trimmed.length === 0) {
+          return null;
+        }
+        
+        // Check for common corruption patterns
+        const firstChar = trimmed[0];
+        const validFirstChars = ['{', '[', '"', 't', 'f', 'n', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-'];
+        
+        if (!validFirstChars.includes(firstChar)) {
+          console.warn(`Detected corrupted localStorage data for key ${key} (starts with "${firstChar}"), clearing...`);
+          try {
+            localStorage.removeItem(key);
+          } catch (removeError) {
+            console.warn(`Failed to remove corrupted key ${key}:`, removeError);
+          }
+          return null;
+        }
+        
+        // More robust validation - check if it's valid JSON
+        try {
+          JSON.parse(trimmed);
+          return trimmed;
+        } catch (parseError) {
+          console.warn(`Invalid JSON in localStorage for key ${key}, clearing corrupted data:`, parseError);
+          try {
+            localStorage.removeItem(key);
+          } catch (removeError) {
+            console.warn(`Failed to remove corrupted key ${key}:`, removeError);
+          }
+          return null;
+        }
       }
     } catch (error) {
       console.warn('localStorage access failed:', error);
-      // Clear potentially corrupted data
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
           localStorage.removeItem(key);
@@ -163,14 +168,14 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
     if (!isHydrated) return;
     
     try {
-      const [filtersData, watchlistData, watchlistFoldersData, activeFolderData, uiData, savedArticlesData] = await Promise.all([
+      const [filtersData, watchlistData, watchlistFoldersData, activeFolderData, uiData, savedArticlesData] = await Promise.allSettled([
         storage.getItem(STORAGE_KEYS.FILTERS),
         storage.getItem(STORAGE_KEYS.WATCHLIST),
         storage.getItem(STORAGE_KEYS.WATCHLIST_FOLDERS),
         storage.getItem(STORAGE_KEYS.ACTIVE_FOLDER),
         storage.getItem(STORAGE_KEYS.UI_STATE),
         storage.getItem(STORAGE_KEYS.SAVED_ARTICLES),
-      ]);
+      ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
 
       setState(prev => {
         let parsedFilters = prev.filters;
@@ -179,32 +184,30 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
         let parsedUi = prev.ui;
         let parsedSavedArticles: FeedItem[] = [];
         
-        try {
-          if (filtersData && typeof filtersData === 'string' && filtersData.trim().length > 0) {
+        if (filtersData && typeof filtersData === 'string' && filtersData.trim().length > 0) {
+          try {
             const parsed = JSON.parse(filtersData);
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
               parsedFilters = { ...prev.filters, ...parsed };
             }
+          } catch (error) {
+            console.warn('Failed to parse filters data, using defaults:', error);
           }
-        } catch (error) {
-          console.warn('Failed to parse filters data, using defaults:', error);
-          // Data is already cleared by getItem if corrupted
         }
         
-        try {
-          if (watchlistData && typeof watchlistData === 'string' && watchlistData.trim().length > 0) {
+        if (watchlistData && typeof watchlistData === 'string' && watchlistData.trim().length > 0) {
+          try {
             const parsed = JSON.parse(watchlistData);
             if (Array.isArray(parsed)) {
               parsedWatchlist = parsed.filter(item => typeof item === 'string');
             }
+          } catch (error) {
+            console.warn('Failed to parse watchlist data, using defaults:', error);
           }
-        } catch (error) {
-          console.warn('Failed to parse watchlist data, using defaults:', error);
-          // Data is already cleared by getItem if corrupted
         }
         
-        try {
-          if (watchlistFoldersData && typeof watchlistFoldersData === 'string' && watchlistFoldersData.trim().length > 0) {
+        if (watchlistFoldersData && typeof watchlistFoldersData === 'string' && watchlistFoldersData.trim().length > 0) {
+          try {
             const parsed = JSON.parse(watchlistFoldersData);
             if (Array.isArray(parsed)) {
               parsedWatchlistFolders = parsed.filter(folder => 
@@ -214,26 +217,24 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
                 Array.isArray(folder.tickers)
               );
             }
+          } catch (error) {
+            console.warn('Failed to parse watchlist folders data, using defaults:', error);
           }
-        } catch (error) {
-          console.warn('Failed to parse watchlist folders data, using defaults:', error);
-          // Data is already cleared by getItem if corrupted
         }
         
-        try {
-          if (uiData && typeof uiData === 'string' && uiData.trim().length > 0) {
+        if (uiData && typeof uiData === 'string' && uiData.trim().length > 0) {
+          try {
             const parsed = JSON.parse(uiData);
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
               parsedUi = { ...prev.ui, ...parsed };
             }
+          } catch (error) {
+            console.warn('Failed to parse UI data, using defaults:', error);
           }
-        } catch (error) {
-          console.warn('Failed to parse UI data, using defaults:', error);
-          // Data is already cleared by getItem if corrupted
         }
         
-        try {
-          if (savedArticlesData && typeof savedArticlesData === 'string' && savedArticlesData.trim().length > 0) {
+        if (savedArticlesData && typeof savedArticlesData === 'string' && savedArticlesData.trim().length > 0) {
+          try {
             const parsed = JSON.parse(savedArticlesData);
             if (Array.isArray(parsed)) {
               parsedSavedArticles = parsed.filter(article => 
@@ -242,28 +243,29 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
                 typeof article.title === 'string'
               );
             }
+          } catch (error) {
+            console.warn('Failed to parse saved articles data, using defaults:', error);
           }
-        } catch (error) {
-          console.warn('Failed to parse saved articles data, using defaults:', error);
-          // Data is already cleared by getItem if corrupted
         }
         
         setSavedArticles(parsedSavedArticles);
         
-        try {
-          if (activeFolderData && typeof activeFolderData === 'string' && activeFolderData.trim().length > 0) {
+        if (activeFolderData && typeof activeFolderData === 'string' && activeFolderData.trim().length > 0) {
+          try {
             const parsed = JSON.parse(activeFolderData);
             if (typeof parsed === 'string') {
               setActiveFolderId(parsed);
+            } else if (parsedWatchlistFolders.length > 0) {
+              setActiveFolderId(parsedWatchlistFolders[0].id);
             }
-          } else if (parsedWatchlistFolders.length > 0) {
-            setActiveFolderId(parsedWatchlistFolders[0].id);
+          } catch (error) {
+            console.warn('Failed to parse active folder data:', error);
+            if (parsedWatchlistFolders.length > 0) {
+              setActiveFolderId(parsedWatchlistFolders[0].id);
+            }
           }
-        } catch (error) {
-          console.warn('Failed to parse active folder data:', error);
-          if (parsedWatchlistFolders.length > 0) {
-            setActiveFolderId(parsedWatchlistFolders[0].id);
-          }
+        } else if (parsedWatchlistFolders.length > 0) {
+          setActiveFolderId(parsedWatchlistFolders[0].id);
         }
         
         return {
