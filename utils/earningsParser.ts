@@ -35,17 +35,18 @@ function extractFiscalYear(text: string, publishedDate: Date): number {
 
 function extractActualEps(text: string): number | null {
   const patterns = [
-    /eps\s+(?:of|at|was|came in at)\s+\$?([0-9]+(?:\.[0-9]+)?)/i,
-    /reported\s+eps\s+\$?([0-9]+(?:\.[0-9]+)?)/i,
-    /earnings\s+per\s+share\s+(?:of|at|was)\s+\$?([0-9]+(?:\.[0-9]+)?)/i,
-    /\$?([0-9]+(?:\.[0-9]+)?)\s+per\s+share/i,
+    /eps\s+(?:of|at|was)\s+\$?(\d+(?:\.\d+)?)/i,
+    /reported\s+eps\s+\$?(\d+(?:\.\d+)?)/i,
+    /earnings\s+per\s+share\s+(?:of|at|was)\s+\$?(\d+(?:\.\d+)?)/i,
+    /\$?(\d+(?:\.\d+)?)\s+per\s+share/i,
+    /eps\s+came\s+in\s+at\s+\$?(\d+(?:\.\d+)?)/i,
   ];
   
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
       const value = parseFloat(match[1]);
-      if (!isNaN(value)) {
+      if (!isNaN(value) && value >= 0) {
         return value;
       }
     }
@@ -56,9 +57,9 @@ function extractActualEps(text: string): number | null {
 
 function extractRevenue(text: string): number | null {
   const patterns = [
-    /(revenue|sales)\s+(?:of|at|were|was|came in at)\s+\$?([0-9]+(?:\.[0-9]+)?)\s*([MB])?/i,
-    /reported\s+(revenue|sales)\s+\$?([0-9]+(?:\.[0-9]+)?)\s*([MB])?/i,
-    /\$?([0-9]+(?:\.[0-9]+)?)\s*([MB])?\s+in\s+(revenue|sales)/i,
+    /(revenue|sales)\s+(?:of|at|were|was)\s+\$?(\d+(?:\.\d+)?)\s?([MB])?/i,
+    /reported\s+(revenue|sales)\s+\$?(\d+(?:\.\d+)?)\s?([MB])?/i,
+    /\$?(\d+(?:\.\d+)?)\s?([MB])?\s+in\s+(revenue|sales)/i,
   ];
   
   for (const pattern of patterns) {
@@ -75,18 +76,18 @@ function extractRevenue(text: string): number | null {
         multiplierIndex = 3;
       }
       
-      if (isNaN(value)) continue;
+      if (isNaN(value) || value < 0) continue;
       
       const multiplier = match[multiplierIndex];
       if (multiplier === 'B' || multiplier === 'b') {
-        return value * 1_000_000_000;
+        return value * 1e9;
       } else if (multiplier === 'M' || multiplier === 'm') {
-        return value * 1_000_000;
+        return value * 1e6;
       } else {
         if (value > 100) {
-          return value * 1_000_000;
+          return value * 1e6;
         }
-        return value * 1_000_000_000;
+        return value * 1e9;
       }
     }
   }
@@ -98,23 +99,23 @@ function extractBeatMiss(text: string): { result: EarningsResult; confidence: nu
   const lowerText = text.toLowerCase();
   
   const beatPatterns = [
-    /beat\s+(?:wall street|analyst|street|consensus)\s+(?:estimates?|expectations?)/i,
-    /beats?\s+estimates?/i,
+    /beats?\s+(?:wall street|analyst|street|consensus)?\s*(?:estimates?|expectations?)/i,
+    /beat\s/i,
     /exceeded\s+expectations?/i,
     /topped\s+estimates?/i,
     /surpassed\s+expectations?/i,
   ];
   
   const missPatterns = [
-    /miss(?:ed)?\s+(?:wall street|analyst|street|consensus)\s+(?:estimates?|expectations?)/i,
-    /miss(?:ed)?\s+estimates?/i,
+    /miss(?:ed)?\s+(?:wall street|analyst|street|consensus)?\s*(?:estimates?|expectations?)?/i,
+    /missed\s/i,
     /fell short of\s+expectations?/i,
     /below\s+expectations?/i,
     /disappointed\s+(?:investors|analysts)/i,
   ];
   
   const inlinePatterns = [
-    /(?:in-line|inline|in line)\s+with\s+(?:estimates?|expectations?)/i,
+    /(?:in-?line|inline)\s+with\s+(?:estimates?|expectations?)/i,
     /met\s+(?:estimates?|expectations?)/i,
     /matched\s+(?:estimates?|expectations?)/i,
   ];
