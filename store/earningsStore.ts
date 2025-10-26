@@ -1,6 +1,7 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { EarningsHistory, EarningsHistoryMap, Quarter, EarningsResult } from '../types/earnings';
+import { searchRelevantEarningsNews, parseEarningsFromNews } from '../utils/earningsParser';
 
 const storage = {
   async getItem(key: string): Promise<string | null> {
@@ -258,76 +259,34 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
       console.log(`🔍 Priority 2: No real data for ${key}, attempting news parse`);
     }
     
-    const eighteenMonthsAgo = new Date();
-    eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18);
-    
-    const relevantNews = newsItems
-      .filter(item => {
-        if (!item.tickers?.includes(ticker)) return false;
-        
-        const publishedDate = new Date(item.published_at);
-        if (publishedDate < eighteenMonthsAgo) return false;
-        
-        const isEarningsRelated = item.tags?.earnings || 
-                                 (item.classification?.impact === 'High' && 
-                                  item.title?.toLowerCase().includes('earnings'));
-        
-        return isEarningsRelated;
-      })
-      .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
-    
-    console.log(`📰 Found ${relevantNews.length} earnings news items in last 18 months for ${ticker}`);
+    const relevantNews = searchRelevantEarningsNews(newsItems, ticker, fiscalYear, quarter);
+    console.log(`📰 Found ${relevantNews.length} relevant earnings news items for ${key}`);
     
     for (const newsItem of relevantNews) {
       try {
-        const title = newsItem.title?.toLowerCase() || '';
-        const summary = newsItem.classification?.summary_15?.toLowerCase() || '';
-        const text = `${title} ${summary}`;
+        const parsed = parseEarningsFromNews(newsItem);
         
-        const hasQuarter = text.includes(quarter.toLowerCase()) || 
-                          text.includes(`q${quarter.charAt(1)}`);
-        
-        if (!hasQuarter) {
+        if (!parsed) {
           continue;
         }
         
-        let result: EarningsResult = '—';
-        let confidence = 0.5;
-        
-        if (text.includes('beat') && !text.includes('miss')) {
-          result = 'Beat';
-          confidence = 0.75;
-        } else if (text.includes('miss') && !text.includes('beat')) {
-          result = 'Miss';
-          confidence = 0.75;
-        } else if (text.includes('inline') || text.includes('in line') || text.includes('meets')) {
-          result = '—';
-          confidence = 0.7;
-        }
-        
-        const epsMatch = text.match(/eps[:\s]+\$?([0-9.]+)/i);
-        const actualEps = epsMatch ? parseFloat(epsMatch[1]) : null;
-        
-        const revMatch = text.match(/revenue[:\s]+\$?([0-9.]+)\s*b/i);
-        const revenueUsd = revMatch ? parseFloat(revMatch[1]) * 1000000000 : null;
-        
-        if (result !== '—' || actualEps !== null) {
+        if (parsed.result !== '—' || parsed.actualEps !== null) {
           const newRecord: EarningsHistory = {
             ticker,
             fiscalYear,
             quarter,
-            actualEps,
-            revenueUsd,
+            actualEps: parsed.actualEps,
+            revenueUsd: parsed.revenueUsd,
             session: 'TBA',
-            result,
+            result: parsed.result,
             source: 'news_parse',
             articleId: newsItem.id,
-            confidence,
+            confidence: parsed.confidence,
             updatedAt: new Date().toISOString(),
           };
           
           await saveEarningsRecord(newRecord);
-          console.log(`✅ Priority 2 Success: Backfilled ${key} from news (article: ${newsItem.id}, result: ${result}, confidence: ${confidence})`);
+          console.log(`✅ Priority 2 Success: Backfilled ${key} from news (article: ${newsItem.id}, result: ${parsed.result}, confidence: ${parsed.confidence})`);
           return true;
         }
       } catch (error) {
