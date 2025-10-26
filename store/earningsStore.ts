@@ -11,19 +11,22 @@ const storage = {
         if (!item) return null;
         
         const trimmed = item.trim();
-        if (trimmed.length === 0) return null;
+        if (trimmed.length === 0) {
+          localStorage.removeItem(key);
+          return null;
+        }
         
         try {
           JSON.parse(trimmed);
           return trimmed;
-        } catch (parseError) {
-          console.warn(`Invalid JSON in localStorage for key ${key}, clearing:`, parseError);
+        } catch {
+          console.warn(`[earningsStore] Invalid JSON in localStorage for key "${key}", clearing. Value was:`, trimmed.substring(0, 100));
           localStorage.removeItem(key);
           return null;
         }
       }
     } catch (error) {
-      console.warn('localStorage access failed:', error);
+      console.warn('[earningsStore] localStorage access failed:', error);
     }
     return null;
   },
@@ -36,8 +39,8 @@ const storage = {
           if (parsed !== null && parsed !== undefined) {
             localStorage.setItem(key, value);
           }
-        } catch (jsonError) {
-          console.warn('Attempted to store invalid JSON, skipping:', jsonError);
+        } catch {
+          console.warn('[earningsStore] Attempted to store invalid JSON, skipping');
         }
       }
     } catch (error) {
