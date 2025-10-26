@@ -9,6 +9,7 @@ import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
 import { theme } from "../constants/theme";
 import { NewsStoreProvider, useNewsStore } from "../store/newsStore";
 import { DropdownProvider } from "../store/dropdownStore";
+import { EarningsStoreProvider } from "../store/earningsStore";
 import DropBanner from "../components/DropBanner";
 import AlertSearchBar from "../components/AlertSearchBar";
 
@@ -306,11 +307,13 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <NewsStoreProvider>
-          <DropdownProvider>
-            <GestureHandlerRootView style={styles.container}>
-              <AppWithBanners />
-            </GestureHandlerRootView>
-          </DropdownProvider>
+          <EarningsStoreProvider>
+            <DropdownProvider>
+              <GestureHandlerRootView style={styles.container}>
+                <AppWithBanners />
+              </GestureHandlerRootView>
+            </DropdownProvider>
+          </EarningsStoreProvider>
         </NewsStoreProvider>
       </SafeAreaProvider>
     </QueryClientProvider>
