@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, BackHandler } from 'react-native';
 import { useLocalSearchParams, router, useNavigation, useFocusEffect } from 'expo-router';
 import { ArrowLeft, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,7 +88,6 @@ export default function TickerDetailPage() {
   const { 
     state, 
     criticalAlerts,
-    activeFolderId,
     addTickerToFolder,
     createFolder,
   } = useNewsStore();
@@ -102,7 +101,6 @@ export default function TickerDetailPage() {
   const [earningsModalVisible, setEarningsModalVisible] = useState(false);
   const [selectedEconEvent, setSelectedEconEvent] = useState<EconItem | null>(null);
   const [econModalVisible, setEconModalVisible] = useState(false);
-  const [folderPickerVisible, setFolderPickerVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'news' | 'earnings' | 'econ'>('news');
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('today');
@@ -112,22 +110,18 @@ export default function TickerDetailPage() {
 
   useEffect(() => {
     if (shouldCloseDropdown(dropdownId)) {
-      setFolderPickerVisible(false);
       setCreateFolderModalVisible(false);
     }
   }, [shouldCloseDropdown, dropdownId]);
 
   useEffect(() => {
-    const isAnyOpen = folderPickerVisible || createFolderModalVisible;
-    registerDropdown(dropdownId, isAnyOpen);
-  }, [folderPickerVisible, createFolderModalVisible, dropdownId, registerDropdown]);
+    registerDropdown(dropdownId, createFolderModalVisible);
+  }, [createFolderModalVisible, dropdownId, registerDropdown]);
 
   const tickerUpper = ticker?.toUpperCase() || '';
   const companyName = COMPANY_NAMES[tickerUpper] || `${tickerUpper} Corporation`;
   const companyIndustry = COMPANY_INDUSTRY[tickerUpper] || 'Unknown Industry';
   const companyOverview = COMPANY_OVERVIEW[tickerUpper] || `${companyName} operates in various market segments providing products and services worldwide.`;
-
-  const watchlistFolders = useMemo(() => state.watchlistFolders || [], [state.watchlistFolders]);
 
   const timeRangeInMs = useMemo(() => {
     if (selectedTimeRange === 'custom' && customTimeRange) {
@@ -306,35 +300,11 @@ export default function TickerDetailPage() {
     }, [goSmartBack])
   );
 
-  const isInWatchlist = useMemo(() => {
-    return watchlistFolders.some(folder => folder.tickers.includes(tickerUpper));
-  }, [watchlistFolders, tickerUpper]);
-
-  const handleAddToWatchlist = () => {
-    if (isInWatchlist) return;
-    if (watchlistFolders.length === 0) {
-      setCreateFolderModalVisible(true);
-    } else {
-      setFolderPickerVisible(true);
-    }
-  };
-
-  const handleSelectFolder = async (folderId: string) => {
-    const success = await addTickerToFolder(folderId, tickerUpper);
-    if (success) {
-      const folder = watchlistFolders.find(f => f.id === folderId);
-      Alert.alert('Success', `Added ${tickerUpper} to ${folder?.name || 'folder'}`);
-    } else {
-      Alert.alert('Info', `${tickerUpper} is already in this folder`);
-    }
-    setFolderPickerVisible(false);
-  };
-
   const handleCreateFolder = async (name: string) => {
     const folderId = await createFolder(name, false);
     const success = await addTickerToFolder(folderId, tickerUpper);
     if (success) {
-      Alert.alert('Success', `Created folder "${name}" and added ${tickerUpper}`);
+      console.log(`Created folder "${name}" and added ${tickerUpper}`);
     }
     setCreateFolderModalVisible(false);
   };
@@ -413,22 +383,10 @@ export default function TickerDetailPage() {
           <Text style={styles.companyName}>{companyName}</Text>
           <Text style={styles.companyIndustry}>{companyIndustry}</Text>
           <View style={styles.watchlistButtonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.watchlistButton,
-                isInWatchlist && styles.watchlistButtonAdded,
-              ]}
-              onPress={handleAddToWatchlist}
-              activeOpacity={isInWatchlist ? 1 : 0.7}
-              disabled={isInWatchlist}
-            >
-              <Text style={[
-                styles.watchlistButtonText,
-                isInWatchlist && styles.watchlistButtonTextAdded,
-              ]}>
-                {isInWatchlist ? 'Added to Watchlist' : 'Add to Watchlist +'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.watchlistPill}>
+              <Text style={styles.watchlistPillText}>Added to Watchlist</Text>
+            </View>
+            <WatchlistFolderPicker symbol={tickerUpper} />
           </View>
           <Text style={styles.companyOverview}>{companyOverview}</Text>
         </View>
@@ -436,7 +394,7 @@ export default function TickerDetailPage() {
         <ScheduledEarningsCard
           symbol={tickerUpper}
           companyFiscalStartMonth={1}
-          events={earningsItems}
+          events={earningsItems as any}
         />
 
         <View style={styles.tabsContainer}>
@@ -754,22 +712,6 @@ export default function TickerDetailPage() {
         onTickerPress={handleTickerPress}
       />
 
-      <WatchlistFolderPicker
-        visible={folderPickerVisible}
-        folders={watchlistFolders.map(f => ({
-          id: f.id,
-          name: f.name,
-          tickerCount: f.tickers.length,
-        }))}
-        activeFolderId={activeFolderId}
-        onSelectFolder={handleSelectFolder}
-        onCreateFolder={() => {
-          setFolderPickerVisible(false);
-          setTimeout(() => setCreateFolderModalVisible(true), 100);
-        }}
-        onClose={() => setFolderPickerVisible(false)}
-      />
-
       <CreateFolderModal
         visible={createFolderModalVisible}
         mode="create"
@@ -1082,28 +1024,22 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   watchlistButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 14,
   },
-  watchlistButton: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 6,
+  watchlistPill: {
     borderWidth: 1,
-    borderColor: '#FFD75A',
-    backgroundColor: 'rgba(255, 215, 90, 0.1)',
+    borderColor: '#3a2f14',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  watchlistButtonAdded: {
-    borderColor: '#555555',
-    backgroundColor: 'rgba(85, 85, 85, 0.2)',
-  },
-  watchlistButtonText: {
+  watchlistPillText: {
+    color: '#E7C15F',
+    fontWeight: '700' as const,
     fontSize: 12,
-    fontWeight: '600',
-    color: '#FFD75A',
-  },
-  watchlistButtonTextAdded: {
-    color: '#999999',
   },
   companyOverview: {
     fontSize: 13,
