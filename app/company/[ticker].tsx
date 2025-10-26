@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
 import { useLocalSearchParams, router, useNavigation, useFocusEffect } from 'expo-router';
 import { ArrowLeft, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FeedItem, CriticalAlert, EarningsItem, EconItem } from '../../types/news';
+import { FeedItem, CriticalAlert, EarningsItem } from '../../types/news';
 import NewsCard from '../../components/NewsCard';
 import NewsArticleModal from '../../components/NewsArticleModal';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../../components/TimeRangeFilterPill';
@@ -54,23 +54,6 @@ const COMPANY_OVERVIEW: Record<string, string> = {
   'WMT': 'Walmart Inc. engages in the operation of retail, wholesale, and other units worldwide. The company operates through three segments: Walmart U.S., Walmart International, and Sam\'s Club.',
 };
 
-const SECTOR_ETF_MAP: Record<string, string> = {
-  'AAPL': 'XLK',
-  'NVDA': 'XLK',
-  'MSFT': 'XLK',
-  'GOOGL': 'XLK',
-  'META': 'XLK',
-  'AMZN': 'XLY',
-  'TSLA': 'XLY',
-  'JPM': 'XLF',
-  'BAC': 'XLF',
-  'WMT': 'XLY',
-};
-
-const BROAD_ETFS = ['SPY', 'QQQ', 'DIA', 'IWM', 'DXY'];
-const SECTOR_ETFS = ['XLK', 'XLF', 'XLY', 'XLI', 'XLE', 'XLV', 'XLP', 'XLU', 'XLB', 'XLRE'];
-const US_LISTED_TICKERS = Object.keys(COMPANY_NAMES);
-
 let lastBackPressTime = 0;
 const BACK_DEBOUNCE_MS = 500;
 
@@ -93,16 +76,12 @@ export default function TickerDetailPage() {
   } = useNewsStore();
 
   const earningsItems = state.earnings || [];
-  const econItems = state.econ || [];
 
   const [selectedArticle, setSelectedArticle] = useState<FeedItem | CriticalAlert | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedEarnings, setSelectedEarnings] = useState<EarningsItem | null>(null);
   const [earningsModalVisible, setEarningsModalVisible] = useState(false);
-  const [selectedEconEvent, setSelectedEconEvent] = useState<EconItem | null>(null);
-  const [econModalVisible, setEconModalVisible] = useState(false);
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<'news' | 'earnings' | 'econ'>('news');
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('today');
   const [customTimeRange, setCustomTimeRange] = useState<CustomTimeRange | undefined>(undefined);
 
@@ -195,47 +174,15 @@ export default function TickerDetailPage() {
 
   const companyEarnings = useMemo(() => {
     const now = Date.now();
+    const next12Months = now + (365 * 24 * 60 * 60 * 1000);
     return earningsItems
       .filter(item => item.ticker === tickerUpper)
       .filter(item => {
         const eventTime = new Date(item.scheduled_at).getTime();
-        return eventTime >= now;
+        return eventTime >= now && eventTime <= next12Months;
       })
       .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
   }, [earningsItems, tickerUpper]);
-
-  const relevantEconEvents = useMemo(() => {
-    const isUSListed = US_LISTED_TICKERS.includes(tickerUpper);
-    const sectorETF = SECTOR_ETF_MAP[tickerUpper];
-    const isBroadETF = BROAD_ETFS.includes(tickerUpper);
-    const isSectorETF = SECTOR_ETFS.includes(tickerUpper);
-
-    return econItems
-      .filter(item => {
-        const eventTime = new Date(item.scheduled_at).getTime();
-        const cutoffTime = Date.now() - timeRangeInMs;
-        if (eventTime <= cutoffTime) return false;
-
-        if (isBroadETF || isSectorETF) {
-          return item.impact === 'High' && item.country === 'US';
-        }
-
-        if (isUSListed) {
-          const broadETFRelated = BROAD_ETFS.some(etf => 
-            item.name.includes(etf) || item.id.includes(etf.toLowerCase())
-          );
-          if (broadETFRelated) return true;
-        }
-
-        if (sectorETF) {
-          const sectorRelated = item.name.includes(sectorETF) || item.id.includes(sectorETF.toLowerCase());
-          if (sectorRelated) return true;
-        }
-
-        return false;
-      })
-      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
-  }, [econItems, timeRangeInMs, tickerUpper]);
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -324,21 +271,10 @@ export default function TickerDetailPage() {
     setEarningsModalVisible(true);
   };
 
-  const handleEconPress = (event: EconItem) => {
-    setSelectedEconEvent(event);
-    setEconModalVisible(true);
-  };
-
-  const handleExpandTo7Days = () => {
-    setSelectedTimeRange('week_to_date');
-    setCustomTimeRange(undefined);
-  };
-
   const handleTickerPress = (ticker: string) => {
     if (ticker === tickerUpper) return;
     
     const stateToPreserve = {
-      activeTab,
       selectedTimeRange,
       customTimeRange,
       scrollY: currentScrollYRef.current,
@@ -348,17 +284,21 @@ export default function TickerDetailPage() {
     router.push(`/company/${ticker}`);
   };
 
-
-
-  const headerHeight = Platform.select({ web: 64, default: 56 });
-  const backRowHeight = 44;
-
   return (
     <View style={styles.container}>
-      <View style={[styles.fixedBackRow, { top: insets.top + headerHeight }]}>
-        <View style={styles.goldDivider} />
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { 
+          paddingBottom: insets.bottom + 24,
+        }]}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        <View style={styles.goldDividerTop} />
         <TouchableOpacity
-          style={styles.backButtonFixed}
+          style={styles.backButton}
           onPress={goSmartBack}
           activeOpacity={0.7}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -366,19 +306,7 @@ export default function TickerDetailPage() {
           <ArrowLeft size={18} color="#FFD75A" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-      </View>
 
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { 
-          paddingTop: insets.top + headerHeight + backRowHeight + 16,
-          paddingBottom: insets.bottom + 24,
-        }]}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
         <View style={styles.companyOverviewSection}>
           <Text style={styles.companyName}>{companyName}</Text>
           <Text style={styles.companyIndustry}>{companyIndustry}</Text>
@@ -397,48 +325,88 @@ export default function TickerDetailPage() {
           events={earningsItems as any}
         />
 
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'news' && styles.tabActive]}
-            onPress={() => setActiveTab('news')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.tabText, activeTab === 'news' && styles.tabTextActive]}>News</Text>
-          </TouchableOpacity>
-          {companyEarnings.length > 0 && (
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'earnings' && styles.tabActive]}
-              onPress={() => setActiveTab('earnings')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.tabText, activeTab === 'earnings' && styles.tabTextActive]}>Earnings</Text>
-            </TouchableOpacity>
-          )}
-          {relevantEconEvents.length > 0 && (
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'econ' && styles.tabActive]}
-              onPress={() => setActiveTab('econ')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.tabText, activeTab === 'econ' && styles.tabTextActive]}>Econ Events</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {activeTab !== 'earnings' && (
-          <View style={styles.timeFilterContainer}>
-            <TimeRangeFilterPill
-              selectedRange={selectedTimeRange}
-              customRange={customTimeRange}
-              onRangeChange={(range, custom) => {
-                setSelectedTimeRange(range);
-                setCustomTimeRange(custom);
-              }}
-            />
-          </View>
+        {companyEarnings.length > 0 && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <View style={styles.topDivider} />
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>UPCOMING EARNINGS</Text>
+              </View>
+              <View style={styles.bottomDivider} />
+            </View>
+            <View style={styles.earningsTable}>
+              {companyEarnings.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.earningsRow}
+                  onPress={() => handleEarningsPress(item)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.earningsHeader}>
+                    <View style={styles.earningsLeft}>
+                      <Text style={styles.earningsTicker}>{item.ticker}</Text>
+                      <View style={styles.earningsSessionPill}>
+                        <Text style={styles.earningsSessionText}>{item.report_time}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.earningsDate}>
+                      {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </View>
+                  {item.verdict && (
+                    <View style={styles.earningsVerdict}>
+                      <View style={[
+                        styles.verdictBadge,
+                        item.verdict === 'Beat' && styles.verdictBeatBadge,
+                        item.verdict === 'Miss' && styles.verdictMissBadge,
+                      ]}>
+                        <Text style={[
+                          styles.verdictBadgeText,
+                          item.verdict === 'Beat' && styles.verdictBeatText,
+                          item.verdict === 'Miss' && styles.verdictMissText,
+                        ]}>{item.verdict.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                  )}
+                  <View style={styles.earningsMetrics}>
+                    {item.actual_eps !== undefined && (
+                      <View style={styles.metric}>
+                        <Text style={styles.metricLabel}>EPS</Text>
+                        <Text style={styles.metricValue}>${item.actual_eps.toFixed(2)}</Text>
+                        {item.cons_eps !== undefined && (
+                          <Text style={styles.metricCons}>(est. ${item.cons_eps.toFixed(2)})</Text>
+                        )}
+                      </View>
+                    )}
+                    {item.actual_rev !== undefined && (
+                      <View style={styles.metric}>
+                        <Text style={styles.metricLabel}>Revenue</Text>
+                        <Text style={styles.metricValue}>${item.actual_rev.toFixed(1)}B</Text>
+                        {item.cons_rev !== undefined && (
+                          <Text style={styles.metricCons}>(est. ${item.cons_rev.toFixed(1)}B)</Text>
+                        )}
+                      </View>
+                    )}
+                    {item.cons_eps !== undefined && item.actual_eps === undefined && (
+                      <View style={styles.metric}>
+                        <Text style={styles.metricLabel}>Expected EPS</Text>
+                        <Text style={styles.metricValue}>${item.cons_eps.toFixed(2)}</Text>
+                      </View>
+                    )}
+                    {item.cons_rev !== undefined && item.actual_rev === undefined && (
+                      <View style={styles.metric}>
+                        <Text style={styles.metricLabel}>Expected Revenue</Text>
+                        <Text style={styles.metricValue}>${item.cons_rev.toFixed(1)}B</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
         )}
 
-        {activeTab === 'news' && companyAlerts.length > 0 && (
+        {companyAlerts.length > 0 && (
           <>
             <View style={styles.sectionHeaderContainer}>
               <View style={styles.topDivider} />
@@ -447,7 +415,7 @@ export default function TickerDetailPage() {
               </View>
               <View style={styles.bottomDivider} />
             </View>
-            {companyAlerts.map((alert, index) => {
+            {companyAlerts.map((alert) => {
               const otherTickers = alert.tickers.filter(t => t !== tickerUpper);
               return (
                 <View key={alert.id} style={styles.alertCard}>
@@ -505,194 +473,39 @@ export default function TickerDetailPage() {
           </>
         )}
 
-        {activeTab === 'news' && (
-          <>
-            <View style={styles.sectionHeaderContainer}>
-              <View style={styles.topDivider} />
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>ALL NEWS FEED</Text>
-              </View>
-              <View style={styles.bottomDivider} />
-            </View>
+        <View style={styles.sectionHeaderContainer}>
+          <View style={styles.topDivider} />
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>ALL NEWS FEED</Text>
+          </View>
+          <View style={styles.bottomDivider} />
+        </View>
+        <View style={styles.timeFilterContainer}>
+          <TimeRangeFilterPill
+            selectedRange={selectedTimeRange}
+            customRange={customTimeRange}
+            onRangeChange={(range, custom) => {
+              setSelectedTimeRange(range);
+              setCustomTimeRange(custom);
+            }}
+          />
+        </View>
 
-            {companyNews.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No news for {tickerUpper} in selected time range</Text>
-              </View>
-            ) : (
-              <View style={styles.newsTable}>
-                {companyNews.map(item => (
-                  <NewsCard
-                    key={item.id}
-                    item={item}
-                    onTickerPress={handleTickerPress}
-                    onPress={() => handleNewsCardPress(item)}
-                  />
-                ))}
-              </View>
-            )}
-          </>
-        )}
-
-        {activeTab === 'earnings' && (
-          <>
-            <View style={styles.sectionHeaderContainer}>
-              <View style={styles.topDivider} />
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>EARNINGS</Text>
-              </View>
-              <View style={styles.bottomDivider} />
-            </View>
-
-            {companyEarnings.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No upcoming earnings scheduled.</Text>
-              </View>
-            ) : (
-              <View style={styles.earningsTable}>
-                {companyEarnings.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.earningsRow}
-                    onPress={() => handleEarningsPress(item)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.earningsHeader}>
-                      <View style={styles.earningsLeft}>
-                        <Text style={styles.earningsTicker}>{item.ticker}</Text>
-                        <View style={styles.earningsSessionPill}>
-                          <Text style={styles.earningsSessionText}>{item.report_time}</Text>
-                        </View>
-                      </View>
-                      <Text style={styles.earningsDate}>
-                        {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </Text>
-                    </View>
-                    {item.verdict && (
-                      <View style={styles.earningsVerdict}>
-                        <View style={[
-                          styles.verdictBadge,
-                          item.verdict === 'Beat' && styles.verdictBeatBadge,
-                          item.verdict === 'Miss' && styles.verdictMissBadge,
-                        ]}>
-                          <Text style={[
-                            styles.verdictBadgeText,
-                            item.verdict === 'Beat' && styles.verdictBeatText,
-                            item.verdict === 'Miss' && styles.verdictMissText,
-                          ]}>{item.verdict.toUpperCase()}</Text>
-                        </View>
-                      </View>
-                    )}
-                    <View style={styles.earningsMetrics}>
-                      {item.actual_eps !== undefined && (
-                        <View style={styles.metric}>
-                          <Text style={styles.metricLabel}>EPS</Text>
-                          <Text style={styles.metricValue}>${item.actual_eps.toFixed(2)}</Text>
-                          {item.cons_eps !== undefined && (
-                            <Text style={styles.metricCons}>(est. ${item.cons_eps.toFixed(2)})</Text>
-                          )}
-                        </View>
-                      )}
-                      {item.actual_rev !== undefined && (
-                        <View style={styles.metric}>
-                          <Text style={styles.metricLabel}>Revenue</Text>
-                          <Text style={styles.metricValue}>${item.actual_rev.toFixed(1)}B</Text>
-                          {item.cons_rev !== undefined && (
-                            <Text style={styles.metricCons}>(est. ${item.cons_rev.toFixed(1)}B)</Text>
-                          )}
-                        </View>
-                      )}
-                      {item.cons_eps !== undefined && item.actual_eps === undefined && (
-                        <View style={styles.metric}>
-                          <Text style={styles.metricLabel}>Expected EPS</Text>
-                          <Text style={styles.metricValue}>${item.cons_eps.toFixed(2)}</Text>
-                        </View>
-                      )}
-                      {item.cons_rev !== undefined && item.actual_rev === undefined && (
-                        <View style={styles.metric}>
-                          <Text style={styles.metricLabel}>Expected Revenue</Text>
-                          <Text style={styles.metricValue}>${item.cons_rev.toFixed(1)}B</Text>
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </>
-        )}
-
-        {activeTab === 'econ' && (
-          <>
-            <View style={styles.sectionHeaderContainer}>
-              <View style={styles.topDivider} />
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>ECONOMIC EVENTS</Text>
-              </View>
-              <View style={styles.bottomDivider} />
-            </View>
-
-            {relevantEconEvents.length === 0 ? (
-              <View style={styles.emptyState}>
-                <TouchableOpacity onPress={handleExpandTo7Days} activeOpacity={0.7}>
-                  <Text style={styles.emptyText}>No events in this range</Text>
-                  <Text style={styles.emptyTextLink}>• Expand to 7 Days</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.econTable}>
-                {relevantEconEvents.map(item => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.econRow}
-                    onPress={() => handleEconPress(item)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.econHeader}>
-                      <Text style={styles.econName}>{item.name}</Text>
-                      <View style={[
-                        styles.econImpactBadge,
-                        item.impact === 'High' && styles.econImpactHigh,
-                        item.impact === 'Medium' && styles.econImpactMedium,
-                        item.impact === 'Low' && styles.econImpactLow,
-                      ]}>
-                        <Text style={styles.econImpactText}>{item.impact.toUpperCase()}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.econTime}>
-                      {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {new Date(item.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                    <View style={styles.econMetrics}>
-                      {item.actual !== undefined && item.actual !== null && (
-                        <View style={styles.econMetric}>
-                          <Text style={styles.econMetricLabel}>Actual</Text>
-                          <Text style={styles.econMetricValue}>
-                            {typeof item.actual === 'number' ? item.actual.toFixed(1) : String(item.actual)}
-                          </Text>
-                        </View>
-                      )}
-                      {item.forecast !== undefined && (
-                        <View style={styles.econMetric}>
-                          <Text style={styles.econMetricLabel}>Forecast</Text>
-                          <Text style={styles.econMetricValue}>
-                            {typeof item.forecast === 'number' ? item.forecast.toFixed(1) : String(item.forecast)}
-                          </Text>
-                        </View>
-                      )}
-                      {item.previous !== undefined && (
-                        <View style={styles.econMetric}>
-                          <Text style={styles.econMetricLabel}>Previous</Text>
-                          <Text style={styles.econMetricValue}>
-                            {typeof item.previous === 'number' ? item.previous.toFixed(1) : String(item.previous)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </>
+        {companyNews.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No news for {tickerUpper} in selected time range</Text>
+          </View>
+        ) : (
+          <View style={styles.newsTable}>
+            {companyNews.map(item => (
+              <NewsCard
+                key={item.id}
+                item={item}
+                onTickerPress={handleTickerPress}
+                onPress={() => handleNewsCardPress(item)}
+              />
+            ))}
+          </View>
         )}
 
         <View style={{ height: 80 }} />
@@ -731,15 +544,6 @@ export default function TickerDetailPage() {
         onClose={() => {
           setEarningsModalVisible(false);
           setSelectedEarnings(null);
-        }}
-      />
-
-      <EconEventSheet
-        visible={econModalVisible}
-        event={selectedEconEvent}
-        onClose={() => {
-          setEconModalVisible(false);
-          setSelectedEconEvent(null);
         }}
       />
     </View>
@@ -990,12 +794,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-  emptyTextLink: {
-    fontSize: 14,
-    color: '#FFD75A',
-    textAlign: 'center',
-    fontWeight: '600',
-  },
   scrollToTopButton: {
     position: 'absolute',
     right: 20,
@@ -1052,60 +850,23 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.85)',
   },
-  fixedBackRow: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 44,
-    zIndex: 9999,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-  },
-  goldDivider: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+  goldDividerTop: {
     height: 1,
     backgroundColor: '#FFD75A',
   },
-  backButtonFixed: {
+  backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 16,
-    alignSelf: 'flex-start',
+    paddingTop: 16,
+    paddingBottom: 16,
+    minHeight: 44,
+    backgroundColor: '#000000',
   },
   backText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFD75A',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
-  },
-  tab: {
-    paddingBottom: 4,
-  },
-  tabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#FFD75A',
-  },
-  tabText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#777777',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    fontFamily: Platform.select({ ios: 'Courier', android: 'monospace', default: 'monospace' }) as 'Courier' | 'monospace',
-  },
-  tabTextActive: {
     color: '#FFD75A',
   },
   earningsTable: {
@@ -1203,81 +964,11 @@ const styles = StyleSheet.create({
     color: '#777777',
     marginTop: 2,
   },
-  econTable: {
-    backgroundColor: '#000000',
-  },
-  econRow: {
-    backgroundColor: '#000000',
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  econHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  econName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    flex: 1,
-  },
-  econImpactBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 2,
-    borderWidth: 1,
-    marginLeft: 8,
-  },
-  econImpactHigh: {
-    borderColor: '#FF4444',
-  },
-  econImpactMedium: {
-    borderColor: '#FFD75A',
-  },
-  econImpactLow: {
-    borderColor: '#666666',
-  },
-  econImpactText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#999999',
-    fontFamily: 'monospace',
-  },
-  econTime: {
-    fontSize: 11,
-    color: '#777777',
-    fontFamily: 'monospace',
-    marginBottom: 8,
-  },
-  econMetrics: {
-    flexDirection: 'row',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  econMetric: {
-    flexDirection: 'column',
-  },
-  econMetricLabel: {
-    fontSize: 9,
-    color: '#666666',
-    marginBottom: 2,
-  },
-  econMetricValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    fontFamily: 'monospace',
-  },
   timeFilterContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     alignItems: 'flex-end',
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
+    backgroundColor: '#000000',
   },
   modalOverlay: {
     position: 'absolute',
@@ -1385,112 +1076,3 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
 });
-
-type EconEventSheetProps = {
-  visible: boolean;
-  event: EconItem | null;
-  onClose: () => void;
-};
-
-function EconEventSheet({ visible, event, onClose }: EconEventSheetProps) {
-  if (!event || !visible) return null;
-
-  const scheduledDate = new Date(event.scheduled_at);
-  const dateStr = scheduledDate.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
-  const timeStr = scheduledDate.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-
-  const hasActual = event.actual !== null && event.actual !== undefined;
-
-  return (
-    <TouchableOpacity
-      style={styles.modalOverlay}
-      activeOpacity={1}
-      onPress={onClose}
-    >
-      <View style={styles.modalContentWrapper}>
-        <TouchableOpacity
-          activeOpacity={1}
-          style={styles.earningsSheetContent}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{event.name}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.sheetSection}>
-            <View style={styles.sheetRow}>
-              <Text style={styles.sheetLabel}>Country</Text>
-              <Text style={styles.sheetValue}>{event.country}</Text>
-            </View>
-            <View style={styles.sheetRow}>
-              <Text style={styles.sheetLabel}>Scheduled</Text>
-              <Text style={styles.sheetValue}>{dateStr} • {timeStr}</Text>
-            </View>
-            <View style={styles.sheetRow}>
-              <Text style={styles.sheetLabel}>Impact</Text>
-              <View style={[
-                styles.econImpactBadge,
-                event.impact === 'High' && styles.econImpactHigh,
-                event.impact === 'Medium' && styles.econImpactMedium,
-                event.impact === 'Low' && styles.econImpactLow,
-              ]}>
-                <Text style={styles.econImpactText}>{event.impact.toUpperCase()}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.sheetSection}>
-            <Text style={styles.sheetSectionTitle}>Data</Text>
-            {event.forecast !== undefined && (
-              <View style={styles.sheetMetricRow}>
-                <Text style={styles.sheetMetricLabel}>Forecast</Text>
-                <Text style={styles.sheetMetricValue}>
-                  {typeof event.forecast === 'number' ? event.forecast.toFixed(1) + '%' : String(event.forecast)}
-                </Text>
-              </View>
-            )}
-            {event.previous !== undefined && (
-              <View style={styles.sheetMetricRow}>
-                <Text style={styles.sheetMetricLabel}>Previous</Text>
-                <Text style={styles.sheetMetricValue}>
-                  {typeof event.previous === 'number' ? event.previous.toFixed(1) + '%' : String(event.previous)}
-                </Text>
-              </View>
-            )}
-            {hasActual && (
-              <View style={styles.sheetMetricRow}>
-                <Text style={styles.sheetMetricLabel}>Actual</Text>
-                <Text style={[styles.sheetMetricValue, { color: '#00FF66' }]}>
-                  {typeof event.actual === 'number' ? event.actual.toFixed(1) + '%' : String(event.actual)}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {hasActual && event.forecast !== undefined && typeof event.actual === 'number' && typeof event.forecast === 'number' && (
-            <View style={styles.sheetSection}>
-              <Text style={styles.sheetSectionTitle}>Result</Text>
-              <Text style={styles.sheetValue}>
-                {event.actual > event.forecast ? 'Above Forecast' : 
-                 event.actual < event.forecast ? 'Below Forecast' : 
-                 'Inline with Forecast'}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-}
