@@ -16,6 +16,7 @@ import TickerOrderModal from '../components/TickerOrderModal';
 import ManageTickersModal from '../components/ManageTickersModal';
 import { generateMockData } from '../utils/mockData';
 import { useNewsStore } from '../store/newsStore';
+import { filterFeedItems } from '../utils/impactFilter';
 import { useScrollReset } from '../utils/useScrollReset';
 import { useNavigationStore } from '../store/navigationStore';
 
@@ -77,6 +78,7 @@ export default function WatchlistScreen() {
     state, 
     criticalAlerts,
     activeFolderId,
+    impactLevel,
     setActiveFolder,
     createFolder,
     deleteFolder,
@@ -108,7 +110,8 @@ export default function WatchlistScreen() {
 
   useEffect(() => {
     const mockData = generateMockData();
-    setFeedItems(mockData.feedItems);
+    const filteredItems = filterFeedItems(mockData.feedItems, impactLevel);
+    setFeedItems(filteredItems);
     
     const interval = setInterval(() => {
       if (activeTickers.length === 0) return;
@@ -139,11 +142,14 @@ export default function WatchlistScreen() {
         },
       };
       
-      setFeedItems(prev => [newNewsItem, ...prev.slice(0, 199)]);
+      setFeedItems(prev => {
+        const allItems = [newNewsItem, ...prev];
+        return filterFeedItems(allItems, impactLevel).slice(0, 200);
+      });
     }, 18000);
 
     return () => clearInterval(interval);
-  }, [activeTickers]);
+  }, [activeTickers, impactLevel]);
 
   const tickerDataMap = useMemo(() => {
     const getWeekStart = (date: Date): Date => {

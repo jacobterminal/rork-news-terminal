@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppFilters, AppState, FeedItem, CriticalAlert, WatchlistFolder } from '../types/news';
 import { generateMockData } from '../utils/mockData';
 import { calculateScore, deduplicateItems } from '../utils/newsUtils';
+import { getNotificationPreferences, filterFeedItems, filterCriticalAlerts, ImpactLevel } from '../utils/impactFilter';
 
 // Simple storage implementation for demo
 const storage = {
@@ -163,11 +164,15 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
   const [highlightedAlert, setHighlightedAlert] = useState<string | null>(null);
   const [savedArticles, setSavedArticles] = useState<FeedItem[]>([]);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const [impactLevel, setImpactLevel] = useState<ImpactLevel>('HIGH');
 
   const loadPersistedData = useCallback(async () => {
     if (!isHydrated) return;
     
     try {
+      const prefs = await getNotificationPreferences();
+      setImpactLevel(prefs.impactLevel);
+      
       const [filtersData, watchlistData, watchlistFoldersData, activeFolderData, uiData, savedArticlesData] = await Promise.allSettled([
         storage.getItem(STORAGE_KEYS.FILTERS),
         storage.getItem(STORAGE_KEYS.WATCHLIST),
@@ -793,9 +798,13 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
       return [];
     }
     
-    if (filters.all) return feedItems;
+    let filtered = feedItems;
     
-    return feedItems.filter(item => {
+    filtered = filterFeedItems(filtered, impactLevel);
+    
+    if (filters.all) return filtered;
+    
+    return filtered.filter(item => {
       if (!item) return false;
       
       // Traditional filters
@@ -818,7 +827,7 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
       
       return true;
     });
-  }, [state, getTickerSector]);
+  }, [state, getTickerSector, impactLevel]);
 
   // Dev controls
   const injectTestItem = useCallback((type: 'fed' | 'earnings') => {
@@ -894,15 +903,26 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
     setCriticalAlerts(prev => [criticalAlert, ...prev].slice(0, 10));
   }, []);
 
+  const updateImpactLevel = useCallback(async (newLevel: ImpactLevel) => {
+    setImpactLevel(newLevel);
+    console.log('[NewsStore] Impact level updated to:', newLevel);
+  }, []);
+
+  const getFilteredCriticalAlerts = useCallback(() => {
+    return filterCriticalAlerts(criticalAlerts);
+  }, [criticalAlerts]);
+
   return useMemo(() => ({
     state,
     isHydrated,
     wsConnected,
     notifications,
-    criticalAlerts,
+    criticalAlerts: getFilteredCriticalAlerts(),
     highlightedAlert,
     savedArticles,
     activeFolderId,
+    impactLevel,
+    updateImpactLevel,
     setFilters,
     openTicker,
     closeTicker,
@@ -927,5 +947,5 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
     saveArticle,
     unsaveArticle,
     isArticleSaved,
-  }), [state, isHydrated, wsConnected, notifications, criticalAlerts, highlightedAlert, savedArticles, activeFolderId, setFilters, openTicker, closeTicker, getTickerHeadlines, getFilteredItems, injectTestItem, getTickerSector, dismissNotification, handleNotificationPress, dismissBanner, getActiveBanners, setHighlightedAlert, clearHighlightedAlert, setActiveFolder, createFolder, deleteFolder, renameFolder, toggleFolderExpansion, addTickerToFolder, removeTickerFromFolder, reorderTickers, saveArticle, unsaveArticle, isArticleSaved]);
+  }), [state, isHydrated, wsConnected, notifications, criticalAlerts, highlightedAlert, savedArticles, activeFolderId, impactLevel, updateImpactLevel, setFilters, openTicker, closeTicker, getTickerHeadlines, getFilteredItems, injectTestItem, getTickerSector, dismissNotification, handleNotificationPress, dismissBanner, getActiveBanners, setHighlightedAlert, clearHighlightedAlert, setActiveFolder, createFolder, deleteFolder, renameFolder, toggleFolderExpansion, addTickerToFolder, removeTickerFromFolder, reorderTickers, saveArticle, unsaveArticle, isArticleSaved, getFilteredCriticalAlerts]);
 });

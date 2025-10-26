@@ -12,6 +12,7 @@ import WatchlistFolderPicker from '../../components/WatchlistFolderPicker';
 import CreateFolderModal from '../../components/CreateFolderModal';
 import ScheduledEarningsCard from '../../components/ScheduledEarningsCard';
 import { useNewsStore } from '../../store/newsStore';
+import { filterFeedItems } from '../../utils/impactFilter';
 import { useDropdown } from '../../store/dropdownStore';
 import { useNavigationStore } from '../../store/navigationStore';
 
@@ -81,6 +82,7 @@ export default function TickerDetailPage() {
   const { 
     state, 
     criticalAlerts,
+    impactLevel,
     addTickerToFolder,
     createFolder,
   } = useNewsStore();
@@ -172,15 +174,18 @@ export default function TickerDetailPage() {
   }, [criticalAlerts, tickerUpper, timeRangeInMs]);
 
   const companyNews = useMemo(() => {
-    return state.feedItems
+    const tickerNews = state.feedItems
       .filter(item => item.tickers && item.tickers.includes(tickerUpper))
       .filter(item => {
         const newsTime = new Date(item.published_at).getTime();
         const cutoffTime = Date.now() - timeRangeInMs;
         return newsTime > cutoffTime;
-      })
-      .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
-  }, [state.feedItems, tickerUpper, timeRangeInMs]);
+      });
+    
+    const filtered = filterFeedItems(tickerNews, impactLevel);
+    
+    return filtered.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+  }, [state.feedItems, tickerUpper, timeRangeInMs, impactLevel]);
 
   const nextEarnings = useMemo(() => {
     const now = Date.now();

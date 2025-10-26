@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { settingsNavigation } from '../../utils/navigationMemory';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNewsStore } from '../../store/newsStore';
+import { ImpactLevel } from '../../utils/impactFilter';
 
 interface ToggleItemProps {
   label: string;
@@ -34,7 +36,8 @@ export default function PushNotificationsScreen() {
   const [pushEconomicEvents, setPushEconomicEvents] = useState(true);
   const [pushEarningsCoverage, setPushEarningsCoverage] = useState(true);
   const [pushWatchlistAlerts, setPushWatchlistAlerts] = useState(true);
-  const [impactLevel, setImpactLevel] = useState<'HIGH' | 'MEDIUM_HIGH'>('HIGH');
+  const [impactLevel, setImpactLevel] = useState<ImpactLevel>('HIGH');
+  const { updateImpactLevel } = useNewsStore();
 
   const allAlertsEnabled = pushCriticalAlerts && pushEconomicEvents && pushEarningsCoverage && pushWatchlistAlerts;
 
@@ -134,9 +137,10 @@ export default function PushNotificationsScreen() {
                 styles.segmentButtonLeft,
                 impactLevel === 'HIGH' && styles.segmentButtonActive
               ]}
-              onPress={() => {
+              onPress={async () => {
                 setImpactLevel('HIGH');
-                updatePushPreferences('impactLevel', 'HIGH');
+                await updatePushPreferences('impactLevel', 'HIGH');
+                await updateImpactLevel('HIGH');
               }}
               activeOpacity={0.7}
             >
@@ -153,9 +157,10 @@ export default function PushNotificationsScreen() {
                 styles.segmentButtonRight,
                 impactLevel === 'MEDIUM_HIGH' && styles.segmentButtonActive
               ]}
-              onPress={() => {
+              onPress={async () => {
                 setImpactLevel('MEDIUM_HIGH');
-                updatePushPreferences('impactLevel', 'MEDIUM_HIGH');
+                await updatePushPreferences('impactLevel', 'MEDIUM_HIGH');
+                await updateImpactLevel('MEDIUM_HIGH');
               }}
               activeOpacity={0.7}
             >
