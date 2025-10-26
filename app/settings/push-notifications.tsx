@@ -34,7 +34,9 @@ export default function PushNotificationsScreen() {
   const [pushEconomicEvents, setPushEconomicEvents] = useState(true);
   const [pushEarningsCoverage, setPushEarningsCoverage] = useState(true);
   const [pushWatchlistAlerts, setPushWatchlistAlerts] = useState(true);
-  const [pushHighImpactOnly, setPushHighImpactOnly] = useState(false);
+  const [impactLevel, setImpactLevel] = useState<'HIGH' | 'MEDIUM_HIGH'>('HIGH');
+
+  const allAlertsEnabled = pushCriticalAlerts && pushEconomicEvents && pushEarningsCoverage && pushWatchlistAlerts;
 
   useEffect(() => {
     const loadPushPreferences = async () => {
@@ -42,11 +44,11 @@ export default function PushNotificationsScreen() {
         const stored = await AsyncStorage.getItem('userSettings.pushPreferences');
         if (stored) {
           const prefs = JSON.parse(stored);
-          setPushCriticalAlerts(prefs.criticalAlerts ?? true);
-          setPushEconomicEvents(prefs.economicEvents ?? true);
-          setPushEarningsCoverage(prefs.earningsCoverage ?? true);
-          setPushWatchlistAlerts(prefs.watchlistAlerts ?? true);
-          setPushHighImpactOnly(prefs.highImpactOnly ?? false);
+          setPushCriticalAlerts(prefs.critical ?? true);
+          setPushEconomicEvents(prefs.economic ?? true);
+          setPushEarningsCoverage(prefs.earnings ?? true);
+          setPushWatchlistAlerts(prefs.watchlist ?? true);
+          setImpactLevel(prefs.impactLevel ?? 'HIGH');
         }
       } catch (error) {
         console.error('[PushNotifications] Failed to load preferences:', error);
@@ -55,7 +57,7 @@ export default function PushNotificationsScreen() {
     loadPushPreferences();
   }, []);
 
-  const updatePushPreferences = async (key: string, value: boolean) => {
+  const updatePushPreferences = async (key: string, value: boolean | string) => {
     try {
       const stored = await AsyncStorage.getItem('userSettings.pushPreferences');
       const prefs = stored ? JSON.parse(stored) : {};
@@ -65,6 +67,17 @@ export default function PushNotificationsScreen() {
     } catch (error) {
       console.error('[PushNotifications] Failed to save preference:', error);
     }
+  };
+
+  const handleAllAlertsToggle = (value: boolean) => {
+    setPushCriticalAlerts(value);
+    setPushEconomicEvents(value);
+    setPushEarningsCoverage(value);
+    setPushWatchlistAlerts(value);
+    updatePushPreferences('critical', value);
+    updatePushPreferences('economic', value);
+    updatePushPreferences('earnings', value);
+    updatePushPreferences('watchlist', value);
   };
 
   const handleBack = () => {
@@ -104,13 +117,69 @@ export default function PushNotificationsScreen() {
         </Text>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>MASTER CONTROL</Text>
+          <ToggleItem
+            label="All Alerts"
+            value={allAlertsEnabled}
+            onValueChange={handleAllAlertsToggle}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>IMPACT LEVEL</Text>
+          <View style={styles.impactLevelRow}>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonLeft,
+                impactLevel === 'HIGH' && styles.segmentButtonActive
+              ]}
+              onPress={() => {
+                setImpactLevel('HIGH');
+                updatePushPreferences('impactLevel', 'HIGH');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                impactLevel === 'HIGH' && styles.segmentButtonTextActive
+              ]}>
+                High only
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonRight,
+                impactLevel === 'MEDIUM_HIGH' && styles.segmentButtonActive
+              ]}
+              onPress={() => {
+                setImpactLevel('MEDIUM_HIGH');
+                updatePushPreferences('impactLevel', 'MEDIUM_HIGH');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                impactLevel === 'MEDIUM_HIGH' && styles.segmentButtonTextActive
+              ]}>
+                Medium + High
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.impactLevelCaption}>
+            Controls which alerts and lists you receive/see.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>BACKGROUND ALERTS</Text>
           <ToggleItem
             label="Critical Alerts"
             value={pushCriticalAlerts}
             onValueChange={(val) => {
               setPushCriticalAlerts(val);
-              updatePushPreferences('criticalAlerts', val);
+              updatePushPreferences('critical', val);
             }}
           />
           <ToggleItem
@@ -118,7 +187,7 @@ export default function PushNotificationsScreen() {
             value={pushEconomicEvents}
             onValueChange={(val) => {
               setPushEconomicEvents(val);
-              updatePushPreferences('economicEvents', val);
+              updatePushPreferences('economic', val);
             }}
           />
           <ToggleItem
@@ -126,7 +195,7 @@ export default function PushNotificationsScreen() {
             value={pushEarningsCoverage}
             onValueChange={(val) => {
               setPushEarningsCoverage(val);
-              updatePushPreferences('earningsCoverage', val);
+              updatePushPreferences('earnings', val);
             }}
           />
           <ToggleItem
@@ -134,15 +203,7 @@ export default function PushNotificationsScreen() {
             value={pushWatchlistAlerts}
             onValueChange={(val) => {
               setPushWatchlistAlerts(val);
-              updatePushPreferences('watchlistAlerts', val);
-            }}
-          />
-          <ToggleItem
-            label="High Impact Only Mode"
-            value={pushHighImpactOnly}
-            onValueChange={(val) => {
-              setPushHighImpactOnly(val);
-              updatePushPreferences('highImpactOnly', val);
+              updatePushPreferences('watchlist', val);
             }}
           />
         </View>
@@ -217,5 +278,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500' as const,
     color: '#FFFFFF',
+  },
+  impactLevelRow: {
+    flexDirection: 'row',
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: '#222',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+  },
+  segmentButtonLeft: {
+    borderRightWidth: 1,
+    borderRightColor: '#222',
+  },
+  segmentButtonRight: {
+    borderLeftWidth: 0,
+  },
+  segmentButtonActive: {
+    backgroundColor: '#FFD75A',
+  },
+  segmentButtonText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#888',
+  },
+  segmentButtonTextActive: {
+    color: '#000',
+  },
+  impactLevelCaption: {
+    fontSize: 13,
+    color: '#666',
+    paddingHorizontal: 4,
+    lineHeight: 18,
   },
 });
