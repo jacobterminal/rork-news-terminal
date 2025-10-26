@@ -39,14 +39,14 @@ export default function InAppNotificationsScreen() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const stored = await AsyncStorage.getItem('userSettings.inAppPrefs');
+        const stored = await AsyncStorage.getItem('settings.inApp');
         if (stored) {
           const prefs = JSON.parse(stored);
-          setCriticalAlerts(prefs.criticalAlerts ?? true);
-          setEarningsAlerts(prefs.earningsAlerts ?? true);
-          setCpiAlerts(prefs.cpiAlerts ?? true);
-          setFedAlerts(prefs.fedAlerts ?? true);
-          setWatchlistAlerts(prefs.watchlistAlerts ?? true);
+          setCriticalAlerts(prefs.critical ?? true);
+          setEarningsAlerts(prefs.earnings ?? true);
+          setCpiAlerts(prefs.cpi ?? true);
+          setFedAlerts(prefs.fed ?? true);
+          setWatchlistAlerts(prefs.watchlist ?? true);
         }
       } catch (error) {
         console.error('[InAppNotifications] Failed to load preferences:', error);
@@ -57,10 +57,10 @@ export default function InAppNotificationsScreen() {
 
   const updatePreference = async (key: string, value: boolean) => {
     try {
-      const stored = await AsyncStorage.getItem('userSettings.inAppPrefs');
+      const stored = await AsyncStorage.getItem('settings.inApp');
       const prefs = stored ? JSON.parse(stored) : {};
       prefs[key] = value;
-      await AsyncStorage.setItem('userSettings.inAppPrefs', JSON.stringify(prefs));
+      await AsyncStorage.setItem('settings.inApp', JSON.stringify(prefs));
       console.log('[InAppNotifications] Preference updated:', key, value);
     } catch (error) {
       console.error('[InAppNotifications] Failed to save preference:', error);
@@ -100,7 +100,7 @@ export default function InAppNotificationsScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <Text style={styles.pageDescription}>
-          Manage which alerts appear while using the app
+          Manage banners shown while using the app. These do not affect push notifications.
         </Text>
 
         <View style={styles.section}>
@@ -110,7 +110,7 @@ export default function InAppNotificationsScreen() {
             value={criticalAlerts}
             onValueChange={(val) => {
               setCriticalAlerts(val);
-              updatePreference('criticalAlerts', val);
+              updatePreference('critical', val);
             }}
           />
           <ToggleItem
@@ -118,7 +118,7 @@ export default function InAppNotificationsScreen() {
             value={earningsAlerts}
             onValueChange={(val) => {
               setEarningsAlerts(val);
-              updatePreference('earningsAlerts', val);
+              updatePreference('earnings', val);
             }}
           />
           <ToggleItem
@@ -126,7 +126,7 @@ export default function InAppNotificationsScreen() {
             value={cpiAlerts}
             onValueChange={(val) => {
               setCpiAlerts(val);
-              updatePreference('cpiAlerts', val);
+              updatePreference('cpi', val);
             }}
           />
           <ToggleItem
@@ -134,7 +134,7 @@ export default function InAppNotificationsScreen() {
             value={fedAlerts}
             onValueChange={(val) => {
               setFedAlerts(val);
-              updatePreference('fedAlerts', val);
+              updatePreference('fed', val);
             }}
           />
           <ToggleItem
@@ -142,7 +142,7 @@ export default function InAppNotificationsScreen() {
             value={watchlistAlerts}
             onValueChange={(val) => {
               setWatchlistAlerts(val);
-              updatePreference('watchlistAlerts', val);
+              updatePreference('watchlist', val);
             }}
           />
         </View>

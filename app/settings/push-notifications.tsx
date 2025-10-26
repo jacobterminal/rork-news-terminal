@@ -44,7 +44,7 @@ export default function PushNotificationsScreen() {
   useEffect(() => {
     const loadPushPreferences = async () => {
       try {
-        const stored = await AsyncStorage.getItem('userSettings.pushPreferences');
+        const stored = await AsyncStorage.getItem('settings.push');
         if (stored) {
           const prefs = JSON.parse(stored);
           setPushCriticalAlerts(prefs.critical ?? true);
@@ -62,10 +62,10 @@ export default function PushNotificationsScreen() {
 
   const updatePushPreferences = async (key: string, value: boolean | string) => {
     try {
-      const stored = await AsyncStorage.getItem('userSettings.pushPreferences');
+      const stored = await AsyncStorage.getItem('settings.push');
       const prefs = stored ? JSON.parse(stored) : {};
       prefs[key] = value;
-      await AsyncStorage.setItem('userSettings.pushPreferences', JSON.stringify(prefs));
+      await AsyncStorage.setItem('settings.push', JSON.stringify(prefs));
       console.log('[PushNotifications] Preference updated:', key, value);
     } catch (error) {
       console.error('[PushNotifications] Failed to save preference:', error);
