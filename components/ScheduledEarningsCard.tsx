@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useEarningsStore } from '../store/earningsStore';
+import { useNewsStore } from '../store/newsStore';
+import { Quarter } from '../types/earnings';
 
 type Ev = { 
   datetime?: string | number | Date; 
@@ -26,7 +29,9 @@ export default function ScheduledEarningsCard({
   companyFiscalStartMonth = 1,
   events,
 }: ScheduledEarningsCardProps) {
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
+  const { backfillFromNews, getEarningsRecord, isHydrated } = useEarningsStore();
+  const { state } = useNewsStore();
 
   const norm = (events ?? [])
     .map(e => {
@@ -54,6 +59,33 @@ export default function ScheduledEarningsCard({
     (norm.find(n => n.d >= new Date(now.getFullYear() - 1, 0, 1))?.fy) ?? 
     toFiscal(now, companyFiscalStartMonth).fy;
 
+  useEffect(() => {
+    if (!isHydrated) return;
+    
+    const attemptBackfill = async () => {
+      const quarters: Quarter[] = ['Q1', 'Q2', 'Q3', 'Q4'];
+      
+      for (const q of quarters) {
+        const m = norm.find(n => n.fy === currentFY && n.q === quarters.indexOf(q) + 1);
+        const isReported = !!m && m.d < now;
+        
+        if (!isReported) {
+          continue;
+        }
+        
+        const record = getEarningsRecord(symbol, currentFY, q);
+        const needsBackfill = !record || record.source === 'mock' || record.actualEps === null;
+        
+        if (needsBackfill) {
+          console.log(`📥 Triggering backfill for ${symbol} ${currentFY} ${q}`);
+          await backfillFromNews(symbol, currentFY, q, state.feedItems);
+        }
+      }
+    };
+    
+    attemptBackfill();
+  }, [isHydrated, symbol, currentFY, norm, state.feedItems, backfillFromNews, getEarningsRecord, now]);
+
   const fyRows = [1, 2, 3, 4].map(q => {
     const m = norm.find(n => n.fy === currentFY && n.q === q);
     const isReported = !!m && m.d < now;
@@ -61,12 +93,21 @@ export default function ScheduledEarningsCard({
     const dateStr = !m ? 'TBA' : fmt(m.d);
     const session = m?.session || '';
     
+    const quarter: Quarter = `Q${q}` as Quarter;
+    const cachedRecord = isHydrated ? getEarningsRecord(symbol, currentFY, quarter) : null;
+    
     const estEps = m?.cons_eps !== undefined ? m.cons_eps.toFixed(2) : 'NA';
-    const actualEps = m?.actual_eps !== undefined ? m.actual_eps.toFixed(2) : 'NA';
+    const actualEps = cachedRecord?.actualEps !== null && cachedRecord?.actualEps !== undefined
+      ? cachedRecord.actualEps.toFixed(2)
+      : (m?.actual_eps !== undefined ? m.actual_eps.toFixed(2) : 'NA');
     
     let result = '—';
     let resultColor = '#9aa0a6';
-    if (m?.verdict === 'Beat') {
+    
+    if (cachedRecord?.result && cachedRecord.result !== '—') {
+      result = cachedRecord.result;
+      resultColor = result === 'Beat' ? '#8DD48C' : result === 'Miss' ? '#FF6B6B' : '#9aa0a6';
+    } else if (m?.verdict === 'Beat') {
       result = 'Beat';
       resultColor = '#8DD48C';
     } else if (m?.verdict === 'Miss') {

@@ -238,6 +238,91 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     console.log('🗑️ Cleared all earnings history records');
   }, []);
 
+  const backfillFromNews = useCallback(async (
+    ticker: string,
+    fiscalYear: number,
+    quarter: Quarter,
+    newsItems: any[]
+  ): Promise<boolean> => {
+    const key = generateHistoryKey(ticker, fiscalYear, quarter);
+    const existing = historyMap[key];
+    
+    if (existing && existing.source !== 'mock' && existing.actualEps !== null) {
+      console.log(`⏭️ Skipping backfill for ${key}: already has real data`);
+      return false;
+    }
+    
+    console.log(`🔍 Attempting backfill for ${ticker} ${fiscalYear} ${quarter} from ${newsItems.length} news items`);
+    
+    const relevantNews = newsItems
+      .filter(item => 
+        item.tickers?.includes(ticker) &&
+        (item.tags?.earnings || item.classification?.impact === 'High') &&
+        item.title?.toLowerCase().includes('earnings')
+      )
+      .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+    
+    for (const newsItem of relevantNews) {
+      try {
+        const title = newsItem.title?.toLowerCase() || '';
+        const summary = newsItem.classification?.summary_15?.toLowerCase() || '';
+        const text = `${title} ${summary}`;
+        
+        const hasQuarter = text.includes(quarter.toLowerCase()) || 
+                          text.includes(`q${quarter.charAt(1)}`);
+        
+        if (!hasQuarter && !text.includes('beat') && !text.includes('miss')) {
+          continue;
+        }
+        
+        let result: EarningsResult = '—';
+        let confidence = 0.5;
+        
+        if (text.includes('beat') && !text.includes('miss')) {
+          result = 'Beat';
+          confidence = 0.75;
+        } else if (text.includes('miss') && !text.includes('beat')) {
+          result = 'Miss';
+          confidence = 0.75;
+        } else if (text.includes('inline') || text.includes('in line') || text.includes('meets')) {
+          result = '—';
+          confidence = 0.7;
+        }
+        
+        const epsMatch = text.match(/eps[:\s]+\$?([0-9.]+)/i);
+        const actualEps = epsMatch ? parseFloat(epsMatch[1]) : null;
+        
+        const revMatch = text.match(/revenue[:\s]+\$?([0-9.]+)\s*b/i);
+        const revenueUsd = revMatch ? parseFloat(revMatch[1]) * 1000000000 : null;
+        
+        if (result !== '—' || actualEps !== null) {
+          const newRecord: EarningsHistory = {
+            ticker,
+            fiscalYear,
+            quarter,
+            actualEps,
+            revenueUsd,
+            session: 'TBA',
+            result,
+            source: 'news_parse',
+            articleId: newsItem.id,
+            confidence,
+            updatedAt: new Date().toISOString(),
+          };
+          
+          await saveEarningsRecord(newRecord);
+          console.log(`✅ Backfilled ${key} from news: result=${result}, confidence=${confidence}`);
+          return true;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error parsing news item for ${key}:`, error);
+      }
+    }
+    
+    console.log(`❌ No backfill data found for ${key}`);
+    return false;
+  }, [historyMap, saveEarningsRecord]);
+
   return useMemo(() => ({
     isHydrated,
     historyMap,
@@ -249,6 +334,7 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     updateEarningsResult,
     getTotalRecordCount,
     clearAllRecords,
+    backfillFromNews,
   }), [
     isHydrated,
     historyMap,
@@ -260,5 +346,6 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     updateEarningsResult,
     getTotalRecordCount,
     clearAllRecords,
+    backfillFromNews,
   ]);
 });

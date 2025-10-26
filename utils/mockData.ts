@@ -24,12 +24,12 @@ const MOCK_HEADLINES = [
     dedupe_key: 'apple_iphone_sales_china',
   },
   {
-    title: 'NVIDIA Data Center Revenue Surges 200% Year-Over-Year',
+    title: 'NVIDIA Q3 Earnings Beat Expectations, EPS $0.81 vs $0.70 Expected',
     tickers: ['NVDA'],
     tags: { is_macro: false, fed: false, sec: false, earnings: true, social: false },
     sentiment: 'Bullish' as const,
     impact: 'High' as const,
-    summary: 'AI chip demand propels NVIDIA to record datacenter revenue growth',
+    summary: 'NVIDIA reports strong Q3 beat with EPS of $0.81, revenue $18.1B surpassing estimates',
   },
   {
     title: 'Tesla Cybertruck Production Ramp Faces Delays Until Q2 2024',
@@ -48,12 +48,12 @@ const MOCK_HEADLINES = [
     summary: 'FOMC members divided on timing of next rate adjustment',
   },
   {
-    title: 'Microsoft Azure Cloud Revenue Beats Estimates by 15%',
+    title: 'Microsoft Q2 Earnings Beat: EPS $2.85 vs $2.65 Est, Azure Drives Growth',
     tickers: ['MSFT'],
     tags: { is_macro: false, fed: false, sec: false, earnings: true, social: false },
     sentiment: 'Bullish' as const,
     impact: 'High' as const,
-    summary: 'Enterprise cloud adoption drives Azure growth acceleration',
+    summary: 'Microsoft reports Q2 beat with strong Azure revenue growth, EPS exceeds by $0.20',
   },
   {
     title: 'SEC Investigates Insider Trading at Major Tech Firms',
@@ -122,20 +122,20 @@ const MOCK_HEADLINES = [
     summary: 'Enhanced Bard capabilities target OpenAI market share',
   },
   {
-    title: 'Meta Metaverse Division Reports $4B Quarterly Loss',
+    title: 'Meta Q3 Earnings Miss: Reality Labs Loss Weighs on Results',
     tickers: ['META'],
     tags: { is_macro: false, fed: false, sec: false, earnings: true, social: false },
     sentiment: 'Bearish' as const,
     impact: 'High' as const,
-    summary: 'Reality Labs continues heavy spending with limited revenue',
+    summary: 'Meta Q3 earnings miss estimates as Reality Labs reports $4B loss, overall EPS below forecast',
   },
   {
-    title: 'Amazon Prime Day Sales Hit Record $12.7 Billion',
+    title: 'Amazon Q1 Earnings Beat: Strong AWS Growth Drives EPS Above Estimates',
     tickers: ['AMZN'],
-    tags: { is_macro: false, fed: false, sec: false, earnings: false, social: false },
+    tags: { is_macro: false, fed: false, sec: false, earnings: true, social: false },
     sentiment: 'Bullish' as const,
-    impact: 'Medium' as const,
-    summary: 'Two-day shopping event exceeds previous year by 18%',
+    impact: 'High' as const,
+    summary: 'Amazon Q1 results beat expectations with AWS cloud revenue driving earnings higher',
   },
 ];
 
