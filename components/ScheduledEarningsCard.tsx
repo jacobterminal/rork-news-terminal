@@ -56,8 +56,10 @@ export default function ScheduledEarningsCard({
 
   const fyRows = [1, 2, 3, 4].map(q => {
     const m = norm.find(n => n.fy === currentFY && n.q === q);
-    const status = !m ? '—' : (m.d < now ? 'Reported' : 'Not Reported');
-    const when = !m ? 'TBA' : fmt(m.d) + ' • ' + m.session;
+    const isReported = !!m && m.d < now;
+    const status = !m ? '—' : (isReported ? 'Reported' : 'Not Reported');
+    const dateStr = !m ? 'TBA' : fmt(m.d);
+    const session = m?.session || '';
     
     const estEps = m?.cons_eps !== undefined ? m.cons_eps.toFixed(2) : 'NA';
     const actualEps = m?.actual_eps !== undefined ? m.actual_eps.toFixed(2) : 'NA';
@@ -83,7 +85,7 @@ export default function ScheduledEarningsCard({
       }
     }
     
-    return { q, status, when, estEps, actualEps, result, resultColor };
+    return { q, status, dateStr, session, isReported, estEps, actualEps, result, resultColor };
   });
 
   const allReported = fyRows.every(r => r.status === 'Reported');
@@ -102,17 +104,23 @@ export default function ScheduledEarningsCard({
           ]}
         >
           <View style={styles.row}>
-            <Text style={styles.quarter}>Q{r.q}</Text>
-            <Text 
-              style={[
-                styles.status,
-                r.status === 'Reported' && styles.statusReported,
-                r.status === 'Not Reported' && styles.statusNotReported,
-              ]}
-            >
-              {r.status}
-            </Text>
-            <Text style={styles.when}>{r.when}</Text>
+            <View style={styles.leftSection}>
+              <Text style={styles.quarter}>Q{r.q}</Text>
+              <Text 
+                style={[
+                  styles.status,
+                  r.isReported && styles.statusReported,
+                  !r.isReported && r.status !== '—' && styles.statusNotReported,
+                ]}
+              >
+                {r.status}
+              </Text>
+            </View>
+            <View style={styles.rightSection}>
+              <Text style={styles.dateText}>{r.dateStr}</Text>
+              {r.session && <Text style={styles.sessionDot}> • </Text>}
+              {r.session && <Text style={styles.sessionText}>{r.session}</Text>}
+            </View>
           </View>
           <View style={styles.detailsRow}>
             <Text style={styles.detailsText}>
@@ -178,7 +186,17 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   detailsRow: {
     marginTop: 2,
@@ -214,9 +232,19 @@ const styles = StyleSheet.create({
   statusNotReported: {
     color: '#9aa0a6',
   },
-  when: {
+  dateText: {
     color: '#cfcfcf',
     fontSize: 14,
+    fontFamily: 'monospace',
+  },
+  sessionDot: {
+    color: '#777777',
+    fontSize: 14,
+  },
+  sessionText: {
+    color: '#cfcfcf',
+    fontSize: 14,
+    fontFamily: 'monospace',
   },
   allReportedText: {
     color: '#9aa0a6',
