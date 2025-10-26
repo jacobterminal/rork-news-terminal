@@ -2,7 +2,10 @@ import { create } from 'zustand';
 import { combine } from 'zustand/middleware';
 
 export interface NavigationContext {
-  routeName: string;
+  origin: string;
+  originParams?: any;
+  restoreKey?: string;
+  routeName?: string;
   scrollOffset?: number;
   timeRange?: string;
   customTimeRange?: any;

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
 import { useLocalSearchParams, router, useNavigation, useFocusEffect } from 'expo-router';
+import { useRoute } from '@react-navigation/native';
 import { ArrowLeft, ArrowUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedItem, CriticalAlert, EarningsItem } from '../../types/news';
@@ -59,14 +60,23 @@ const BACK_DEBOUNCE_MS = 500;
 
 export default function TickerDetailPage() {
   const { ticker } = useLocalSearchParams<{ ticker: string }>();
+  const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
   const dropdownId = 'company-folder-picker';
-  const { returnContext, clearReturnContext } = useNavigationStore();
+  const { returnContext, setReturnContext, clearReturnContext } = useNavigationStore();
   const scrollViewRef = useRef<ScrollView>(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const currentScrollYRef = useRef(0);
+
+  useEffect(() => {
+    const ctx = route.params?.returnContext;
+    if (ctx) {
+      console.log('[CompanyPage] Received returnContext from params:', ctx);
+      setReturnContext(ctx);
+    }
+  }, [route.params?.returnContext, setReturnContext]);
   
   const { 
     state, 
@@ -203,36 +213,43 @@ export default function TickerDetailPage() {
     }
     lastBackPressTime = now;
 
-    console.log('[CompanyPage] Back pressed');
+    console.log('[CompanyPage] Back pressed, returnContext:', returnContext);
 
-    if (navigation.canGoBack()) {
-      console.log('[CompanyPage] Using navigation.goBack() - modal pop');
-      navigation.goBack();
-      return;
-    }
-
-    if (returnContext?.routeName) {
-      console.log('[CompanyPage] Restoring context:', returnContext);
-      
-      const routeName = returnContext.routeName || 'index';
+    if (returnContext?.origin) {
+      console.log('[CompanyPage] Navigating back to:', returnContext.origin, 'with scroll:', returnContext.scrollOffset);
       
       const routeMap: Record<string, string> = {
-        'index': '/',
-        'instant': '/instant',
-        'upcoming': '/upcoming',
-        'watchlist': '/watchlist',
-        'twitter': '/twitter',
-        'search': '/search',
+        'index': 'index',
+        'instant': 'instant',
+        'upcoming': 'upcoming',
+        'watchlist': 'watchlist',
+        'twitter': 'twitter',
+        'search': 'search',
       };
       
-      const targetRoute = routeMap[routeName] || '/';
-      router.push(targetRoute as any);
+      const targetRoute = routeMap[returnContext.origin] || 'index';
+      
+      navigation.getParent()?.navigate(targetRoute, {
+        __restore: {
+          scrollOffset: returnContext.scrollOffset,
+          timeRange: returnContext.timeRange,
+          customTimeRange: returnContext.customTimeRange,
+          searchQuery: returnContext.searchQuery,
+        },
+      });
+      
       clearReturnContext();
       return;
     }
 
-    console.log('[CompanyPage] Fallback to News (index)');
-    router.push('/');
+    if (navigation.canGoBack()) {
+      console.log('[CompanyPage] Using navigation.goBack()');
+      navigation.goBack();
+      return;
+    }
+
+    console.log('[CompanyPage] Fallback to instant');
+    router.push('/instant');
   }, [navigation, returnContext, clearReturnContext]);
 
   useFocusEffect(

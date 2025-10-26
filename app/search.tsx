@@ -129,7 +129,7 @@ export default function SearchScreen() {
     Keyboard.dismiss();
     
     const ctx: NavigationContext = {
-      routeName: 'search',
+      origin: 'search',
       scrollOffset: 0,
       searchQuery: searchQuery,
     };
