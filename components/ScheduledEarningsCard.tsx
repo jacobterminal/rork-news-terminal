@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useEarningsStore } from '../store/earningsStore';
 import { useNewsStore } from '../store/newsStore';
@@ -30,8 +30,9 @@ export default function ScheduledEarningsCard({
   events,
 }: ScheduledEarningsCardProps) {
   const now = useMemo(() => new Date(), []);
-  const { backfillFromNews, getEarningsRecord, isHydrated } = useEarningsStore();
+  const { backfillFromNewsAsync, getEarningsRecord, isHydrated, historyMap } = useEarningsStore();
   const { state } = useNewsStore();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const norm = (events ?? [])
     .map(e => {
@@ -59,37 +60,42 @@ export default function ScheduledEarningsCard({
     (norm.find(n => n.d >= new Date(now.getFullYear() - 1, 0, 1))?.fy) ?? 
     toFiscal(now, companyFiscalStartMonth).fy;
 
+  const handleBackfillComplete = useCallback((quarter: Quarter, success: boolean) => {
+    console.log(`🔄 Backfill completed for ${symbol} ${quarter}: ${success ? 'success' : 'failed'}`);
+    if (success) {
+      setRefreshKey(prev => prev + 1);
+    }
+  }, [symbol]);
+
   useEffect(() => {
     if (!isHydrated) return;
     
-    const attemptBackfill = async () => {
-      const quarters: Quarter[] = ['Q1', 'Q2', 'Q3', 'Q4'];
-      
-      for (const q of quarters) {
-        const m = norm.find(n => n.fy === currentFY && n.q === quarters.indexOf(q) + 1);
-        const isReported = !!m && m.d < now;
-        
-        if (!isReported) {
-          continue;
-        }
-        
-        const record = getEarningsRecord(symbol, currentFY, q);
-        const needsBackfill = !record || record.source === 'mock' || record.actualEps === null;
-        
-        if (needsBackfill) {
-          const source = record?.source || 'none';
-          console.log(`📥 Backfill needed for ${symbol} ${currentFY} ${q} (current source: ${source})`);
-          await backfillFromNews(symbol, currentFY, q, state.feedItems);
-        } else {
-          console.log(`✓ ${symbol} ${currentFY} ${q} has real data (source: ${record.source})`);
-        }
-      }
-    };
+    const quarters: Quarter[] = ['Q1', 'Q2', 'Q3', 'Q4'];
     
-    attemptBackfill();
-  }, [isHydrated, symbol, currentFY, norm, state.feedItems, backfillFromNews, getEarningsRecord, now]);
+    for (const q of quarters) {
+      const m = norm.find(n => n.fy === currentFY && n.q === quarters.indexOf(q) + 1);
+      const isReported = !!m && m.d < now;
+      
+      if (!isReported) {
+        continue;
+      }
+      
+      const record = getEarningsRecord(symbol, currentFY, q);
+      const needsBackfill = !record || record.source === 'mock' || record.actualEps === null;
+      
+      if (needsBackfill) {
+        const source = record?.source || 'none';
+        console.log(`🚀 Triggering async backfill for ${symbol} ${currentFY} ${q} (current source: ${source})`);
+        backfillFromNewsAsync(symbol, currentFY, q, state.feedItems, (success) => {
+          handleBackfillComplete(q, success);
+        });
+      } else {
+        console.log(`✓ ${symbol} ${currentFY} ${q} has real data (source: ${record.source})`);
+      }
+    }
+  }, [isHydrated, symbol, currentFY, norm, state.feedItems, backfillFromNewsAsync, getEarningsRecord, now, handleBackfillComplete]);
 
-  const fyRows = [1, 2, 3, 4].map(q => {
+  const fyRows = useMemo(() => [1, 2, 3, 4].map(q => {
     const m = norm.find(n => n.fy === currentFY && n.q === q);
     const isReported = !!m && m.d < now;
     const status = !m ? '—' : (isReported ? 'Reported' : 'Not Reported');
@@ -130,7 +136,7 @@ export default function ScheduledEarningsCard({
     }
     
     return { q, status, dateStr, session, isReported, estEps, actualEps, result, resultColor };
-  });
+  }), [norm, currentFY, now, isHydrated, getEarningsRecord, symbol, refreshKey, historyMap]);
 
   const allReported = fyRows.every(r => r.status === 'Reported');
 

@@ -1,6 +1,6 @@
 import createContextHook from '@nkzw/create-context-hook';
-import { useCallback, useEffect, useState, useMemo } from 'react';
-import { EarningsHistory, EarningsHistoryMap, Quarter, EarningsResult } from '../types/earnings';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
+import { EarningsHistory, EarningsHistoryMap, Quarter, EarningsResult, BackfillMetadata } from '../types/earnings';
 import { searchRelevantEarningsNews, parseEarningsFromNews } from '../utils/earningsParser';
 
 const storage = {
@@ -47,6 +47,8 @@ const storage = {
 };
 
 const STORAGE_KEY = 'earnings_history';
+const BACKFILL_METADATA_KEY = 'earnings_backfill_metadata';
+const BACKFILL_TTL_MS = 24 * 60 * 60 * 1000;
 
 function generateHistoryKey(ticker: string, fiscalYear: number, quarter: Quarter): string {
   return `${ticker}_${fiscalYear}_${quarter}`;
@@ -55,6 +57,9 @@ function generateHistoryKey(ticker: string, fiscalYear: number, quarter: Quarter
 export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() => {
   const [historyMap, setHistoryMap] = useState<EarningsHistoryMap>({});
   const [isHydrated, setIsHydrated] = useState(false);
+  const [backfillMetadata, setBackfillMetadata] = useState<{ [key: string]: BackfillMetadata }>({});
+  const [newsIndexTimestamp, setNewsIndexTimestamp] = useState<number>(Date.now());
+  const backfillInProgress = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const loadPersistedData = async () => {
@@ -66,6 +71,15 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
           if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
             setHistoryMap(parsed);
             console.log(`📊 Loaded ${Object.keys(parsed).length} earnings records from storage`);
+          }
+        }
+
+        const metadataJson = await storage.getItem(BACKFILL_METADATA_KEY);
+        if (metadataJson) {
+          const metadata = JSON.parse(metadataJson);
+          if (metadata && typeof metadata === 'object') {
+            setBackfillMetadata(metadata);
+            console.log(`📊 Loaded backfill metadata for ${Object.keys(metadata).length} records`);
           }
         }
       } catch (error) {
@@ -85,6 +99,16 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
       await storage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
       console.error('Failed to persist earnings history:', error);
+    }
+  }, [isHydrated]);
+
+  const persistBackfillMetadata = useCallback(async (metadata: { [key: string]: BackfillMetadata }) => {
+    if (!isHydrated) return;
+    
+    try {
+      await storage.setItem(BACKFILL_METADATA_KEY, JSON.stringify(metadata));
+    } catch (error) {
+      console.error('Failed to persist backfill metadata:', error);
     }
   }, [isHydrated]);
 
@@ -239,6 +263,69 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     console.log('🗑️ Cleared all earnings history records');
   }, []);
 
+  const shouldBackfill = useCallback((
+    ticker: string,
+    fiscalYear: number,
+    quarter: Quarter
+  ): boolean => {
+    const key = generateHistoryKey(ticker, fiscalYear, quarter);
+    const existing = historyMap[key];
+    
+    if (existing && existing.source !== 'mock' && existing.actualEps !== null) {
+      return false;
+    }
+    
+    const metadata = backfillMetadata[key];
+    if (!metadata) {
+      return true;
+    }
+    
+    const now = Date.now();
+    const timeSinceLastAttempt = now - metadata.lastAttempt;
+    
+    if (timeSinceLastAttempt < BACKFILL_TTL_MS) {
+      console.log(`⏭️ Skipping backfill for ${key}: TTL not expired (${Math.round(timeSinceLastAttempt / 1000 / 60)} min ago)`);
+      return false;
+    }
+    
+    if (metadata.newsIndexTimestamp >= newsIndexTimestamp) {
+      console.log(`⏭️ Skipping backfill for ${key}: News index unchanged`);
+      return false;
+    }
+    
+    console.log(`🔄 Backfill needed for ${key}: TTL expired or news updated`);
+    return true;
+  }, [historyMap, backfillMetadata, newsIndexTimestamp]);
+
+  const updateBackfillMetadata = useCallback((
+    ticker: string,
+    fiscalYear: number,
+    quarter: Quarter,
+    success: boolean
+  ) => {
+    const key = generateHistoryKey(ticker, fiscalYear, quarter);
+    
+    setBackfillMetadata(prev => {
+      const updated = {
+        ...prev,
+        [key]: {
+          lastAttempt: Date.now(),
+          newsIndexTimestamp,
+          success,
+        },
+      };
+      
+      persistBackfillMetadata(updated);
+      return updated;
+    });
+  }, [newsIndexTimestamp, persistBackfillMetadata]);
+
+  const markNewsIndexUpdated = useCallback(() => {
+    const newTimestamp = Date.now();
+    setNewsIndexTimestamp(newTimestamp);
+    console.log(`📰 News index marked as updated: ${new Date(newTimestamp).toISOString()}`);
+  }, []);
+
   const backfillFromNews = useCallback(async (
     ticker: string,
     fiscalYear: number,
@@ -246,10 +333,24 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     newsItems: any[]
   ): Promise<boolean> => {
     const key = generateHistoryKey(ticker, fiscalYear, quarter);
+    
+    if (!shouldBackfill(ticker, fiscalYear, quarter)) {
+      return false;
+    }
+    
+    if (backfillInProgress.current.has(key)) {
+      console.log(`⏭️ Backfill already in progress for ${key}`);
+      return false;
+    }
+    
+    backfillInProgress.current.add(key);
+    console.log(`🚀 Starting async backfill for ${key}`);
+    
     const existing = historyMap[key];
     
     if (existing && existing.source !== 'mock' && existing.actualEps !== null) {
       console.log(`⏭️ Priority 1: Using earnings_history for ${key} (source: ${existing.source})`);
+      backfillInProgress.current.delete(key);
       return false;
     }
     
@@ -287,6 +388,8 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
           
           await saveEarningsRecord(newRecord);
           console.log(`✅ Priority 2 Success: Backfilled ${key} from news (article: ${newsItem.id}, result: ${parsed.result}, confidence: ${parsed.confidence})`);
+          updateBackfillMetadata(ticker, fiscalYear, quarter, true);
+          backfillInProgress.current.delete(key);
           return true;
         }
       } catch (error) {
@@ -295,8 +398,28 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     }
     
     console.log(`❌ Priority 2 Failed: No earnings data found in news for ${key} (leaving NA)`);
+    updateBackfillMetadata(ticker, fiscalYear, quarter, false);
+    backfillInProgress.current.delete(key);
     return false;
-  }, [historyMap, saveEarningsRecord]);
+  }, [historyMap, saveEarningsRecord, shouldBackfill, updateBackfillMetadata]);
+
+  const backfillFromNewsAsync = useCallback((
+    ticker: string,
+    fiscalYear: number,
+    quarter: Quarter,
+    newsItems: any[],
+    onComplete?: (success: boolean) => void
+  ) => {
+    Promise.resolve().then(async () => {
+      try {
+        const success = await backfillFromNews(ticker, fiscalYear, quarter, newsItems);
+        onComplete?.(success);
+      } catch (error) {
+        console.error(`❌ Async backfill error for ${ticker} ${quarter} ${fiscalYear}:`, error);
+        onComplete?.(false);
+      }
+    });
+  }, [backfillFromNews]);
 
   return useMemo(() => ({
     isHydrated,
@@ -310,6 +433,10 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     getTotalRecordCount,
     clearAllRecords,
     backfillFromNews,
+    backfillFromNewsAsync,
+    shouldBackfill,
+    markNewsIndexUpdated,
+    newsIndexTimestamp,
   }), [
     isHydrated,
     historyMap,
@@ -322,5 +449,9 @@ export const [EarningsStoreProvider, useEarningsStore] = createContextHook(() =>
     getTotalRecordCount,
     clearAllRecords,
     backfillFromNews,
+    backfillFromNewsAsync,
+    shouldBackfill,
+    markNewsIndexUpdated,
+    newsIndexTimestamp,
   ]);
 });

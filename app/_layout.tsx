@@ -9,7 +9,7 @@ import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
 import { theme } from "../constants/theme";
 import { NewsStoreProvider, useNewsStore } from "../store/newsStore";
 import { DropdownProvider } from "../store/dropdownStore";
-import { EarningsStoreProvider } from "../store/earningsStore";
+import { EarningsStoreProvider, useEarningsStore } from "../store/earningsStore";
 import DropBanner from "../components/DropBanner";
 import AlertSearchBar from "../components/AlertSearchBar";
 
@@ -250,8 +250,13 @@ function AppWithBanners() {
   const insets = useSafeAreaInsets();
   const segments = useSegments();
   const { getActiveBanners, dismissBanner, setHighlightedAlert, state } = useNewsStore();
+  const { markNewsIndexUpdated } = useEarningsStore();
   const activeBanners = getActiveBanners();
   const headerHeight = Platform.select({ web: 64, default: 56 });
+  
+  useEffect(() => {
+    markNewsIndexUpdated();
+  }, [state.feedItems.length, markNewsIndexUpdated]);
   
   const currentPath = `/${segments.join('/')}`;
   const isSettingsRoute = currentPath.startsWith('/settings');

@@ -20,3 +20,9 @@ export interface EarningsHistory {
 export interface EarningsHistoryMap {
   [key: string]: EarningsHistory;
 }
+
+export interface BackfillMetadata {
+  lastAttempt: number;
+  newsIndexTimestamp: number;
+  success: boolean;
+}
