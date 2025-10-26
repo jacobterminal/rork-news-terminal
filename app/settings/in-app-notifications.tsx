@@ -35,6 +35,7 @@ export default function InAppNotificationsScreen() {
   const [cpiAlerts, setCpiAlerts] = useState(true);
   const [fedAlerts, setFedAlerts] = useState(true);
   const [watchlistAlerts, setWatchlistAlerts] = useState(true);
+  const [highImpactOnly, setHighImpactOnly] = useState(false);
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -47,6 +48,7 @@ export default function InAppNotificationsScreen() {
           setCpiAlerts(prefs.cpi ?? true);
           setFedAlerts(prefs.fed ?? true);
           setWatchlistAlerts(prefs.watchlist ?? true);
+          setHighImpactOnly(prefs.highImpactOnly ?? false);
         }
       } catch (error) {
         console.error('[InAppNotifications] Failed to load preferences:', error);
@@ -143,6 +145,14 @@ export default function InAppNotificationsScreen() {
             onValueChange={(val) => {
               setWatchlistAlerts(val);
               updatePreference('watchlist', val);
+            }}
+          />
+          <ToggleItem
+            label="High Impact Only (AI)"
+            value={highImpactOnly}
+            onValueChange={(val) => {
+              setHighImpactOnly(val);
+              updatePreference('highImpactOnly', val);
             }}
           />
         </View>
