@@ -182,16 +182,17 @@ export default function TickerDetailPage() {
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
   }, [state.feedItems, tickerUpper, timeRangeInMs]);
 
-  const companyEarnings = useMemo(() => {
+  const nextEarnings = useMemo(() => {
     const now = Date.now();
-    const next12Months = now + (365 * 24 * 60 * 60 * 1000);
-    return earningsItems
+    const futureEarnings = earningsItems
       .filter(item => item.ticker === tickerUpper)
       .filter(item => {
         const eventTime = new Date(item.scheduled_at).getTime();
-        return eventTime >= now && eventTime <= next12Months;
+        return eventTime > now;
       })
       .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+    
+    return futureEarnings.length > 0 ? futureEarnings[0] : null;
   }, [earningsItems, tickerUpper]);
 
   const handleScroll = (event: any) => {
@@ -345,43 +346,39 @@ export default function TickerDetailPage() {
           events={earningsItems as any}
         />
 
-        {companyEarnings.length > 0 && (
+        {nextEarnings && (
           <View style={styles.upcomingEarningsSection}>
             <Text style={styles.upcomingEarningsTitle}>Upcoming Earnings</Text>
-            {companyEarnings.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.upcomingEarningsCard}
-                onPress={() => handleEarningsPress(item)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.upcomingHeader}>
-                  <View style={styles.upcomingTickerPill}>
-                    <Text style={styles.upcomingTickerText}>{item.ticker}</Text>
-                  </View>
-                  <View style={styles.upcomingSessionPill}>
-                    <Text style={styles.upcomingSessionText}>{item.report_time}</Text>
-                  </View>
-                  <Text style={styles.upcomingDate}>
-                    {new Date(item.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            <TouchableOpacity
+              style={styles.upcomingEarningsCard}
+              onPress={() => handleEarningsPress(nextEarnings)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.upcomingHeader}>
+                <View style={styles.upcomingTickerPill}>
+                  <Text style={styles.upcomingTickerText}>{nextEarnings.ticker}</Text>
+                </View>
+                <View style={styles.upcomingSessionPill}>
+                  <Text style={styles.upcomingSessionText}>{nextEarnings.report_time}</Text>
+                </View>
+                <Text style={styles.upcomingDate}>
+                  {new Date(nextEarnings.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </Text>
+              </View>
+              <View style={styles.upcomingMetrics}>
+                <Text style={styles.upcomingMetricsRow}>
+                  <Text style={styles.upcomingMetricLabel}>Expected EPS: </Text>
+                  <Text style={styles.upcomingMetricValue}>
+                    {nextEarnings.cons_eps !== undefined ? `${nextEarnings.cons_eps.toFixed(2)}` : 'NA'}
                   </Text>
-                </View>
-                <View style={styles.upcomingMetrics}>
-                  <View style={styles.upcomingMetric}>
-                    <Text style={styles.upcomingMetricLabel}>Expected EPS</Text>
-                    <Text style={styles.upcomingMetricValue}>
-                      {item.cons_eps !== undefined ? `${item.cons_eps.toFixed(2)}` : 'NA'}
-                    </Text>
-                  </View>
-                  <View style={styles.upcomingMetric}>
-                    <Text style={styles.upcomingMetricLabel}>Expected Revenue</Text>
-                    <Text style={styles.upcomingMetricValue}>
-                      {item.cons_rev !== undefined ? `${item.cons_rev.toFixed(1)}B` : 'NA'}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <Text style={styles.metricSeparator}> • </Text>
+                  <Text style={styles.upcomingMetricLabel}>Expected Revenue: </Text>
+                  <Text style={styles.upcomingMetricValue}>
+                    {nextEarnings.cons_rev !== undefined ? `${nextEarnings.cons_rev.toFixed(1)}B` : 'NA'}
+                  </Text>
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1110,21 +1107,24 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   upcomingMetrics: {
-    flexDirection: 'row',
-    gap: 16,
+    marginTop: 4,
   },
-  upcomingMetric: {
-    flex: 1,
+  upcomingMetricsRow: {
+    fontSize: 11,
+    lineHeight: 16,
   },
   upcomingMetricLabel: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#777777',
-    marginBottom: 4,
   },
   upcomingMetricValue: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'monospace',
+  },
+  metricSeparator: {
+    fontSize: 11,
+    color: '#555555',
   },
 });
