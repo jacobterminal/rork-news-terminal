@@ -30,44 +30,57 @@ export default function InAppNotificationsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   
-  const [criticalAlerts, setCriticalAlerts] = useState(true);
-  const [earningsAlerts, setEarningsAlerts] = useState(true);
-  const [cpiAlerts, setCpiAlerts] = useState(true);
-  const [fedAlerts, setFedAlerts] = useState(true);
-  const [watchlistAlerts, setWatchlistAlerts] = useState(true);
-  const [highImpactOnly, setHighImpactOnly] = useState(false);
+  const [inAppCriticalAlerts, setInAppCriticalAlerts] = useState(true);
+  const [inAppEconomicEvents, setInAppEconomicEvents] = useState(true);
+  const [inAppEarningsCoverage, setInAppEarningsCoverage] = useState(true);
+  const [inAppFedUpdates, setInAppFedUpdates] = useState(true);
+  const [inAppWatchlistAlerts, setInAppWatchlistAlerts] = useState(true);
+  const [impactLevel, setImpactLevel] = useState<'high' | 'medium_high' | 'all'>('medium_high');
+  const [scope, setScope] = useState<'watchlist' | 'all'>('all');
 
   useEffect(() => {
-    const loadPreferences = async () => {
+    const loadInAppPreferences = async () => {
       try {
-        const stored = await AsyncStorage.getItem('settings.inApp');
+        const stored = await AsyncStorage.getItem('notifications.inapp');
         if (stored) {
           const prefs = JSON.parse(stored);
-          setCriticalAlerts(prefs.critical ?? true);
-          setEarningsAlerts(prefs.earnings ?? true);
-          setCpiAlerts(prefs.cpi ?? true);
-          setFedAlerts(prefs.fed ?? true);
-          setWatchlistAlerts(prefs.watchlist ?? true);
-          setHighImpactOnly(prefs.highImpactOnly ?? false);
+          setImpactLevel(prefs.impactLevel ?? 'medium_high');
+          setScope(prefs.scope ?? 'all');
+          setInAppCriticalAlerts(prefs.categories?.critical ?? true);
+          setInAppEconomicEvents(prefs.categories?.economic ?? true);
+          setInAppEarningsCoverage(prefs.categories?.earnings ?? true);
+          setInAppFedUpdates(prefs.categories?.fed ?? true);
+          setInAppWatchlistAlerts(prefs.categories?.watchlist ?? true);
         }
       } catch (error) {
         console.error('[InAppNotifications] Failed to load preferences:', error);
       }
     };
-    loadPreferences();
+    loadInAppPreferences();
   }, []);
 
-  const updatePreference = async (key: string, value: boolean) => {
-    try {
-      const stored = await AsyncStorage.getItem('settings.inApp');
-      const prefs = stored ? JSON.parse(stored) : {};
-      prefs[key] = value;
-      await AsyncStorage.setItem('settings.inApp', JSON.stringify(prefs));
-      console.log('[InAppNotifications] Preference updated:', key, value);
-    } catch (error) {
-      console.error('[InAppNotifications] Failed to save preference:', error);
-    }
-  };
+  useEffect(() => {
+    const updateInAppPreferences = async () => {
+      try {
+        const prefs = {
+          impactLevel,
+          scope,
+          categories: {
+            critical: inAppCriticalAlerts,
+            economic: inAppEconomicEvents,
+            earnings: inAppEarningsCoverage,
+            fed: inAppFedUpdates,
+            watchlist: inAppWatchlistAlerts,
+          },
+        };
+        await AsyncStorage.setItem('notifications.inapp', JSON.stringify(prefs));
+        console.log('[InAppNotifications] Preferences updated:', prefs);
+      } catch (error) {
+        console.error('[InAppNotifications] Failed to save preferences:', error);
+      }
+    };
+    updateInAppPreferences();
+  }, [impactLevel, scope, inAppCriticalAlerts, inAppEconomicEvents, inAppEarningsCoverage, inAppFedUpdates, inAppWatchlistAlerts]);
 
   const handleBack = () => {
     const prevPage = settingsNavigation.goBack();
@@ -106,55 +119,124 @@ export default function InAppNotificationsScreen() {
         </Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ALERT TYPES</Text>
+          <Text style={styles.sectionTitle}>IMPACT LEVEL</Text>
+          <View style={styles.impactLevelRow}>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonLeft,
+                impactLevel === 'high' && styles.segmentButtonActive
+              ]}
+              onPress={() => setImpactLevel('high')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                impactLevel === 'high' && styles.segmentButtonTextActive
+              ]}>
+                High only
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonMiddle,
+                impactLevel === 'medium_high' && styles.segmentButtonActive
+              ]}
+              onPress={() => setImpactLevel('medium_high')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                impactLevel === 'medium_high' && styles.segmentButtonTextActive
+              ]}>
+                Medium + High
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonRight,
+                impactLevel === 'all' && styles.segmentButtonActive
+              ]}
+              onPress={() => setImpactLevel('all')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                impactLevel === 'all' && styles.segmentButtonTextActive
+              ]}>
+                All
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ALERT CATEGORIES</Text>
           <ToggleItem
             label="Critical Alerts"
-            value={criticalAlerts}
-            onValueChange={(val) => {
-              setCriticalAlerts(val);
-              updatePreference('critical', val);
-            }}
+            value={inAppCriticalAlerts}
+            onValueChange={setInAppCriticalAlerts}
           />
           <ToggleItem
-            label="Earnings"
-            value={earningsAlerts}
-            onValueChange={(val) => {
-              setEarningsAlerts(val);
-              updatePreference('earnings', val);
-            }}
+            label="Economic Events (CPI / Jobs / FOMC)"
+            value={inAppEconomicEvents}
+            onValueChange={setInAppEconomicEvents}
           />
           <ToggleItem
-            label="CPI / Economic Events"
-            value={cpiAlerts}
-            onValueChange={(val) => {
-              setCpiAlerts(val);
-              updatePreference('cpi', val);
-            }}
+            label="Earnings Coverage"
+            value={inAppEarningsCoverage}
+            onValueChange={setInAppEarningsCoverage}
           />
           <ToggleItem
             label="Fed Updates"
-            value={fedAlerts}
-            onValueChange={(val) => {
-              setFedAlerts(val);
-              updatePreference('fed', val);
-            }}
+            value={inAppFedUpdates}
+            onValueChange={setInAppFedUpdates}
           />
           <ToggleItem
             label="Watchlist Alerts"
-            value={watchlistAlerts}
-            onValueChange={(val) => {
-              setWatchlistAlerts(val);
-              updatePreference('watchlist', val);
-            }}
+            value={inAppWatchlistAlerts}
+            onValueChange={setInAppWatchlistAlerts}
           />
-          <ToggleItem
-            label="High Impact Only (AI)"
-            value={highImpactOnly}
-            onValueChange={(val) => {
-              setHighImpactOnly(val);
-              updatePreference('highImpactOnly', val);
-            }}
-          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>SCOPE</Text>
+          <View style={styles.scopeRow}>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonLeft,
+                scope === 'watchlist' && styles.segmentButtonActive
+              ]}
+              onPress={() => setScope('watchlist')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                scope === 'watchlist' && styles.segmentButtonTextActive
+              ]}>
+                Watchlist only
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonRight,
+                scope === 'all' && styles.segmentButtonActive
+              ]}
+              onPress={() => setScope('all')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                scope === 'all' && styles.segmentButtonTextActive
+              ]}>
+                All news
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -227,5 +309,53 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500' as const,
     color: '#FFFFFF',
+  },
+  impactLevelRow: {
+    flexDirection: 'row',
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: '#222',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+  },
+  segmentButtonLeft: {
+    borderRightWidth: 1,
+    borderRightColor: '#222',
+  },
+  segmentButtonMiddle: {
+    borderLeftWidth: 0,
+    borderRightWidth: 1,
+    borderRightColor: '#222',
+  },
+  segmentButtonRight: {
+    borderLeftWidth: 0,
+  },
+  segmentButtonActive: {
+    backgroundColor: '#FFD75A',
+  },
+  segmentButtonText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#888',
+  },
+  segmentButtonTextActive: {
+    color: '#000',
+  },
+  scopeRow: {
+    flexDirection: 'row',
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: '#222',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });
