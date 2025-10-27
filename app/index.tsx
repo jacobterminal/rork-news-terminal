@@ -16,7 +16,8 @@ import CriticalAlerts from '../components/CriticalAlerts';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
 import UniversalBackButton from '../components/UniversalBackButton';
-import { newsAnalysisStore, SentimentLabel, ImpactLevel } from '../store/newsAnalysis';
+import { newsAnalysisStore } from '../store/newsAnalysis';
+import { normalizeToAnalysis } from '../utils/newsNormalize';
 
 export default function NewsScreen() {
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
@@ -237,26 +238,8 @@ export default function NewsScreen() {
   // Populate analysis store when items change
   useEffect(() => {
     watchlistFeedItems.forEach(item => {
-      const sentimentMap: Record<string, SentimentLabel> = {
-        'Bullish': 'BULL',
-        'Bearish': 'BEAR',
-        'Neutral': 'NEUTRAL',
-      };
-      
-      const impactMap: Record<string, ImpactLevel> = {
-        'High': 'HIGH',
-        'Medium': 'MEDIUM',
-        'Low': 'LOW',
-      };
-      
-      newsAnalysisStore.upsert({
-        articleId: item.id,
-        sentiment: {
-          label: sentimentMap[item.classification.sentiment] || 'NEUTRAL',
-          confidence: item.classification.confidence / 100,
-        },
-        impact: impactMap[item.classification.impact] || 'LOW',
-      });
+      const analysis = normalizeToAnalysis(item, item.id);
+      newsAnalysisStore.upsert(analysis);
     });
   }, [watchlistFeedItems]);
 

@@ -3,10 +3,10 @@ import { View, Text, Pressable, StyleSheet, TouchableOpacity } from 'react-nativ
 import { router } from 'expo-router';
 import { Bookmark } from 'lucide-react-native';
 import { FeedItem } from '../types/news';
-import { theme, sentimentConfig } from '../constants/theme';
+import { theme } from '../constants/theme';
 import { useNewsStore } from '../store/newsStore';
 import { useNavigationStore } from '../store/navigationStore';
-import { SentimentLabel, ImpactLevel } from '../store/newsAnalysis';
+import { normalizeNewsItem } from '../utils/newsNormalize';
 
 interface NewsCardProps {
   item: FeedItem;
@@ -23,34 +23,19 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
-  const getSentimentColor = () => {
-    const config = sentimentConfig[item.classification.sentiment];
-    return config.color;
-  };
+  const normalized = normalizeNewsItem(item);
 
   const handleCardPress = () => {
     if (onPress) {
       onPress();
     } else {
-      const sentimentMap: Record<string, SentimentLabel> = {
-        'Bullish': 'BULL',
-        'Bearish': 'BEAR',
-        'Neutral': 'NEUTRAL',
-      };
-      
-      const impactMap: Record<string, ImpactLevel> = {
-        'Low': 'LOW',
-        'Medium': 'MEDIUM',
-        'High': 'HIGH',
-      };
-      
       router.push({
-        pathname: `/article/${item.id}`,
+        pathname: `/article/${item.id}` as any,
         params: {
           articleId: item.id,
-          seedSentiment: sentimentMap[item.classification.sentiment] || 'NEUTRAL',
-          seedConfidence: (item.classification.confidence / 100).toString(),
-          seedImpact: impactMap[item.classification.impact] || 'MEDIUM',
+          seedSentiment: normalized.sentimentLabel,
+          seedConfidence: normalized.confidence.toString(),
+          seedImpact: normalized.impactLabel,
         },
       });
     }
@@ -65,9 +50,8 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
     }
   };
 
-  const sentiment = item.classification.sentiment;
-  const sentimentLabel = sentiment === 'Bullish' ? 'BULL' : sentiment === 'Bearish' ? 'BEAR' : 'NEUT';
-  const sentimentColor = getSentimentColor();
+  const sentimentLabel = normalized.sentimentLabel === 'BULL' ? 'BULL' : normalized.sentimentLabel === 'BEAR' ? 'BEAR' : 'NEUT';
+  const sentimentColor = normalized.uiBorderColor;
 
   return (
     <Pressable style={styles.tableRow} onPress={handleCardPress}>

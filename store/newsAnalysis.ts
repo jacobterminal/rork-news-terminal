@@ -1,3 +1,5 @@
+import { COLOR_PALETTE } from '@/utils/newsNormalize';
+
 export type SentimentLabel = 'BULL' | 'BEAR' | 'NEUTRAL';
 export type ImpactLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -8,9 +10,9 @@ export type ArticleAnalysis = {
 };
 
 export const SENTIMENT_COLORS = {
-  BULL: '#1DB954',
-  BEAR: '#E3413A',
-  NEUTRAL: '#FFC53D',
+  BULL: COLOR_PALETTE.bullish,
+  BEAR: COLOR_PALETTE.bearish,
+  NEUTRAL: COLOR_PALETTE.neutral,
 };
 
 class NewsAnalysisStore {
