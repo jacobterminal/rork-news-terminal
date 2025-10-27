@@ -43,14 +43,24 @@ export default function InAppNotificationsScreen() {
       try {
         const stored = await AsyncStorage.getItem('notifications.inapp');
         if (stored) {
-          const prefs = JSON.parse(stored);
-          setImpactLevel(prefs.impactLevel ?? 'medium_high');
-          setScope(prefs.scope ?? 'all');
-          setInAppCriticalAlerts(prefs.categories?.critical ?? true);
-          setInAppEconomicEvents(prefs.categories?.economic ?? true);
-          setInAppEarningsCoverage(prefs.categories?.earnings ?? true);
-          setInAppFedUpdates(prefs.categories?.fed ?? true);
-          setInAppWatchlistAlerts(prefs.categories?.watchlist ?? true);
+          try {
+            const prefs = JSON.parse(stored);
+            if (prefs && typeof prefs === 'object') {
+              setImpactLevel(prefs.impactLevel ?? 'medium_high');
+              setScope(prefs.scope ?? 'all');
+              setInAppCriticalAlerts(prefs.categories?.critical ?? true);
+              setInAppEconomicEvents(prefs.categories?.economic ?? true);
+              setInAppEarningsCoverage(prefs.categories?.earnings ?? true);
+              setInAppFedUpdates(prefs.categories?.fed ?? true);
+              setInAppWatchlistAlerts(prefs.categories?.watchlist ?? true);
+            } else {
+              console.warn('[InAppNotifications] Invalid preferences format, resetting');
+              await AsyncStorage.removeItem('notifications.inapp');
+            }
+          } catch (parseError) {
+            console.error('[InAppNotifications] Failed to parse preferences, resetting:', parseError);
+            await AsyncStorage.removeItem('notifications.inapp');
+          }
         }
       } catch (error) {
         console.error('[InAppNotifications] Failed to load preferences:', error);

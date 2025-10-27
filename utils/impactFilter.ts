@@ -18,25 +18,36 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const prefs = JSON.parse(stored);
-      
-      let impactLevel: ImpactLevel = prefs.impactLevel ?? 'MED_HIGH';
-      
-      if (prefs.highImpactOnly !== undefined && !prefs.impactLevel) {
-        impactLevel = prefs.highImpactOnly ? 'HIGH_ONLY' : 'MED_HIGH';
-        prefs.impactLevel = impactLevel;
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-        console.log('[ImpactFilter] Migrated legacy highImpactOnly to impactLevel:', impactLevel);
+      try {
+        const prefs = JSON.parse(stored);
+        
+        if (!prefs || typeof prefs !== 'object') {
+          console.warn('[ImpactFilter] Invalid preferences format, resetting');
+          await AsyncStorage.removeItem(STORAGE_KEY);
+          throw new Error('Invalid preferences format');
+        }
+        
+        let impactLevel: ImpactLevel = prefs.impactLevel ?? 'MED_HIGH';
+        
+        if (prefs.highImpactOnly !== undefined && !prefs.impactLevel) {
+          impactLevel = prefs.highImpactOnly ? 'HIGH_ONLY' : 'MED_HIGH';
+          prefs.impactLevel = impactLevel;
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+          console.log('[ImpactFilter] Migrated legacy highImpactOnly to impactLevel:', impactLevel);
+        }
+        
+        return {
+          enabled: prefs.enabled ?? true,
+          impactLevel,
+          critical: prefs.critical ?? true,
+          economic: prefs.economic ?? true,
+          earnings: prefs.earnings ?? true,
+          watchlist: prefs.watchlist ?? true,
+        };
+      } catch (parseError) {
+        console.error('[ImpactFilter] Failed to parse preferences:', parseError);
+        await AsyncStorage.removeItem(STORAGE_KEY);
       }
-      
-      return {
-        enabled: prefs.enabled ?? true,
-        impactLevel,
-        critical: prefs.critical ?? true,
-        economic: prefs.economic ?? true,
-        earnings: prefs.earnings ?? true,
-        watchlist: prefs.watchlist ?? true,
-      };
     }
   } catch (error) {
     console.error('[ImpactFilter] Failed to load preferences:', error);
@@ -169,15 +180,25 @@ export async function getInAppSettings(): Promise<InAppSettings> {
   try {
     const stored = await AsyncStorage.getItem(IN_APP_STORAGE_KEY);
     if (stored) {
-      const prefs = JSON.parse(stored);
-      return {
-        critical: prefs.critical ?? true,
-        earnings: prefs.earnings ?? true,
-        cpi: prefs.cpi ?? true,
-        fed: prefs.fed ?? true,
-        watchlist: prefs.watchlist ?? true,
-        highImpactOnly: prefs.highImpactOnly ?? false,
-      };
+      try {
+        const prefs = JSON.parse(stored);
+        if (!prefs || typeof prefs !== 'object') {
+          console.warn('[ImpactFilter] Invalid in-app settings format, resetting');
+          await AsyncStorage.removeItem(IN_APP_STORAGE_KEY);
+          throw new Error('Invalid in-app settings format');
+        }
+        return {
+          critical: prefs.critical ?? true,
+          earnings: prefs.earnings ?? true,
+          cpi: prefs.cpi ?? true,
+          fed: prefs.fed ?? true,
+          watchlist: prefs.watchlist ?? true,
+          highImpactOnly: prefs.highImpactOnly ?? false,
+        };
+      } catch (parseError) {
+        console.error('[ImpactFilter] Failed to parse in-app settings:', parseError);
+        await AsyncStorage.removeItem(IN_APP_STORAGE_KEY);
+      }
     }
   } catch (error) {
     console.error('[ImpactFilter] Failed to load in-app settings:', error);

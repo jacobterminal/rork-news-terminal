@@ -45,14 +45,24 @@ export default function PushNotificationsScreen() {
       try {
         const stored = await AsyncStorage.getItem('notifications.push');
         if (stored) {
-          const prefs = JSON.parse(stored);
-          setImpactLevel(prefs.impactLevel ?? 'medium_high');
-          setScope(prefs.scope ?? 'all');
-          setPushCriticalAlerts(prefs.categories?.critical ?? true);
-          setPushEconomicEvents(prefs.categories?.economic ?? true);
-          setPushEarningsCoverage(prefs.categories?.earnings ?? true);
-          setPushFedUpdates(prefs.categories?.fed ?? true);
-          setPushWatchlistAlerts(prefs.categories?.watchlist ?? true);
+          try {
+            const prefs = JSON.parse(stored);
+            if (prefs && typeof prefs === 'object') {
+              setImpactLevel(prefs.impactLevel ?? 'medium_high');
+              setScope(prefs.scope ?? 'all');
+              setPushCriticalAlerts(prefs.categories?.critical ?? true);
+              setPushEconomicEvents(prefs.categories?.economic ?? true);
+              setPushEarningsCoverage(prefs.categories?.earnings ?? true);
+              setPushFedUpdates(prefs.categories?.fed ?? true);
+              setPushWatchlistAlerts(prefs.categories?.watchlist ?? true);
+            } else {
+              console.warn('[PushNotifications] Invalid preferences format, resetting');
+              await AsyncStorage.removeItem('notifications.push');
+            }
+          } catch (parseError) {
+            console.error('[PushNotifications] Failed to parse preferences, resetting:', parseError);
+            await AsyncStorage.removeItem('notifications.push');
+          }
         }
       } catch (error) {
         console.error('[PushNotifications] Failed to load preferences:', error);
