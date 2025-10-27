@@ -1,26 +1,15 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, Linking } from 'react-native';
-import { SENTIMENT_COLORS, SentimentLabel } from '@/store/newsAnalysis';
+import { sentimentColor } from '@/utils/newsNormalize';
 
 type Props = {
   url: string;
   label?: string;
-  sentiment?: SentimentLabel | string;
-};
-
-const colorFromSentiment = (t: SentimentLabel | string): string => {
-  if (t === 'BULL') return SENTIMENT_COLORS.BULL;
-  if (t === 'BEAR') return SENTIMENT_COLORS.BEAR;
-  if (t === 'NEUTRAL') return SENTIMENT_COLORS.NEUTRAL;
-  
-  const s = (t || 'neutral').toLowerCase();
-  if (s.includes('bull')) return SENTIMENT_COLORS.BULL;
-  if (s.includes('bear')) return SENTIMENT_COLORS.BEAR;
-  return SENTIMENT_COLORS.NEUTRAL;
+  sentiment?: string;
 };
 
 export default function ArticleLinkPill({ url, label = 'Open Article', sentiment = 'neutral' }: Props) {
-  const c = colorFromSentiment(sentiment);
+  const c = sentimentColor(sentiment);
 
   const open = async () => {
     try { await Linking.openURL(url); } catch {}

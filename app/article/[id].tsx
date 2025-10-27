@@ -25,6 +25,7 @@ import { theme } from '@/constants/theme';
 import { ArticleData, Comment, CommentSortType, FeedItem } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
 import { getAnalysis, upsert, SENTIMENT_COLORS, SentimentLabel, ImpactLevel } from '@/store/newsAnalysis';
+import { sentimentColor } from '@/utils/newsNormalize';
 
 // Mock article data - in real app this would come from API
 const mockArticleData: ArticleData = {
@@ -96,6 +97,8 @@ export default function ArticleScreen() {
   const { id, articleId: paramsArticleId, seedSentiment, seedConfidence, seedImpact } = params;
   const articleId = paramsArticleId || id;
   
+  console.log('Route params:', { seedSentiment, seedConfidence, seedImpact });
+  
   console.log('Article ID:', articleId);
   const navigation = useNavigation();
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
@@ -129,7 +132,7 @@ export default function ArticleScreen() {
   }
 
   // Single color source for ALL accents on this sheet
-  const accentColor = SENTIMENT_COLORS[a.sentiment.label];
+  const accentColor = sentimentColor(a.sentiment.label);
 
   const sortedComments = useMemo(() => {
     const comments = [...article.comments];

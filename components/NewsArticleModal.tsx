@@ -17,6 +17,7 @@ import { theme } from '@/constants/theme';
 import { FeedItem, CriticalAlert } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
 import ArticleLinkPill from './ArticleLinkPill';
+import { sentimentColor, sentimentLabel } from '@/utils/newsNormalize';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -195,18 +196,8 @@ export default function NewsArticleModal({ visible, article, onClose, onTickerPr
   const sourceLabel = typeof source === 'string' ? source : 'Read Source';
   const articleUrl = ('url' in article ? article.url : '') || '';
   
-  const getBorderColor = () => {
-    if (!aiContent) return '#FFD75A';
-    switch (aiContent.sentiment) {
-      case 'Bullish':
-        return '#00FF00';
-      case 'Bearish':
-        return '#FF0000';
-      case 'Neutral':
-      default:
-        return '#FFD75A';
-    }
-  };
+  const normalizedSentiment = sentiment || 'Neutral';
+  const accentColor = sentimentColor(normalizedSentiment);
 
   return (
     <Modal
@@ -227,7 +218,7 @@ export default function NewsArticleModal({ visible, article, onClose, onTickerPr
             styles.modalContent,
             { 
               transform: [{ translateY }],
-              borderColor: getBorderColor(),
+              borderColor: accentColor,
             },
           ]}
         >
@@ -389,7 +380,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#FFD75A',
+    backgroundColor: '#333333',
     marginVertical: 16,
   },
   aiSection: {

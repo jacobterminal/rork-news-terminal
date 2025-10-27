@@ -15,12 +15,12 @@ export interface NormalizedNewsItem {
 }
 
 const COLORS = {
-  BULL: '#1DB954',
-  BEAR: '#E3413A',
-  NEUTRAL: '#FFC53D',
-  HIGH_IMPACT: '#E3413A',
-  MEDIUM_IMPACT: '#FFC53D',
-  LOW_IMPACT: '#1DB954',
+  BULL: '#00D26A',
+  BEAR: '#FF4D4F',
+  NEUTRAL: '#FFD75A',
+  HIGH_IMPACT: '#FF4D4F',
+  MEDIUM_IMPACT: '#FFD75A',
+  LOW_IMPACT: '#00D26A',
 } as const;
 
 export function normalizeSentiment(sentiment: string): NormalizedSentiment {
@@ -56,9 +56,17 @@ export function normalizeImpactLabel(impact: string): ImpactLevel {
 }
 
 export function sentimentColor(sentiment: NormalizedSentiment | SentimentLabel | string): string {
-  if (sentiment === 'BULL' || sentiment === 'bull') return COLORS.BULL;
-  if (sentiment === 'BEAR' || sentiment === 'bear') return COLORS.BEAR;
+  const s = String(sentiment || 'neutral').toLowerCase();
+  if (s.includes('bull')) return COLORS.BULL;
+  if (s.includes('bear')) return COLORS.BEAR;
   return COLORS.NEUTRAL;
+}
+
+export function sentimentLabel(sentiment: NormalizedSentiment | SentimentLabel | string): 'BULL' | 'BEAR' | 'NEUTRAL' {
+  const s = String(sentiment || 'neutral').toLowerCase();
+  if (s.includes('bull')) return 'BULL';
+  if (s.includes('bear')) return 'BEAR';
+  return 'NEUTRAL';
 }
 
 export function impactColor(impact: NormalizedImpact | ImpactLevel | string): string {
@@ -131,3 +139,5 @@ export const COLOR_PALETTE = {
   mediumImpact: COLORS.MEDIUM_IMPACT,
   lowImpact: COLORS.LOW_IMPACT,
 } as const;
+
+export const SENTIMENT_COLORS = COLORS;
