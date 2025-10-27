@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FeedItem, CriticalAlert } from '../types/news';
 
-export type ImpactLevel = 'HIGH' | 'MEDIUM_HIGH';
+export type ImpactLevel = 'HIGH_ONLY' | 'MED_HIGH' | 'ALL';
 
 export interface NotificationPreferences {
+  enabled: boolean;
   impactLevel: ImpactLevel;
   critical: boolean;
   economic: boolean;
@@ -11,15 +12,26 @@ export interface NotificationPreferences {
   watchlist: boolean;
 }
 
-const STORAGE_KEY = 'userSettings.pushPreferences';
+const STORAGE_KEY = 'settings.push';
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (stored) {
       const prefs = JSON.parse(stored);
+      
+      let impactLevel: ImpactLevel = prefs.impactLevel ?? 'MED_HIGH';
+      
+      if (prefs.highImpactOnly !== undefined && !prefs.impactLevel) {
+        impactLevel = prefs.highImpactOnly ? 'HIGH_ONLY' : 'MED_HIGH';
+        prefs.impactLevel = impactLevel;
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+        console.log('[ImpactFilter] Migrated legacy highImpactOnly to impactLevel:', impactLevel);
+      }
+      
       return {
-        impactLevel: prefs.impactLevel ?? 'HIGH',
+        enabled: prefs.enabled ?? true,
+        impactLevel,
         critical: prefs.critical ?? true,
         economic: prefs.economic ?? true,
         earnings: prefs.earnings ?? true,
@@ -31,7 +43,8 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   }
   
   return {
-    impactLevel: 'HIGH',
+    enabled: true,
+    impactLevel: 'MED_HIGH',
     critical: true,
     economic: true,
     earnings: true,
@@ -49,11 +62,11 @@ export function passesImpactFilter(
 
   if (!itemImpact) return false;
 
-  if (impactLevel === 'HIGH') {
-    return itemImpact === 'High';
-  } else {
+  if (impactLevel === 'ALL') return true;
+  if (impactLevel === 'MED_HIGH') {
     return itemImpact === 'High' || itemImpact === 'Medium';
   }
+  return itemImpact === 'High';
 }
 
 export function determineCategory(item: FeedItem | CriticalAlert): string | null {
@@ -119,6 +132,8 @@ export function shouldDeliverNotification(
   prefs: NotificationPreferences,
   watchlist: string[]
 ): boolean {
+  if (!prefs.enabled) return false;
+  
   const categoryPasses = passesCategoryFilter(item, prefs, watchlist);
   if (!categoryPasses) return false;
   

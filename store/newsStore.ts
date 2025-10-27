@@ -164,14 +164,14 @@ export const [NewsStoreProvider, useNewsStore] = createContextHook(() => {
   const [highlightedAlert, setHighlightedAlert] = useState<string | null>(null);
   const [savedArticles, setSavedArticles] = useState<FeedItem[]>([]);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
-  const [impactLevel, setImpactLevel] = useState<ImpactLevel>('HIGH');
+  const [impactLevel, setImpactLevel] = useState<ImpactLevel>('MED_HIGH');
 
   const loadPersistedData = useCallback(async () => {
     if (!isHydrated) return;
     
     try {
       const prefs = await getNotificationPreferences();
-      setImpactLevel(prefs.impactLevel);
+      setImpactLevel(prefs.impactLevel || 'MED_HIGH');
       
       const [filtersData, watchlistData, watchlistFoldersData, activeFolderData, uiData, savedArticlesData] = await Promise.allSettled([
         storage.getItem(STORAGE_KEYS.FILTERS),
