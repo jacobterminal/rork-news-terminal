@@ -6,7 +6,6 @@ import { ChevronLeft } from 'lucide-react-native';
 import { settingsNavigation } from '../../utils/navigationMemory';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNewsStore } from '../../store/newsStore';
-import { ImpactLevel } from '../../utils/impactFilter';
 
 interface ToggleItemProps {
   label: string;
@@ -32,36 +31,28 @@ export default function PushNotificationsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   
-  const [enabled, setEnabled] = useState(true);
   const [pushCriticalAlerts, setPushCriticalAlerts] = useState(true);
   const [pushEconomicEvents, setPushEconomicEvents] = useState(true);
   const [pushEarningsCoverage, setPushEarningsCoverage] = useState(true);
+  const [pushFedUpdates, setPushFedUpdates] = useState(true);
   const [pushWatchlistAlerts, setPushWatchlistAlerts] = useState(true);
-  const [impactLevel, setImpactLevel] = useState<ImpactLevel>('MED_HIGH');
+  const [impactLevel, setImpactLevel] = useState<'high' | 'medium_high' | 'all'>('medium_high');
+  const [scope, setScope] = useState<'watchlist' | 'all'>('all');
   const { updateImpactLevel } = useNewsStore();
 
   useEffect(() => {
     const loadPushPreferences = async () => {
       try {
-        const stored = await AsyncStorage.getItem('settings.push');
+        const stored = await AsyncStorage.getItem('notifications.push');
         if (stored) {
           const prefs = JSON.parse(stored);
-          
-          let loadedImpactLevel: ImpactLevel = prefs.impactLevel ?? 'MED_HIGH';
-          
-          if (prefs.highImpactOnly !== undefined && !prefs.impactLevel) {
-            loadedImpactLevel = prefs.highImpactOnly ? 'HIGH_ONLY' : 'MED_HIGH';
-            prefs.impactLevel = loadedImpactLevel;
-            await AsyncStorage.setItem('settings.push', JSON.stringify(prefs));
-            console.log('[PushNotifications] Migrated legacy highImpactOnly to impactLevel:', loadedImpactLevel);
-          }
-          
-          setEnabled(prefs.enabled ?? true);
-          setPushCriticalAlerts(prefs.critical ?? true);
-          setPushEconomicEvents(prefs.economic ?? true);
-          setPushEarningsCoverage(prefs.earnings ?? true);
-          setPushWatchlistAlerts(prefs.watchlist ?? true);
-          setImpactLevel(loadedImpactLevel);
+          setImpactLevel(prefs.impactLevel ?? 'medium_high');
+          setScope(prefs.scope ?? 'all');
+          setPushCriticalAlerts(prefs.categories?.critical ?? true);
+          setPushEconomicEvents(prefs.categories?.economic ?? true);
+          setPushEarningsCoverage(prefs.categories?.earnings ?? true);
+          setPushFedUpdates(prefs.categories?.fed ?? true);
+          setPushWatchlistAlerts(prefs.categories?.watchlist ?? true);
         }
       } catch (error) {
         console.error('[PushNotifications] Failed to load preferences:', error);
@@ -70,22 +61,28 @@ export default function PushNotificationsScreen() {
     loadPushPreferences();
   }, []);
 
-  const updatePushPreferences = async (key: string, value: boolean | string) => {
-    try {
-      const stored = await AsyncStorage.getItem('settings.push');
-      const prefs = stored ? JSON.parse(stored) : {};
-      prefs[key] = value;
-      await AsyncStorage.setItem('settings.push', JSON.stringify(prefs));
-      console.log('[PushNotifications] Preference updated:', key, value);
-    } catch (error) {
-      console.error('[PushNotifications] Failed to save preference:', error);
-    }
-  };
-
-  const handleEnabledToggle = (value: boolean) => {
-    setEnabled(value);
-    updatePushPreferences('enabled', value);
-  };
+  useEffect(() => {
+    const updatePushPreferences = async () => {
+      try {
+        const prefs = {
+          impactLevel,
+          scope,
+          categories: {
+            critical: pushCriticalAlerts,
+            economic: pushEconomicEvents,
+            earnings: pushEarningsCoverage,
+            fed: pushFedUpdates,
+            watchlist: pushWatchlistAlerts,
+          },
+        };
+        await AsyncStorage.setItem('notifications.push', JSON.stringify(prefs));
+        console.log('[PushNotifications] Preferences updated:', prefs);
+      } catch (error) {
+        console.error('[PushNotifications] Failed to save preferences:', error);
+      }
+    };
+    updatePushPreferences();
+  }, [impactLevel, scope, pushCriticalAlerts, pushEconomicEvents, pushEarningsCoverage, pushFedUpdates, pushWatchlistAlerts]);
 
   const handleBack = () => {
     const prevPage = settingsNavigation.goBack();
@@ -124,33 +121,23 @@ export default function PushNotificationsScreen() {
         </Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>MASTER CONTROL</Text>
-          <ToggleItem
-            label="Enable alerts"
-            value={enabled}
-            onValueChange={handleEnabledToggle}
-          />
-        </View>
-
-        <View style={styles.section}>
           <Text style={styles.sectionTitle}>IMPACT LEVEL</Text>
           <View style={styles.impactLevelRow}>
             <TouchableOpacity
               style={[
                 styles.segmentButton,
                 styles.segmentButtonLeft,
-                impactLevel === 'HIGH_ONLY' && styles.segmentButtonActive
+                impactLevel === 'high' && styles.segmentButtonActive
               ]}
-              onPress={async () => {
-                setImpactLevel('HIGH_ONLY');
-                await updatePushPreferences('impactLevel', 'HIGH_ONLY');
-                await updateImpactLevel('HIGH_ONLY');
+              onPress={() => {
+                setImpactLevel('high');
+                updateImpactLevel('HIGH_ONLY');
               }}
               activeOpacity={0.7}
             >
               <Text style={[
                 styles.segmentButtonText,
-                impactLevel === 'HIGH_ONLY' && styles.segmentButtonTextActive
+                impactLevel === 'high' && styles.segmentButtonTextActive
               ]}>
                 High only
               </Text>
@@ -159,18 +146,17 @@ export default function PushNotificationsScreen() {
               style={[
                 styles.segmentButton,
                 styles.segmentButtonMiddle,
-                impactLevel === 'MED_HIGH' && styles.segmentButtonActive
+                impactLevel === 'medium_high' && styles.segmentButtonActive
               ]}
-              onPress={async () => {
-                setImpactLevel('MED_HIGH');
-                await updatePushPreferences('impactLevel', 'MED_HIGH');
-                await updateImpactLevel('MED_HIGH');
+              onPress={() => {
+                setImpactLevel('medium_high');
+                updateImpactLevel('MED_HIGH');
               }}
               activeOpacity={0.7}
             >
               <Text style={[
                 styles.segmentButtonText,
-                impactLevel === 'MED_HIGH' && styles.segmentButtonTextActive
+                impactLevel === 'medium_high' && styles.segmentButtonTextActive
               ]}>
                 Medium + High
               </Text>
@@ -179,62 +165,89 @@ export default function PushNotificationsScreen() {
               style={[
                 styles.segmentButton,
                 styles.segmentButtonRight,
-                impactLevel === 'ALL' && styles.segmentButtonActive
+                impactLevel === 'all' && styles.segmentButtonActive
               ]}
-              onPress={async () => {
-                setImpactLevel('ALL');
-                await updatePushPreferences('impactLevel', 'ALL');
-                await updateImpactLevel('ALL');
+              onPress={() => {
+                setImpactLevel('all');
+                updateImpactLevel('ALL');
               }}
               activeOpacity={0.7}
             >
               <Text style={[
                 styles.segmentButtonText,
-                impactLevel === 'ALL' && styles.segmentButtonTextActive
+                impactLevel === 'all' && styles.segmentButtonTextActive
               ]}>
                 All
               </Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.impactLevelCaption}>
-            Controls which alerts and lists you receive/see.
-          </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>BACKGROUND ALERTS</Text>
+          <Text style={styles.sectionTitle}>ALERT CATEGORIES</Text>
           <ToggleItem
             label="Critical Alerts"
             value={pushCriticalAlerts}
-            onValueChange={(val) => {
-              setPushCriticalAlerts(val);
-              updatePushPreferences('critical', val);
-            }}
+            onValueChange={setPushCriticalAlerts}
           />
           <ToggleItem
             label="Economic Events (CPI / Jobs / FOMC)"
             value={pushEconomicEvents}
-            onValueChange={(val) => {
-              setPushEconomicEvents(val);
-              updatePushPreferences('economic', val);
-            }}
+            onValueChange={setPushEconomicEvents}
           />
           <ToggleItem
             label="Earnings Coverage"
             value={pushEarningsCoverage}
-            onValueChange={(val) => {
-              setPushEarningsCoverage(val);
-              updatePushPreferences('earnings', val);
-            }}
+            onValueChange={setPushEarningsCoverage}
+          />
+          <ToggleItem
+            label="Fed Updates"
+            value={pushFedUpdates}
+            onValueChange={setPushFedUpdates}
           />
           <ToggleItem
             label="Watchlist Alerts"
             value={pushWatchlistAlerts}
-            onValueChange={(val) => {
-              setPushWatchlistAlerts(val);
-              updatePushPreferences('watchlist', val);
-            }}
+            onValueChange={setPushWatchlistAlerts}
           />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>SCOPE</Text>
+          <View style={styles.scopeRow}>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonLeft,
+                scope === 'watchlist' && styles.segmentButtonActive
+              ]}
+              onPress={() => setScope('watchlist')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                scope === 'watchlist' && styles.segmentButtonTextActive
+              ]}>
+                Watchlist only
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                styles.segmentButtonRight,
+                scope === 'all' && styles.segmentButtonActive
+              ]}
+              onPress={() => setScope('all')}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.segmentButtonText,
+                scope === 'all' && styles.segmentButtonTextActive
+              ]}>
+                All news
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -348,10 +361,12 @@ const styles = StyleSheet.create({
   segmentButtonTextActive: {
     color: '#000',
   },
-  impactLevelCaption: {
-    fontSize: 13,
-    color: '#666',
-    paddingHorizontal: 4,
-    lineHeight: 18,
+  scopeRow: {
+    flexDirection: 'row',
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: '#222',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });
