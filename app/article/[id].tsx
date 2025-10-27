@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,8 @@ import {
 import { theme, impactColors } from '@/constants/theme';
 import { ArticleData, Comment, CommentSortType, FeedItem } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
+import { newsAnalysisStore, SENTIMENT_COLORS, SentimentLabel, ImpactLevel } from '@/store/newsAnalysis';
+import ArticleLinkPill from '@/components/ArticleLinkPill';
 
 // Mock article data - in real app this would come from API
 const mockArticleData: ArticleData = {
@@ -93,9 +95,53 @@ export default function ArticleScreen() {
   const [commentSort, setCommentSort] = useState<CommentSortType>('Hot');
   const [newComment, setNewComment] = useState('');
   const [postPublicly, setPostPublicly] = useState(true);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<{ sentiment: { label: SentimentLabel; confidence: number }; impact: ImpactLevel } | null>(null);
 
   // In real app, fetch article data based on id
   const article = mockArticleData;
+
+  // Load or compute analysis on mount
+  useEffect(() => {
+    const articleId = id || article.id;
+    let existing = newsAnalysisStore.getAnalysis(articleId);
+    
+    if (existing) {
+      setAnalysis(existing);
+      return;
+    }
+
+    // Compute analysis once
+    setAnalysisLoading(true);
+    
+    // Simulate analysis computation (in real app, this would be an API call)
+    setTimeout(() => {
+      const sentimentMap: Record<string, SentimentLabel> = {
+        'Bullish': 'BULL',
+        'Bearish': 'BEAR',
+        'Neutral': 'NEUTRAL',
+      };
+      
+      const impactMap: Record<string, ImpactLevel> = {
+        'Low': 'LOW',
+        'Medium': 'MEDIUM',
+        'High': 'HIGH',
+      };
+
+      const computed = {
+        articleId,
+        sentiment: {
+          label: sentimentMap[article.ai.sentiment] || 'NEUTRAL',
+          confidence: article.ai.confidence / 100,
+        },
+        impact: impactMap[article.ai.impact] || 'MEDIUM',
+      };
+
+      newsAnalysisStore.upsert(computed);
+      setAnalysis(computed);
+      setAnalysisLoading(false);
+    }, 100);
+  }, [id, article.id, article.ai.sentiment, article.ai.confidence, article.ai.impact]);
 
   const sortedComments = useMemo(() => {
     const comments = [...article.comments];
@@ -269,21 +315,42 @@ export default function ArticleScreen() {
           <View style={styles.aiBlock}>
             <Text style={styles.aiLabel}>AI OPINION</Text>
             <Text style={styles.aiText}>{article.ai.opinion}</Text>
-            <Text style={styles.confidence}>Confidence: {article.ai.confidence}%</Text>
+            {analysisLoading ? (
+              <Text style={styles.confidence}>Computing analysis...</Text>
+            ) : analysis ? (
+              <View style={[styles.sentimentChip, { borderColor: SENTIMENT_COLORS[analysis.sentiment.label] }]}>
+                <Text style={[styles.sentimentChipText, { color: SENTIMENT_COLORS[analysis.sentiment.label] }]}>
+                  {analysis.sentiment.label} ({Math.round(analysis.sentiment.confidence * 100)}%)
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.confidence}>Confidence: {article.ai.confidence}%</Text>
+            )}
           </View>
 
           {/* Impact & Verdict */}
-          <View style={styles.impactRow}>
-            <View style={[styles.impactPill, { backgroundColor: impactColors[article.ai.impact] }]}>
-              <Text style={styles.impactText}>{article.ai.impact}</Text>
+          {analysis && (
+            <View style={styles.impactRow}>
+              <View style={[styles.impactPill, { backgroundColor: impactColors[article.ai.impact] }]}>
+                <Text style={styles.impactText}>{analysis.impact}</Text>
+              </View>
+              <View style={styles.verdictContainer}>
+                <Text style={styles.verdictText}>
+                  Likely {analysis.sentiment.label === 'BULL' ? 'Bullish' : analysis.sentiment.label === 'BEAR' ? 'Bearish' : 'Neutral'}
+                </Text>
+                <Text style={styles.verdictConfidence}>{Math.round(analysis.sentiment.confidence * 100)}%</Text>
+              </View>
             </View>
-            <View style={styles.verdictContainer}>
-              <Text style={styles.verdictText}>
-                Likely {article.ai.sentiment}
-              </Text>
-              <Text style={styles.verdictConfidence}>{article.ai.confidence}%</Text>
-            </View>
-          </View>
+          )}
+
+          {/* Source Link Pill */}
+          {analysis && !analysisLoading && (
+            <ArticleLinkPill
+              url={article.original_url}
+              label={`${article.source.name} ↗`}
+              sentiment={analysis.sentiment.label}
+            />
+          )}
 
           <View style={styles.aiBlock}>
             <Text style={styles.aiLabel}>SHORT EXPLAINER</Text>
@@ -501,6 +568,18 @@ const styles = StyleSheet.create({
   verdictConfidence: {
     fontSize: theme.fontSize.tight,
     color: theme.colors.textSecondary,
+  },
+  sentimentChip: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  sentimentChipText: {
+    fontSize: theme.fontSize.tight,
+    fontWeight: '600',
   },
   sentimentSection: {
     padding: theme.spacing.lg,
