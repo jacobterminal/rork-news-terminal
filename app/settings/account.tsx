@@ -37,6 +37,7 @@ function SettingItem({ icon, label, value, onPress, isDestructive }: SettingItem
 export default function AccountSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const TOP_GAP = 8;
 
   const handleBack = () => {
     const prevPage = settingsNavigation.goBack();
@@ -141,7 +142,8 @@ export default function AccountSettingsScreen() {
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="never"
+        contentContainerStyle={[styles.scrollContent, { paddingTop: TOP_GAP, paddingBottom: insets.bottom + 16 }]}
       >
         <Text style={styles.pageTitle}>Account Settings</Text>
         <Text style={styles.pageSubtitle}>Manage your account details</Text>
@@ -374,7 +376,6 @@ const styles = StyleSheet.create({
     color: '#EAEAEA',
     marginBottom: 8,
     paddingHorizontal: 16,
-    marginTop: 16,
   },
   pageSubtitle: {
     fontSize: 14,

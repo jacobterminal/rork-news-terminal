@@ -29,6 +29,7 @@ function FeedbackType({ icon, title, description, onPress }: FeedbackTypeProps) 
 export default function FeedbackSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const TOP_GAP = 8;
 
   const handleBack = () => {
     const prevPage = settingsNavigation.goBack();
@@ -72,7 +73,8 @@ export default function FeedbackSettingsScreen() {
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="never"
+        contentContainerStyle={[styles.scrollContent, { paddingTop: TOP_GAP, paddingBottom: insets.bottom + 16 }]}
       >
         <Text style={styles.pageTitle}>Requests & Feedback</Text>
         <Text style={styles.pageSubtitle}>We&apos;re here to help</Text>
