@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { FeedItem, CriticalAlert } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
+import ArticleLinkPill from './ArticleLinkPill';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -190,6 +191,10 @@ export default function NewsArticleModal({ visible, article, onClose, onTickerPr
   const publishedAt = article.published_at;
   const tickers = article.tickers || [];
   
+  const sentiment = aiContent?.sentiment || 'Neutral';
+  const sourceLabel = typeof source === 'string' ? source : 'Read Source';
+  const articleUrl = ('url' in article ? article.url : '') || '';
+  
   const getBorderColor = () => {
     if (!aiContent) return '#FFD75A';
     switch (aiContent.sentiment) {
@@ -304,6 +309,13 @@ export default function NewsArticleModal({ visible, article, onClose, onTickerPr
                         </TouchableOpacity>
                       ))}
                     </View>
+                    {Boolean(articleUrl) && (
+                      <ArticleLinkPill
+                        url={articleUrl}
+                        label={sourceLabel}
+                        sentiment={sentiment}
+                      />
+                    )}
                   </View>
                 </>
               )}
