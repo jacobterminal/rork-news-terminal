@@ -6,6 +6,7 @@ import { FeedItem } from '../types/news';
 import { theme, sentimentConfig } from '../constants/theme';
 import { useNewsStore } from '../store/newsStore';
 import { useNavigationStore } from '../store/navigationStore';
+import { SentimentLabel, ImpactLevel } from '../store/newsAnalysis';
 
 interface NewsCardProps {
   item: FeedItem;
@@ -31,7 +32,27 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
     if (onPress) {
       onPress();
     } else {
-      router.push(`/article/${item.id}`);
+      const sentimentMap: Record<string, SentimentLabel> = {
+        'Bullish': 'BULL',
+        'Bearish': 'BEAR',
+        'Neutral': 'NEUTRAL',
+      };
+      
+      const impactMap: Record<string, ImpactLevel> = {
+        'Low': 'LOW',
+        'Medium': 'MEDIUM',
+        'High': 'HIGH',
+      };
+      
+      router.push({
+        pathname: `/article/${item.id}`,
+        params: {
+          articleId: item.id,
+          seedSentiment: sentimentMap[item.classification.sentiment] || 'NEUTRAL',
+          seedConfidence: (item.classification.confidence / 100).toString(),
+          seedImpact: impactMap[item.classification.impact] || 'MEDIUM',
+        },
+      });
     }
   };
   

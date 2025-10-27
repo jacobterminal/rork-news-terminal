@@ -48,3 +48,7 @@ class NewsAnalysisStore {
 }
 
 export const newsAnalysisStore = new NewsAnalysisStore();
+
+export const getAnalysis = (articleId: string) => newsAnalysisStore.getAnalysis(articleId);
+export const setAnalysis = (analysis: ArticleAnalysis) => newsAnalysisStore.setAnalysis(analysis);
+export const upsert = (analysis: ArticleAnalysis) => newsAnalysisStore.upsert(analysis);
