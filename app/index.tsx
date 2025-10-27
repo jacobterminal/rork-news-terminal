@@ -16,6 +16,7 @@ import CriticalAlerts from '../components/CriticalAlerts';
 import TimeRangeFilterPill, { TimeRange, CustomTimeRange } from '../components/TimeRangeFilterPill';
 import NewsArticleModal from '../components/NewsArticleModal';
 import UniversalBackButton from '../components/UniversalBackButton';
+import { newsAnalysisStore, SentimentLabel, ImpactLevel } from '../store/newsAnalysis';
 
 export default function NewsScreen() {
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
@@ -232,6 +233,32 @@ export default function NewsScreen() {
         return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
       });
   }, [feedItems, watchlist, timeRange, customTimeRange, showWatchlistFilter]);
+  
+  // Populate analysis store when items change
+  useEffect(() => {
+    watchlistFeedItems.forEach(item => {
+      const sentimentMap: Record<string, SentimentLabel> = {
+        'Bullish': 'BULL',
+        'Bearish': 'BEAR',
+        'Neutral': 'NEUTRAL',
+      };
+      
+      const impactMap: Record<string, ImpactLevel> = {
+        'High': 'HIGH',
+        'Medium': 'MEDIUM',
+        'Low': 'LOW',
+      };
+      
+      newsAnalysisStore.upsert({
+        articleId: item.id,
+        sentiment: {
+          label: sentimentMap[item.classification.sentiment] || 'NEUTRAL',
+          confidence: item.classification.confidence / 100,
+        },
+        impact: impactMap[item.classification.impact] || 'LOW',
+      });
+    });
+  }, [watchlistFeedItems]);
 
   const handleTickerPress = (ticker: string) => {
     if (!ticker || !ticker.trim() || ticker.length > 10) return;

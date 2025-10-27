@@ -12,6 +12,7 @@ import NewsArticleModal from '../components/NewsArticleModal';
 import { useNewsStore } from '../store/newsStore';
 import { useScrollReset } from '../utils/useScrollReset';
 import { useNavigationStore } from '../store/navigationStore';
+import { newsAnalysisStore, SentimentLabel, ImpactLevel } from '../store/newsAnalysis';
 
 export default function InstantScreen() {
   const insets = useSafeAreaInsets();
@@ -39,6 +40,32 @@ export default function InstantScreen() {
       item.classification.rumor_level === 'Confirmed'
     ).sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
   }, [state.feedItems]);
+  
+  // Populate analysis store when items change
+  useEffect(() => {
+    instantNews.forEach(item => {
+      const sentimentMap: Record<string, SentimentLabel> = {
+        'Bullish': 'BULL',
+        'Bearish': 'BEAR',
+        'Neutral': 'NEUTRAL',
+      };
+      
+      const impactMap: Record<string, ImpactLevel> = {
+        'High': 'HIGH',
+        'Medium': 'MEDIUM',
+        'Low': 'LOW',
+      };
+      
+      newsAnalysisStore.upsert({
+        articleId: item.id,
+        sentiment: {
+          label: sentimentMap[item.classification.sentiment] || 'NEUTRAL',
+          confidence: item.classification.confidence / 100,
+        },
+        impact: impactMap[item.classification.impact] || 'LOW',
+      });
+    });
+  }, [instantNews]);
   
   const [animatedItems, setAnimatedItems] = useState<Set<string>>(new Set());
   const animationRefs = useRef<Map<string, Animated.Value>>(new Map());
