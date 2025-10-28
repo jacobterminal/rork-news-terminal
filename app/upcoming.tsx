@@ -12,6 +12,7 @@ import { useScrollReset } from '../utils/useScrollReset';
 import { useNavigationStore } from '../store/navigationStore';
 import { getEarningsSession, getSessionAriaLabel } from '../utils/newsUtils';
 import UniversalBackButton from '../components/UniversalBackButton';
+import MonthPickerSheet from './components/MonthPickerSheet';
 
 interface CalendarDay {
   date: Date;
@@ -23,6 +24,11 @@ interface MonthOption {
   value: number;
   label: string;
   year: number;
+}
+
+type MonthPickerData = {
+  label: string;
+  value: string;
 }
 
 interface EventItemProps {
@@ -168,42 +174,14 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
   showMonthPicker: boolean;
   setShowMonthPicker: (show: boolean) => void;
 }) {
-  const { registerDropdown, shouldCloseDropdown } = useDropdown();
-  const dropdownId = 'month-picker';
-  const monthScrollRef = useRef<ScrollView>(null);
   const calendarScrollRef = useRef<ScrollView>(null);
 
-  useEffect(() => {
-    if (shouldCloseDropdown(dropdownId)) {
-      setShowMonthPicker(false);
-    }
-  }, [shouldCloseDropdown, dropdownId, setShowMonthPicker]);
+  const pickerMonths: MonthPickerData[] = monthOptions.map(opt => ({
+    label: opt.label,
+    value: `${opt.year}-${opt.value}`,
+  }));
 
-  useEffect(() => {
-    registerDropdown(dropdownId, showMonthPicker);
-  }, [showMonthPicker, registerDropdown, dropdownId]);
-  
-  useEffect(() => {
-    if (showMonthPicker && monthScrollRef.current) {
-      const selectedMonthIndex = monthOptions.findIndex(
-        option => option.value === selectedMonth && option.year === selectedYear
-      );
-      
-      if (selectedMonthIndex !== -1) {
-        requestAnimationFrame(() => {
-          const itemHeight = 56;
-          const modalHeight = Dimensions.get('window').height * 0.6;
-          const visibleHeight = Math.min(300, modalHeight - 100);
-          const scrollY = Math.max(0, (selectedMonthIndex * itemHeight) - (visibleHeight / 2) + (itemHeight / 2));
-          
-          monthScrollRef.current?.scrollTo({
-            y: scrollY,
-            animated: false,
-          });
-        });
-      }
-    }
-  }, [showMonthPicker, monthOptions, selectedMonth, selectedYear]);
+  const selectedPickerValue = `${selectedYear}-${selectedMonth}`;
   
   useEffect(() => {
     if (calendarDays.length > 0 && calendarScrollRef.current) {
@@ -271,60 +249,19 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
         })}
       </ScrollView>
       
-      <Modal
+      <MonthPickerSheet
         visible={showMonthPicker}
-        transparent
-        animationType="fade"
+        months={pickerMonths}
+        selectedValue={selectedPickerValue}
+        onSelect={(value) => {
+          const [yearStr, monthStr] = value.split('-');
+          const year = parseInt(yearStr, 10);
+          const month = parseInt(monthStr, 10);
+          onMonthSelect(month, year);
+          setShowMonthPicker(false);
+        }}
         onRequestClose={() => setShowMonthPicker(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMonthPicker(false)}
-        >
-          <View style={styles.monthPickerModal}>
-            <Text style={styles.modalTitle}>Select Month</Text>
-            <ScrollView 
-              ref={monthScrollRef} 
-              style={styles.monthList}
-              showsVerticalScrollIndicator={false}
-            >
-              {monthOptions.map((month) => {
-                const currentDate = new Date();
-                const currentMonth = currentDate.getMonth();
-                const currentYear = currentDate.getFullYear();
-                const monthDate = new Date(month.year, month.value, 1);
-                const currentMonthDate = new Date(currentYear, currentMonth, 1);
-                
-                const isCurrentMonth = month.value === currentMonth && month.year === currentYear;
-                const isPastMonth = monthDate < currentMonthDate;
-                const isFutureMonth = monthDate > currentMonthDate;
-                const isSelected = selectedMonth === month.value && selectedYear === month.year;
-                
-                return (
-                  <TouchableOpacity
-                    key={`${month.year}-${month.value}`}
-                    style={[styles.monthOption, isSelected && styles.selectedMonthOption]}
-                    onPress={() => {
-                      onMonthSelect(month.value, month.year);
-                      setShowMonthPicker(false);
-                    }}
-                  >
-                    <Text style={[
-                      styles.monthOptionText,
-                      isCurrentMonth && styles.currentMonthText,
-                      isPastMonth && styles.pastMonthText,
-                      isFutureMonth && styles.futureMonthText
-                    ]}>
-                      {month.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      />
     </View>
   );
 }
