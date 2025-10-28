@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, Linking } from 'react-native';
-import { sentimentColor } from '@/utils/newsNormalize';
+import { getSentimentColors } from '@/app/lib/sentiment';
 
 type Props = {
   url: string;
@@ -9,7 +9,8 @@ type Props = {
 };
 
 export default function ArticleLinkPill({ url, label = 'Open Article', sentiment = 'neutral' }: Props) {
-  const c = sentimentColor(sentiment);
+  const colors = getSentimentColors({ sentiment });
+  const c = colors.border;
 
   const open = async () => {
     try { await Linking.openURL(url); } catch {}

@@ -26,6 +26,7 @@ import { ArticleData, Comment, CommentSortType, FeedItem } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
 import { getAnalysis, upsert, SENTIMENT_COLORS, SentimentLabel, ImpactLevel } from '@/store/newsAnalysis';
 import { sentimentColor } from '@/utils/newsNormalize';
+import { getSentimentColors } from '@/app/lib/sentiment';
 
 // Mock article data - in real app this would come from API
 const mockArticleData: ArticleData = {
@@ -151,7 +152,8 @@ export default function ArticleScreen() {
     }
   }, [articleId, seedSentiment, seedConfidence, seedImpact]);
 
-  const accentColor = accentHex;
+  const colors = getSentimentColors({ sentiment: analysis.sentiment.label });
+  const accentColor = accentHex || colors.border;
 
   const sortedComments = useMemo(() => {
     const comments = [...article.comments];

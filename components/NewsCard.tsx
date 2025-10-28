@@ -5,8 +5,8 @@ import { Bookmark } from 'lucide-react-native';
 import { FeedItem } from '../types/news';
 import { theme } from '../constants/theme';
 import { useNewsStore } from '../store/newsStore';
-import { useNavigationStore } from '../store/navigationStore';
-import { normalizeNewsItem, sentimentColor as getSentimentColor } from '../utils/newsNormalize';
+import { normalizeNewsItem } from '../utils/newsNormalize';
+import { getSentimentColors } from '@/app/lib/sentiment';
 
 interface NewsCardProps {
   item: FeedItem;
@@ -17,19 +17,18 @@ interface NewsCardProps {
 
 export default function NewsCard({ item, onTickerPress, showTweet = false, onPress }: NewsCardProps) {
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
-  const { setReturnContext } = useNavigationStore();
   
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
+  const colors = getSentimentColors(item);
   const normalized = normalizeNewsItem(item);
 
   const handleCardPress = () => {
     if (onPress) {
       onPress();
     } else {
-      const accentHex = getSentimentColor(normalized.sentimentLabel);
       router.push({
         pathname: `/article/${item.id}` as any,
         params: {
@@ -37,7 +36,7 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
           seedSentiment: normalized.sentimentLabel,
           seedConfidence: normalized.confidence.toString(),
           seedImpact: normalized.impactLabel,
-          accentHex: accentHex,
+          accentHex: colors.border,
         },
       });
     }
@@ -53,7 +52,6 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
   };
 
   const sentimentLabel = normalized.sentimentLabel === 'BULL' ? 'BULL' : normalized.sentimentLabel === 'BEAR' ? 'BEAR' : 'NEUT';
-  const sentimentColor = normalized.uiBorderColor;
 
   return (
     <Pressable style={styles.tableRow} onPress={handleCardPress}>
@@ -61,8 +59,8 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
         <View style={styles.topLine}>
           <Text style={styles.timeText}>{formatTime(item.published_at)}</Text>
           <Text style={styles.sourceText}>{item.source.name}</Text>
-          <View style={[styles.pill, { borderColor: sentimentColor }]}>
-            <Text style={[styles.pillText, { color: sentimentColor }]}>
+          <View style={[styles.pill, { borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>
               {sentimentLabel} {item.classification.confidence}%
             </Text>
           </View>

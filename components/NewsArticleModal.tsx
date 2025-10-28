@@ -13,11 +13,9 @@ import {
 } from 'react-native';
 import { X } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { theme } from '@/constants/theme';
 import { FeedItem, CriticalAlert } from '@/types/news';
-import { useNewsStore } from '@/store/newsStore';
 import ArticleLinkPill from './ArticleLinkPill';
-import { normalizeNewsItem, sentimentColor, sentimentLabel } from '@/utils/newsNormalize';
+import { getSentimentColors } from '@/app/lib/sentiment';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -39,7 +37,6 @@ interface AIContent {
 }
 
 export default function NewsArticleModal({ visible, article, onClose, onTickerPress }: NewsArticleModalProps) {
-  const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
   const [translateY] = useState(new Animated.Value(SCREEN_HEIGHT));
   const [aiContent, setAiContent] = useState<AIContent | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
@@ -196,12 +193,8 @@ export default function NewsArticleModal({ visible, article, onClose, onTickerPr
   const sourceLabel = typeof source === 'string' ? source : 'Read Source';
   const articleUrl = ('url' in article ? article.url : '') || '';
   
-  const normalizedFromArticle =
-    article ? normalizeNewsItem(article as any, (article as any).classification) : null;
-  
-  const accentColor =
-    normalizedFromArticle?.uiBorderColor
-      ?? sentimentColor((aiContent?.sentiment || 'Neutral'));
+  const colors = getSentimentColors(article);
+  const accentColor = colors.border;
 
   return (
     <Modal
@@ -271,7 +264,7 @@ export default function NewsArticleModal({ visible, article, onClose, onTickerPr
                     <View style={styles.opinionRow}>
                       <Text style={styles.opinionDash}>—</Text>
                       <Text style={styles.opinionLabel}>({aiContent.impact})</Text>
-                      <Text style={styles.opinionSentiment}>
+                      <Text style={[styles.opinionSentiment, { color: colors.text }]}>
                         {aiContent.sentiment} {aiContent.confidence}%
                       </Text>
                     </View>
@@ -423,7 +416,6 @@ const styles = StyleSheet.create({
   opinionSentiment: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: '#FFD75A',
   },
   opinionDescription: {
     fontSize: 15,

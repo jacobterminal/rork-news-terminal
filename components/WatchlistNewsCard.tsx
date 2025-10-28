@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme } from '../constants/theme';
 import { TrendingUp, TrendingDown, Minus, Clock } from 'lucide-react-native';
+import { getSentimentColors } from '@/app/lib/sentiment';
 
 interface WatchlistNewsItem {
   ticker: string;
@@ -21,10 +22,11 @@ interface WatchlistNewsCardProps {
 }
 
 export default function WatchlistNewsCard({ item, onPress, onTickerPress }: WatchlistNewsCardProps) {
+  const colors = getSentimentColors(item);
+  
   const getSentimentIcon = (sentiment: string) => {
     const iconSize = 16;
-    const color = sentiment === 'Bullish' ? theme.colors.bullish : 
-                  sentiment === 'Bearish' ? theme.colors.bearish : theme.colors.neutral;
+    const color = colors.text;
     
     switch (sentiment) {
       case 'Bullish':
