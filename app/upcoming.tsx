@@ -161,6 +161,8 @@ function keyOf(m: MonthOption) {
   return `${m?.year ?? ''}-${m?.value ?? m?.label ?? ''}`;
 }
 
+const ROW_H = 52;
+
 function MonthList({
   months,
   selectedMonth,
@@ -177,34 +179,21 @@ function MonthList({
   onClose: () => void;
 }) {
   const listRef = useRef<FlatList<MonthOption>>(null);
-  const [containerH, setContainerH] = useState<number | null>(null);
-  const rowHRef = useRef<number | null>(null);
+  const [vh, setVh] = useState(0);
 
   const selIndex = useMemo(() => {
     const i = months.findIndex(m => m.value === selectedMonth && m.year === selectedYear);
     return i >= 0 ? i : 0;
   }, [months, selectedMonth, selectedYear]);
 
-  const onSelectedRowLayout = (h: number) => {
-    if (!rowHRef.current && h > 0) rowHRef.current = h;
-  };
-
-  const centerNow = useCallback(() => {
-    const rowH = rowHRef.current;
-    if (!isOpen || containerH == null || rowH == null) return;
-
-    const contentH = months.length * rowH;
-    const ideal = selIndex * rowH - (containerH - rowH) / 2;
-    const offset = Math.max(0, Math.min(ideal, Math.max(0, contentH - containerH)));
-
-    requestAnimationFrame(() => {
-      listRef.current?.scrollToOffset({ offset, animated: false });
-    });
-  }, [isOpen, containerH, selIndex, months.length]);
+  const pad = Math.max(0, vh / 2 - ROW_H / 2);
 
   useEffect(() => {
-    centerNow();
-  }, [isOpen, containerH, selIndex]);
+    if (!isOpen || !vh) return;
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index: selIndex, animated: false });
+    });
+  }, [isOpen, vh, selIndex]);
 
   const renderMonthRow = ({ item, index }: { item: MonthOption; index: number }) => {
     const currentDate = new Date();
@@ -220,7 +209,7 @@ function MonthList({
     
     const row = (
       <TouchableOpacity
-        style={[styles.monthOption, isSelected && styles.selectedMonthOption]}
+        style={[styles.monthOption, isSelected && styles.selectedMonthOption, { height: ROW_H }]}
         onPress={() => {
           onMonthSelect(item.value, item.year);
           onClose();
@@ -237,11 +226,7 @@ function MonthList({
       </TouchableOpacity>
     );
 
-    return React.cloneElement(row as any, {
-      onLayout: (e: any) => {
-        if (index === selIndex) onSelectedRowLayout(e.nativeEvent.layout.height);
-      }
-    });
+    return row;
   };
 
   return (
@@ -251,12 +236,13 @@ function MonthList({
       keyExtractor={(item: MonthOption, i: number) => keyOf(item) + ':' + i}
       renderItem={renderMonthRow}
       showsVerticalScrollIndicator={false}
-      onLayout={(e) => setContainerH(e.nativeEvent.layout.height)}
-      onScrollToIndexFailed={() => {
-        setTimeout(() => {
-          centerNow();
-        }, 0);
-      }}
+      getItemLayout={(_, index) => ({
+        length: ROW_H,
+        offset: ROW_H * index,
+        index
+      })}
+      onLayout={(e) => setVh(e.nativeEvent.layout.height)}
+      contentContainerStyle={{ paddingTop: pad, paddingBottom: pad }}
       initialNumToRender={months.length}
       removeClippedSubviews={false}
     />
