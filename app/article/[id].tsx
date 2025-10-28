@@ -94,8 +94,12 @@ export default function ArticleScreen() {
     seedConfidence?: string;
     seedImpact?: string;
     accentHex?: string;
+    url?: string;
+    publisher?: string;
+    sentimentRaw?: string;
   }>();
-  const { id, articleId: paramsArticleId, seedSentiment, seedConfidence, seedImpact, accentHex } = params;
+  const { id, articleId: paramsArticleId, seedSentiment, seedConfidence, seedImpact, url: paramUrl, publisher: paramPublisher, sentimentRaw } = params;
+  const accentHex = params.accentHex || '#FFD75A';
   const articleId = paramsArticleId || id;
   
   const navigation = useNavigation();
@@ -147,7 +151,7 @@ export default function ArticleScreen() {
     }
   }, [articleId, seedSentiment, seedConfidence, seedImpact]);
 
-  const accentColor = accentHex || sentimentColor(analysis.sentiment.label);
+  const accentColor = accentHex;
 
   const sortedComments = useMemo(() => {
     const comments = [...article.comments];
@@ -321,8 +325,8 @@ export default function ArticleScreen() {
           <View style={styles.aiBlock}>
             <Text style={styles.aiLabel}>AI OPINION</Text>
             <Text style={styles.aiText}>{article.ai.opinion}</Text>
-            <View style={[styles.sentimentChip, { borderColor: accentColor }]}>
-              <Text style={[styles.sentimentChipText, { color: accentColor }]}>
+            <View style={{ borderColor: accentColor, alignSelf: 'flex-start', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginTop: 8 }}>
+              <Text style={{ color: accentColor, fontSize: theme.fontSize.tight, fontWeight: '600' }}>
                 {analysis.sentiment.label} ({Math.round(analysis.sentiment.confidence * 100)}%)
               </Text>
             </View>
@@ -330,7 +334,7 @@ export default function ArticleScreen() {
 
           {/* Impact & Verdict */}
           <View style={styles.impactRow}>
-            <View style={[styles.impactPill, { backgroundColor: accentColor }]}>
+            <View style={{ backgroundColor: accentColor, paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs, borderRadius: 4 }}>
               <Text style={styles.impactText}>{analysis.impact}</Text>
             </View>
             <View style={styles.verdictContainer}>
@@ -343,16 +347,19 @@ export default function ArticleScreen() {
 
           {/* Source Link Pill */}
           <TouchableOpacity
-            onPress={() => Linking.openURL(article.original_url)}
-            style={[styles.sourcePill, { borderColor: accentColor }]}
+            onPress={() => Linking.openURL(paramUrl || article.original_url)}
+            style={{ borderColor: accentColor, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start', marginTop: 12 }}
             accessibilityRole="link"
-            accessibilityLabel={`Open source article: ${article.source.name}`}
+            accessibilityLabel={`Open source article: ${paramPublisher || article.source.name}`}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={[styles.sourcePillText, { color: accentColor }]}>{article.source.name}</Text>
-              <Text style={[styles.sourcePillArrow, { color: accentColor }]}>↗</Text>
+              <Text style={{ color: accentColor, fontWeight: '600' }}>{paramPublisher || article.source.name}</Text>
+              <Text style={{ color: accentColor, opacity: 0.9 }}>↗</Text>
             </View>
           </TouchableOpacity>
+          
+          {/* Debug indicator */}
+          <View style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: accentColor, marginTop: 6 }} />
 
           <View style={styles.aiBlock}>
             <Text style={styles.aiLabel}>SHORT EXPLAINER</Text>
