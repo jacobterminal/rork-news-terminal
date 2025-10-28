@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -97,9 +97,6 @@ export default function ArticleScreen() {
   const { id, articleId: paramsArticleId, seedSentiment, seedConfidence, seedImpact } = params;
   const articleId = paramsArticleId || id;
   
-  console.log('Route params:', { seedSentiment, seedConfidence, seedImpact });
-  
-  console.log('Article ID:', articleId);
   const navigation = useNavigation();
   const { saveArticle, unsaveArticle, isArticleSaved } = useNewsStore();
   const [commentsExpanded, setCommentsExpanded] = useState(false);
@@ -107,32 +104,49 @@ export default function ArticleScreen() {
   const [newComment, setNewComment] = useState('');
   const [postPublicly, setPostPublicly] = useState(true);
 
-  // In real app, fetch article data based on id
   const article = mockArticleData;
 
-  // Try store first, then seeds, then neutral default
-  let a = getAnalysis(articleId);
-  if (!a && seedSentiment) {
-    a = {
-      articleId,
-      sentiment: {
-        label: seedSentiment as SentimentLabel,
-        confidence: parseFloat(seedConfidence || '0'),
-      },
-      impact: (seedImpact as ImpactLevel) || 'MEDIUM',
-    };
-    upsert(a);
-  }
-  if (!a) {
-    a = {
+  const [analysis, setAnalysis] = useState<{
+    articleId: string;
+    sentiment: { label: SentimentLabel; confidence: number };
+    impact: ImpactLevel;
+  }>(() => {
+    const existing = getAnalysis(articleId);
+    if (existing) return existing;
+    
+    if (seedSentiment) {
+      return {
+        articleId,
+        sentiment: {
+          label: seedSentiment as SentimentLabel,
+          confidence: parseFloat(seedConfidence || '0'),
+        },
+        impact: (seedImpact as ImpactLevel) || 'MEDIUM',
+      };
+    }
+    
+    return {
       articleId,
       sentiment: { label: 'NEUTRAL', confidence: 0 },
       impact: 'MEDIUM',
     };
-  }
+  });
 
-  // Single color source for ALL accents on this sheet
-  const accentColor = sentimentColor(a.sentiment.label);
+  useEffect(() => {
+    if (seedSentiment && !getAnalysis(articleId)) {
+      const newAnalysis = {
+        articleId,
+        sentiment: {
+          label: seedSentiment as SentimentLabel,
+          confidence: parseFloat(seedConfidence || '0'),
+        },
+        impact: (seedImpact as ImpactLevel) || 'MEDIUM',
+      };
+      upsert(newAnalysis);
+    }
+  }, [articleId, seedSentiment, seedConfidence, seedImpact]);
+
+  const accentColor = sentimentColor(analysis.sentiment.label);
 
   const sortedComments = useMemo(() => {
     const comments = [...article.comments];
@@ -308,7 +322,7 @@ export default function ArticleScreen() {
             <Text style={styles.aiText}>{article.ai.opinion}</Text>
             <View style={[styles.sentimentChip, { borderColor: accentColor }]}>
               <Text style={[styles.sentimentChipText, { color: accentColor }]}>
-                {a.sentiment.label} ({Math.round(a.sentiment.confidence * 100)}%)
+                {analysis.sentiment.label} ({Math.round(analysis.sentiment.confidence * 100)}%)
               </Text>
             </View>
           </View>
@@ -316,13 +330,13 @@ export default function ArticleScreen() {
           {/* Impact & Verdict */}
           <View style={styles.impactRow}>
             <View style={[styles.impactPill, { backgroundColor: accentColor }]}>
-              <Text style={styles.impactText}>{a.impact}</Text>
+              <Text style={styles.impactText}>{analysis.impact}</Text>
             </View>
             <View style={styles.verdictContainer}>
               <Text style={styles.verdictText}>
-                Likely {a.sentiment.label === 'BULL' ? 'Bullish' : a.sentiment.label === 'BEAR' ? 'Bearish' : 'Neutral'}
+                Likely {analysis.sentiment.label === 'BULL' ? 'Bullish' : analysis.sentiment.label === 'BEAR' ? 'Bearish' : 'Neutral'}
               </Text>
-              <Text style={styles.verdictConfidence}>{Math.round(a.sentiment.confidence * 100)}%</Text>
+              <Text style={styles.verdictConfidence}>{Math.round(analysis.sentiment.confidence * 100)}%</Text>
             </View>
           </View>
 
