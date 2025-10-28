@@ -13,6 +13,9 @@ import { useNavigationStore } from '../store/navigationStore';
 import { getEarningsSession, getSessionAriaLabel } from '../utils/newsUtils';
 import UniversalBackButton from '../components/UniversalBackButton';
 
+const GOLD = theme?.colors?.activeCyan ?? '#FFD75A';
+const SUCCESS = theme?.colors?.bullish ?? '#00C853';
+
 interface CalendarDay {
   date: Date;
   isToday: boolean;
@@ -266,7 +269,8 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
 }) {
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
   const dropdownId = 'month-picker';
-  const calendarScrollRef = useRef<ScrollView>(null);
+  const calendarScrollRef = useRef<FlatList<CalendarDay>>(null);
+  const DAY_ITEM_WIDTH = 66;
 
   useEffect(() => {
     if (shouldCloseDropdown(dropdownId)) {
@@ -278,60 +282,120 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
     registerDropdown(dropdownId, showMonthPicker);
   }, [showMonthPicker, registerDropdown, dropdownId]);
   
+  const getItemLayout = (_: any, idx: number) => ({
+    length: DAY_ITEM_WIDTH,
+    offset: DAY_ITEM_WIDTH * idx,
+    index: idx
+  });
+
+  const centerDay = (idx: number, animated = false) => {
+    requestAnimationFrame(() => {
+      calendarScrollRef.current?.scrollToIndex({
+        index: Math.max(0, idx),
+        viewPosition: 0.5,
+        animated
+      });
+    });
+  };
+
   useEffect(() => {
-    if (calendarDays.length > 0 && calendarScrollRef.current) {
-      const selectedIndex = calendarDays.findIndex(
-        day => day.date.toDateString() === selectedDate.toDateString()
-      );
-      
-      if (selectedIndex !== -1) {
-        setTimeout(() => {
-          const dayWidth = 66;
-          const screenWidth = Dimensions.get('window').width;
-          const scrollX = Math.max(0, (selectedIndex * dayWidth) - (screenWidth / 2) + (dayWidth / 2));
-          
-          calendarScrollRef.current?.scrollTo({
-            x: scrollX,
-            animated: true,
-          });
-        }, 100);
-      }
+    if (!showMonthPicker) return;
+    const now = new Date();
+    const visibleMonth = new Date(selectedYear, selectedMonth, 1);
+    const isCurrentMonth =
+      visibleMonth.getFullYear() === now.getFullYear() &&
+      visibleMonth.getMonth() === now.getMonth();
+
+    const targetIndex = isCurrentMonth
+      ? now.getDate() - 1
+      : calendarDays.findIndex(day => day.date.toDateString() === selectedDate.toDateString());
+
+    if (targetIndex >= 0) {
+      centerDay(targetIndex, false);
     }
-  }, [selectedDate, calendarDays]);
+  }, [showMonthPicker]);
+
+  useEffect(() => {
+    const now = new Date();
+    const visibleMonth = new Date(selectedYear, selectedMonth, 1);
+    const isCurrentMonth =
+      visibleMonth.getFullYear() === now.getFullYear() &&
+      visibleMonth.getMonth() === now.getMonth();
+
+    const targetIndex = isCurrentMonth
+      ? now.getDate() - 1
+      : calendarDays.findIndex(day => day.date.toDateString() === selectedDate.toDateString());
+
+    if (targetIndex >= 0) {
+      centerDay(targetIndex, true);
+    }
+  }, [selectedMonth, selectedYear]);
   
   return (
     <View style={styles.calendarContainer}>
       <View style={styles.calendarHeader}>
         <TouchableOpacity 
-          style={styles.monthSelector}
+          style={[
+            styles.monthSelector,
+            showMonthPicker && { borderColor: GOLD, borderWidth: 1 }
+          ]}
           onPress={() => setShowMonthPicker(true)}
         >
-          <Text style={styles.monthText}>
+          <Text style={[
+            styles.monthText,
+            showMonthPicker && { color: GOLD }
+          ]}>
             {new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </Text>
-          <ChevronDown size={16} color={theme.colors.textDim} />
+          <ChevronDown size={16} color={showMonthPicker ? GOLD : theme.colors.textDim} />
         </TouchableOpacity>
       </View>
       
-      <ScrollView 
+      <FlatList
         ref={calendarScrollRef}
-        horizontal 
+        data={calendarDays}
+        horizontal
+        keyExtractor={(day) => day.date.toDateString()}
+        getItemLayout={getItemLayout}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.calendarStrip}
-      >
-        {calendarDays.map((day, index) => {
+        renderItem={({ item: day, index }) => {
+          const now = new Date();
+          const visibleMonth = new Date(selectedYear, selectedMonth, 1);
+          
+          const isToday =
+            day.date.getFullYear() === now.getFullYear() &&
+            day.date.getMonth() === now.getMonth() &&
+            day.date.getDate() === now.getDate();
+
+          const isCurrentVisibleMonth =
+            visibleMonth.getFullYear() === now.getFullYear() &&
+            visibleMonth.getMonth() === now.getMonth();
+
           const isSelected = day.date.toDateString() === selectedDate.toDateString();
+          const accentColor = isToday && isCurrentVisibleMonth ? SUCCESS : GOLD;
           
           return (
             <TouchableOpacity
-              key={day.date.toDateString()}
-              style={[styles.calendarDay, isSelected && styles.selectedDay, day.isToday && styles.todayDay]}
+              style={[
+                styles.calendarDay,
+                isSelected && {
+                  borderWidth: 1,
+                  borderColor: accentColor
+                }
+              ]}
               onPress={() => onDateSelect(day.date)}
             >
-              <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>
+              <Text style={[
+                styles.dayText,
+                isSelected && { color: accentColor }
+              ]}>
                 {day.date.getDate()}
               </Text>
-              <Text style={[styles.weekdayText, isSelected && styles.selectedWeekdayText]}>
+              <Text style={[
+                styles.weekdayText,
+                isSelected && { color: accentColor }
+              ]}>
                 {day.date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
               </Text>
               {day.eventCount > 0 && (
@@ -341,8 +405,8 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
               )}
             </TouchableOpacity>
           );
-        })}
-      </ScrollView>
+        }}
+      />
       
       <Modal
         visible={showMonthPicker}
@@ -976,13 +1040,7 @@ const styles = StyleSheet.create({
     minWidth: 50,
     position: 'relative',
   },
-  selectedDay: {
-    backgroundColor: theme.colors.border,
-  },
-  todayDay: {
-    borderWidth: 1,
-    borderColor: theme.colors.bullish,
-  },
+
   dayText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -1166,6 +1224,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
     borderRadius: 6,
     alignSelf: 'flex-start',
+    borderWidth: 0,
   },
   monthText: {
     fontSize: 14,
