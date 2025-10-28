@@ -6,7 +6,7 @@ import { FeedItem } from '../types/news';
 import { theme } from '../constants/theme';
 import { useNewsStore } from '../store/newsStore';
 import { useNavigationStore } from '../store/navigationStore';
-import { normalizeNewsItem } from '../utils/newsNormalize';
+import { normalizeNewsItem, sentimentColor as getSentimentColor } from '../utils/newsNormalize';
 
 interface NewsCardProps {
   item: FeedItem;
@@ -29,6 +29,7 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
     if (onPress) {
       onPress();
     } else {
+      const accentHex = getSentimentColor(normalized.sentimentLabel);
       router.push({
         pathname: `/article/${item.id}` as any,
         params: {
@@ -36,6 +37,7 @@ export default function NewsCard({ item, onTickerPress, showTweet = false, onPre
           seedSentiment: normalized.sentimentLabel,
           seedConfidence: normalized.confidence.toString(),
           seedImpact: normalized.impactLabel,
+          accentHex: accentHex,
         },
       });
     }

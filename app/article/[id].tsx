@@ -93,8 +93,9 @@ export default function ArticleScreen() {
     seedSentiment?: string;
     seedConfidence?: string;
     seedImpact?: string;
+    accentHex?: string;
   }>();
-  const { id, articleId: paramsArticleId, seedSentiment, seedConfidence, seedImpact } = params;
+  const { id, articleId: paramsArticleId, seedSentiment, seedConfidence, seedImpact, accentHex } = params;
   const articleId = paramsArticleId || id;
   
   const navigation = useNavigation();
@@ -146,7 +147,7 @@ export default function ArticleScreen() {
     }
   }, [articleId, seedSentiment, seedConfidence, seedImpact]);
 
-  const accentColor = sentimentColor(analysis.sentiment.label);
+  const accentColor = accentHex || sentimentColor(analysis.sentiment.label);
 
   const sortedComments = useMemo(() => {
     const comments = [...article.comments];
