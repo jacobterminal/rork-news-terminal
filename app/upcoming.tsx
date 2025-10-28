@@ -157,9 +157,9 @@ function EventItem({ item, type, onPress }: EventItemProps) {
   }
 }
 
-const ROW_H = 56;
-
-const monthKey = (m: any) => (m?.value ?? m?.id ?? m?.label ?? String(m));
+function keyOf(m: MonthOption) {
+  return `${m?.year ?? ''}-${m?.value ?? m?.label ?? ''}`;
+}
 
 function MonthList({
   months,
@@ -176,27 +176,37 @@ function MonthList({
   onMonthSelect: (month: number, year: number) => void;
   onClose: () => void;
 }) {
-  const listRef = useRef<FlatList<any>>(null);
-  const [listReady, setListReady] = useState(false);
+  const listRef = useRef<FlatList<MonthOption>>(null);
+  const [containerH, setContainerH] = useState<number | null>(null);
+  const rowHRef = useRef<number | null>(null);
 
-  const selectedIndex = useMemo(
-    () => Math.max(0, months.findIndex((m: MonthOption) => m.value === selectedMonth && m.year === selectedYear)),
-    [months, selectedMonth, selectedYear]
-  );
+  const selIndex = useMemo(() => {
+    const i = months.findIndex(m => m.value === selectedMonth && m.year === selectedYear);
+    return i >= 0 ? i : 0;
+  }, [months, selectedMonth, selectedYear]);
 
-  const centerSelected = useCallback((index = selectedIndex) => {
-    if (!isOpen) return;
-    if (index < 0 || index >= months.length) return;
+  const onSelectedRowLayout = (h: number) => {
+    if (!rowHRef.current && h > 0) rowHRef.current = h;
+  };
+
+  const centerNow = useCallback(() => {
+    const rowH = rowHRef.current;
+    if (!isOpen || containerH == null || rowH == null) return;
+
+    const contentH = months.length * rowH;
+    const ideal = selIndex * rowH - (containerH - rowH) / 2;
+    const offset = Math.max(0, Math.min(ideal, Math.max(0, contentH - containerH)));
+
     requestAnimationFrame(() => {
-      listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: false });
+      listRef.current?.scrollToOffset({ offset, animated: false });
     });
-  }, [isOpen, selectedIndex, months.length]);
+  }, [isOpen, containerH, selIndex, months.length]);
 
   useEffect(() => {
-    if (isOpen && listReady) centerSelected();
-  }, [isOpen, listReady, selectedIndex, centerSelected]);
+    centerNow();
+  }, [isOpen, containerH, selIndex, centerNow]);
 
-  const renderMonthRow = ({ item }: { item: MonthOption }) => {
+  const renderMonthRow = ({ item, index }: { item: MonthOption; index: number }) => {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
@@ -215,6 +225,9 @@ function MonthList({
           onMonthSelect(item.value, item.year);
           onClose();
         }}
+        onLayout={(e) => {
+          if (index === selIndex) onSelectedRowLayout(e.nativeEvent.layout.height);
+        }}
       >
         <Text style={[
           styles.monthOptionText,
@@ -232,27 +245,17 @@ function MonthList({
     <FlatList
       ref={listRef}
       data={months}
-      keyExtractor={(item: MonthOption, i: number) => `${item.year}-${item.value}:${i}`}
+      keyExtractor={(item: MonthOption, i: number) => keyOf(item) + ':' + i}
       renderItem={renderMonthRow}
-      getItemLayout={(_, index) => ({ length: ROW_H, offset: ROW_H * index, index })}
-      initialNumToRender={20}
       showsVerticalScrollIndicator={false}
-      onLayout={() => {
-        setListReady(true);
-      }}
-      onContentSizeChange={() => {
-        setListReady(true);
-        centerSelected();
-      }}
-      onScrollToIndexFailed={(e) => {
+      onLayout={(e) => setContainerH(e.nativeEvent.layout.height)}
+      onScrollToIndexFailed={() => {
         setTimeout(() => {
-          listRef.current?.scrollToIndex({
-            index: e.index,
-            viewPosition: 0.5,
-            animated: false,
-          });
+          centerNow();
         }, 0);
       }}
+      initialNumToRender={months.length}
+      removeClippedSubviews={false}
     />
   );
 }
