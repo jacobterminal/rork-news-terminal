@@ -7,6 +7,7 @@ import { StyleSheet, View, Platform, Text } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Newspaper, Calendar, Zap, Star } from "lucide-react-native";
 import { theme } from "../constants/theme";
+import { BRAND_GOLD, MUTED_GRAY } from "../constants/colors";
 import { NewsStoreProvider, useNewsStore } from "../store/newsStore";
 import { DropdownProvider } from "../store/dropdownStore";
 import { EarningsStoreProvider, useEarningsStore } from "../store/earningsStore";
@@ -34,8 +35,8 @@ function RootLayoutNav() {
           paddingBottom: Math.max(insets.bottom, 6),
           paddingTop: 6,
         },
-        tabBarActiveTintColor: theme.colors.activeCyan,
-        tabBarInactiveTintColor: theme.colors.inactiveGray,
+        tabBarActiveTintColor: BRAND_GOLD,
+        tabBarInactiveTintColor: MUTED_GRAY,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
@@ -73,8 +74,8 @@ function RootLayoutNav() {
           tabBarIcon: ({ color, focused }) => (
             <Zap 
               size={24 * 1.15} 
-              color={focused ? '#FFD700' : theme.colors.inactiveGray}
-              fill={focused ? '#FFD700' : 'none'}
+              color={color}
+              fill={focused ? color : 'none'}
             />
           ),
         }}

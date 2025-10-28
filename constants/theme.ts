@@ -16,8 +16,8 @@ export const theme = {
     neutral: '#F5C518',
     
     // UI accents
-    activeCyan: '#00B8FF',
-    inactiveGray: '#6E7582',
+    activeCyan: '#FFD75A',
+    inactiveGray: '#9CA3AF',
     searchGlow: '#8A2BE2',
     
     // Banner

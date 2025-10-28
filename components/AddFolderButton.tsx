@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { Plus, X } from 'lucide-react-native';
+import { BRAND_GOLD } from '@/constants/colors';
 
 interface AddFolderButtonProps {
   onCreateFolder: (name: string) => void;
@@ -25,7 +26,7 @@ export default function AddFolderButton({ onCreateFolder }: AddFolderButtonProps
         onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
       >
-        <Plus size={20} color="#00B8FF" />
+        <Plus size={20} color={BRAND_GOLD} />
         <Text style={styles.addButtonText}>Add Folder</Text>
       </TouchableOpacity>
 
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#0C0C0E',
     borderWidth: 2,
-    borderColor: '#00B8FF',
+    borderColor: BRAND_GOLD,
     borderStyle: 'dashed',
     borderRadius: 12,
     paddingVertical: 16,
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addButtonText: {
-    color: '#00B8FF',
+    color: BRAND_GOLD,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1F1F23',
   },
   createButton: {
-    backgroundColor: '#00B8FF',
+    backgroundColor: BRAND_GOLD,
   },
   cancelButtonText: {
     color: '#9FA6B2',
