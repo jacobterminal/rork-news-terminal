@@ -204,7 +204,7 @@ function MonthList({
 
   useEffect(() => {
     centerNow();
-  }, [isOpen, containerH, selIndex, centerNow]);
+  }, [isOpen, containerH, selIndex]);
 
   const renderMonthRow = ({ item, index }: { item: MonthOption; index: number }) => {
     const currentDate = new Date();
@@ -218,15 +218,12 @@ function MonthList({
     const isFutureMonth = monthDate > currentMonthDate;
     const isSelected = selectedMonth === item.value && selectedYear === item.year;
     
-    return (
+    const row = (
       <TouchableOpacity
         style={[styles.monthOption, isSelected && styles.selectedMonthOption]}
         onPress={() => {
           onMonthSelect(item.value, item.year);
           onClose();
-        }}
-        onLayout={(e) => {
-          if (index === selIndex) onSelectedRowLayout(e.nativeEvent.layout.height);
         }}
       >
         <Text style={[
@@ -239,6 +236,12 @@ function MonthList({
         </Text>
       </TouchableOpacity>
     );
+
+    return React.cloneElement(row as any, {
+      onLayout: (e: any) => {
+        if (index === selIndex) onSelectedRowLayout(e.nativeEvent.layout.height);
+      }
+    });
   };
 
   return (
