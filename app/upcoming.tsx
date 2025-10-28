@@ -162,6 +162,7 @@ function keyOf(m: MonthOption) {
 }
 
 const ROW_H = 52;
+const MONTH_ROW_HEIGHT = 48;
 
 function MonthList({
   months,
@@ -207,26 +208,29 @@ function MonthList({
     const isFutureMonth = monthDate > currentMonthDate;
     const isSelected = selectedMonth === item.value && selectedYear === item.year;
     
-    const row = (
+    return (
       <TouchableOpacity
-        style={[styles.monthOption, isSelected && styles.selectedMonthOption, { height: ROW_H }]}
+        style={styles.monthRowPressable}
         onPress={() => {
           onMonthSelect(item.value, item.year);
           onClose();
         }}
       >
-        <Text style={[
-          styles.monthOptionText,
-          isCurrentMonth && styles.currentMonthText,
-          isPastMonth && styles.pastMonthText,
-          isFutureMonth && styles.futureMonthText
-        ]}>
-          {item.label}
-        </Text>
+        <View style={styles.monthRowInner}>
+          <View style={[styles.monthPill, isSelected && styles.monthPillSelected]}>
+            <Text style={[
+              styles.monthLabel,
+              isSelected && styles.monthLabelSelected,
+              isCurrentMonth && styles.currentMonthText,
+              isPastMonth && styles.pastMonthText,
+              isFutureMonth && styles.futureMonthText
+            ]}>
+              {item.label}
+            </Text>
+          </View>
+        </View>
       </TouchableOpacity>
     );
-
-    return row;
   };
 
   return (
@@ -1191,6 +1195,34 @@ const styles = StyleSheet.create({
   },
   monthList: {
     maxHeight: 300,
+  },
+  monthRowPressable: {
+    height: MONTH_ROW_HEIGHT,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthRowInner: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthPill: {
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  monthPillSelected: {
+    backgroundColor: '#2A2A2A',
+  },
+  monthLabel: {
+    fontSize: 17,
+    lineHeight: 17,
+    textAlign: 'center',
+    color: '#EDEDED',
+  },
+  monthLabelSelected: {
+    color: '#00D46B',
+    fontWeight: '600' as const,
   },
   monthOption: {
     paddingVertical: theme.spacing.md,
