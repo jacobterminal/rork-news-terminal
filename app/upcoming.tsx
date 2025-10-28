@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform, Animated, PanResponder, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, Dimensions, Platform, Animated, PanResponder, ActivityIndicator, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useRoute, useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -170,7 +170,8 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
 }) {
   const { registerDropdown, shouldCloseDropdown } = useDropdown();
   const dropdownId = 'month-picker';
-  const monthScrollRef = useRef<ScrollView>(null);
+  const MONTH_ITEM_HEIGHT = 56;
+  const monthListRef = useRef<FlatList<MonthOption>>(null);
   const calendarScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -184,26 +185,24 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
   }, [showMonthPicker, registerDropdown, dropdownId]);
   
   useEffect(() => {
-    if (showMonthPicker && monthScrollRef.current) {
-      const selectedMonthIndex = monthOptions.findIndex(
-        option => option.value === selectedMonth && option.year === selectedYear
-      );
-      
-      if (selectedMonthIndex !== -1) {
-        requestAnimationFrame(() => {
-          const itemHeight = 56;
-          const modalHeight = Dimensions.get('window').height * 0.6;
-          const visibleHeight = Math.min(300, modalHeight - 100);
-          const scrollY = Math.max(0, (selectedMonthIndex * itemHeight) - (visibleHeight / 2) + (itemHeight / 2));
-          
-          monthScrollRef.current?.scrollTo({
-            y: scrollY,
-            animated: false,
-          });
-        });
-      }
-    }
-  }, [showMonthPicker, monthOptions, selectedMonth, selectedYear]);
+    if (!showMonthPicker) return;
+
+    const idx = monthOptions.findIndex(
+      option => option.value === selectedMonth && option.year === selectedYear
+    );
+    if (idx < 0) return;
+
+    const centerNow = () => {
+      monthListRef.current?.scrollToIndex({
+        index: idx,
+        viewPosition: 0.5,
+        animated: false
+      });
+    };
+
+    requestAnimationFrame(centerNow);
+    setTimeout(centerNow, 0);
+  }, [showMonthPicker, selectedMonth, selectedYear, monthOptions]);
   
   useEffect(() => {
     if (calendarDays.length > 0 && calendarScrollRef.current) {
@@ -284,12 +283,32 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
         >
           <View style={styles.monthPickerModal}>
             <Text style={styles.modalTitle}>Select Month</Text>
-            <ScrollView 
-              ref={monthScrollRef} 
+            <FlatList
+              ref={monthListRef}
+              data={monthOptions}
+              keyExtractor={(m) => `${m.year}-${m.value}`}
               style={styles.monthList}
               showsVerticalScrollIndicator={false}
-            >
-              {monthOptions.map((month) => {
+              getItemLayout={(_, index) => ({
+                length: MONTH_ITEM_HEIGHT,
+                offset: MONTH_ITEM_HEIGHT * index,
+                index
+              })}
+              initialScrollIndex={Math.max(
+                0,
+                monthOptions.findIndex(
+                  option => option.value === selectedMonth && option.year === selectedYear
+                )
+              )}
+              onScrollToIndexFailed={(info) => {
+                setTimeout(() => {
+                  monthListRef.current?.scrollToOffset({
+                    offset: info.averageItemLength * info.index,
+                    animated: false
+                  });
+                }, 0);
+              }}
+              renderItem={({ item: month }) => {
                 const currentDate = new Date();
                 const currentMonth = currentDate.getMonth();
                 const currentYear = currentDate.getFullYear();
@@ -303,7 +322,6 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
                 
                 return (
                   <TouchableOpacity
-                    key={`${month.year}-${month.value}`}
                     style={[styles.monthOption, isSelected && styles.selectedMonthOption]}
                     onPress={() => {
                       onMonthSelect(month.value, month.year);
@@ -320,8 +338,8 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
                     </Text>
                   </TouchableOpacity>
                 );
-              })}
-            </ScrollView>
+              }}
+            />
           </View>
         </TouchableOpacity>
       </Modal>
