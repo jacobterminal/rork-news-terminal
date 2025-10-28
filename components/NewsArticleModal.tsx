@@ -17,7 +17,7 @@ import { theme } from '@/constants/theme';
 import { FeedItem, CriticalAlert } from '@/types/news';
 import { useNewsStore } from '@/store/newsStore';
 import ArticleLinkPill from './ArticleLinkPill';
-import { sentimentColor, sentimentLabel } from '@/utils/newsNormalize';
+import { normalizeNewsItem, sentimentColor, sentimentLabel } from '@/utils/newsNormalize';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -196,8 +196,12 @@ export default function NewsArticleModal({ visible, article, onClose, onTickerPr
   const sourceLabel = typeof source === 'string' ? source : 'Read Source';
   const articleUrl = ('url' in article ? article.url : '') || '';
   
-  const normalizedSentiment = sentiment || 'Neutral';
-  const accentColor = sentimentColor(normalizedSentiment);
+  const normalizedFromArticle =
+    article ? normalizeNewsItem(article as any, (article as any).classification) : null;
+  
+  const accentColor =
+    normalizedFromArticle?.uiBorderColor
+      ?? sentimentColor((aiContent?.sentiment || 'Neutral'));
 
   return (
     <Modal
