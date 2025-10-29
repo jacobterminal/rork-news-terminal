@@ -13,7 +13,8 @@ import { useNavigationStore } from '../store/navigationStore';
 import { getEarningsSession, getSessionAriaLabel } from '../utils/newsUtils';
 import UniversalBackButton from '../components/UniversalBackButton';
 
-const GOLD = theme?.colors?.activeCyan ?? '#FFD75A';
+const GOLD = '#FFD75A';
+const GOLD_FAINT = 'rgba(255,215,90,0.6)';
 const SUCCESS = theme?.colors?.bullish ?? '#00C853';
 
 interface CalendarDay {
@@ -1022,7 +1023,7 @@ const styles = StyleSheet.create({
   calendarContainer: {
     backgroundColor: theme.colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: GOLD,
   },
   calendarStrip: {
     paddingHorizontal: theme.spacing.md,
@@ -1242,6 +1243,8 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     width: '80%',
     maxHeight: '60%',
+    borderWidth: 1,
+    borderColor: GOLD,
   },
   modalTitle: {
     fontSize: 18,
