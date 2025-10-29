@@ -335,10 +335,7 @@ function CalendarStrip({ selectedDate, onDateSelect, calendarDays, selectedMonth
     <View style={styles.calendarContainer}>
       <View style={styles.calendarHeader}>
         <TouchableOpacity 
-          style={[
-            styles.monthSelector,
-            showMonthPicker && { borderColor: GOLD, borderWidth: 1 }
-          ]}
+          style={styles.monthSelector}
           onPress={() => setShowMonthPicker(true)}
         >
           <Text style={[
@@ -1094,7 +1091,7 @@ const styles = StyleSheet.create({
   sectionDivider: {
     flex: 1,
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: GOLD,
     marginLeft: theme.spacing.md,
   },
   sectionTitle: {
@@ -1224,7 +1221,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
     borderRadius: 6,
     alignSelf: 'flex-start',
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: GOLD,
   },
   monthText: {
     fontSize: 14,
@@ -1280,7 +1278,7 @@ const styles = StyleSheet.create({
     color: '#EDEDED',
   },
   monthLabelSelected: {
-    color: '#00D46B',
+    color: GOLD,
     fontWeight: '600' as const,
   },
   monthOption: {
